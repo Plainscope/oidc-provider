@@ -3,8 +3,11 @@ import { Provider } from 'oidc-provider';
 import assert from 'assert';
 import { Profile } from '../profile';
 
-// Helper function to format objects for debugging
-const debug = (obj: any): string => JSON.stringify(obj, null, 2);
+// Production mode flag
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Helper function to format objects for debugging (disabled in production)
+const debug = (obj: any): string => isProduction ? '' : JSON.stringify(obj, null, 2);
 
 
 /**
@@ -185,5 +188,21 @@ export default (app: Express, provider: Provider) => {
       console.error(`[INTERACTION] Error in GET /interaction/:uid/abort:`, err);
       next(err);
     }
+  });
+
+  // Custom error renderer for OIDC errors
+  app.get('/error', (req, res) => {
+    const error = req.query.error as string || 'Unknown Error';
+    const error_description = req.query.error_description as string;
+    const state = req.query.state as string;
+
+    console.log(`[INTERACTION] Rendering error page: ${error} - ${error_description}`);
+
+    return res.render('error', {
+      title: error,
+      error,
+      error_description,
+      state,
+    });
   });
 };

@@ -3,41 +3,54 @@ extends layout
 block content
   .consent-container
     h2 #{title}
+    
     if client
       .client-info
-        h3 Application Authorization
-        p.client-name
-          strong #{client.clientName || client.clientId}
-          |  is requesting access to your account
-    if details && details.missingOIDCScope
-      .scopes
-        h4 This application would like to:
-        ul
-          each scope in details.missingOIDCScope
-            li= scope
-    if details && details.missingOIDCClaims
-      .claims
-        h4 Access the following information:
-        ul
-          each claim in details.missingOIDCClaims
-            li= claim
+        h3 #{client.clientName || client.clientId}
+        p This application is requesting permission to access your account.
+    
+    .permissions-section
+      if details && details.missingOIDCScope
+        .permission-group
+          h4 Basic Information
+          ul.permission-list
+            each scope in details.missingOIDCScope
+              li
+                span.permission-icon ✓
+                span.permission-text= scope
+      
+      if details && details.missingOIDCClaims
+        .permission-group
+          h4 Profile Data
+          ul.permission-list
+            each claim in details.missingOIDCClaims
+              li
+                span.permission-icon ✓
+                span.permission-text= claim
+    
+    .consent-notice
+      p By clicking "Authorize", you allow this application to access your information as described above.
+    
     .actions
       form(action=`/interaction/${uid}/confirm`, method="post")
         button.btn.btn-primary(type="submit") Authorize
       form(action=`/interaction/${uid}/abort`, method="post")
         button.btn.btn-secondary(type="submit") Deny
-    if session
+    
+    if session && session !== ''
       details.session-debug
         h4 Session Information
         pre= session
-    if dbg
+    
+    if dbg && (dbg.params !== '' || dbg.prompt !== '')
       details.debug-info
         h4 Debug Information
-        if dbg.params
+        if dbg.params && dbg.params !== ''
           div
             strong Parameters:
             pre= dbg.params
-        if dbg.prompt
+        if dbg.prompt && dbg.prompt !== ''
           div
             strong Prompt:
             pre= dbg.prompt
+

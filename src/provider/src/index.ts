@@ -20,10 +20,36 @@ console.log('[INIT] Starting OIDC Provider with environment:', {
 const PORT = process.env.PORT || 8080;
 const ISSUER = process.env.ISSUER || `http://localhost:${PORT}`;
 
+/**
+ * Main entry point for OIDC Provider server.
+ * Sets up Express, view engine, static files, and OIDC routes.
+ */
+const app: Express = express();
+app.set('views', './views');
+app.set('view engine', 'pug');
+console.log('[INIT] Express app configured with Pug view engine and views directory ./views');
+
 // Initialize OIDC Provider with configuration and custom account finder
 const provider = new Provider(ISSUER, {
   ...configuration,
   findAccount: Profile.find,
+  renderError: async (ctx, out, _error) => {
+    console.log('[CONFIG] Custom error renderer called:', { error: out.error, error_description: out.error_description });
+
+    // Render using the Express app's render method
+    ctx.type = 'html';
+    ctx.body = await new Promise<string>((resolve, reject) => {
+      app.render('error', {
+        title: 'Authorization Error',
+        error: out.error || 'unknown_error',
+        error_description: out.error_description || 'An unexpected error occurred',
+        state: out.state,
+      }, (err, html) => {
+        if (err) reject(err);
+        else resolve(html);
+      });
+    });
+  },
 });
 console.log(`[INIT] OIDC Provider initialized with issuer: ${ISSUER}`);
 
@@ -36,15 +62,6 @@ provider.use(async (ctx, next) => {
   console.log(`[PROVIDER] ${ctx.method} ${ctx.path} - Headers:`, ctx.headers);
   await next();
 });
-
-/**
- * Main entry point for OIDC Provider server.
- * Sets up Express, view engine, static files, and OIDC routes.
- */
-const app: Express = express();
-app.set('views', './views');
-app.set('view engine', 'pug');
-console.log('[INIT] Express app configured with Pug view engine and views directory ./views');
 
 // Serve static files (CSS, images, etc.)
 app.use(express.static('./public'));
@@ -60,6 +77,18 @@ console.log('[INIT] OIDC interaction routes registered');
 // OIDC Provider callback for protocol endpoints
 app.use(provider.callback());
 console.log('[INIT] OIDC protocol endpoints registered');
+
+// Custom error handler for OIDC errors
+app.get('/error', (req, res) => {
+  const { error, error_description, state } = req.query;
+  console.log('[ERROR_HANDLER] Rendering custom error page:', { error, error_description });
+  res.render('error', {
+    title: 'Authorization Error',
+    error: error || 'unknown_error',
+    error_description: error_description || 'An unexpected error occurred',
+    state,
+  });
+});
 
 // Start the server and log configuration
 const server = app.listen(PORT, () => {

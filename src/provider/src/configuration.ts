@@ -16,6 +16,7 @@ console.log(`[CONFIG] Using config file path: ${configFilePath}`);
 // Load client metadata from environment or defaults
 const CLIENTS: ClientMetadata[] = process.env.CLIENTS ? JSON.parse(process.env.CLIENTS) : [
   {
+    client_name: process.env.CLIENT_NAME || 'Demo',
     client_id: process.env.CLIENT_ID || '325c2ce7-7390-411b-af3a-2bdf5a260f9d',
     client_secret: process.env.CLIENT_SECRET || 'a74566f905056b6806d69afc09f2803d1aa477e1d708540683994d6e4745334a',
     redirect_uris: process.env.REDIRECT_URIS ? process.env.REDIRECT_URIS.split(',') : [],
@@ -39,7 +40,6 @@ console.log('[CONFIG] Base configuration loaded:', configuration);
 
 // Set default configuration values if not provided
 configuration = {
-  ...configuration,
   clients: CLIENTS,
   cookies: process.env.COOKIES ? JSON.parse(process.env.COOKIES) : {
     keys: process.env.COOKIES_KEYS ? JSON.parse(process.env.COOKIES_KEYS) : [
@@ -58,7 +58,8 @@ configuration = {
     devInteractions: {
       enabled: process.env.FEATURES_DEV_INTERACTIONS === 'true',
     },
-  }
+  },
+  ...configuration,
 };
 console.log('[CONFIG] Final merged configuration:', configuration);
 

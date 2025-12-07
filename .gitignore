@@ -141,3 +141,6 @@ vite.config.ts.timestamp-*
 # dotnet build output
 bin/
 obj/
+
+# Playwright MCP artifacts
+.playwright-mcp

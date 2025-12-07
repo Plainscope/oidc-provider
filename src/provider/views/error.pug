@@ -1,0 +1,21 @@
+extends layout
+
+block content
+  .error-container
+    .error-icon ⚠️
+    h2 #{title || 'Error'}
+    
+    if error
+      .error-message
+        p= error
+    
+    if error_description
+      .error-details
+        p= error_description
+    
+    .error-actions
+      a.btn.btn-primary(href="/") Return to Home
+      if state
+        form(action="/auth/resume", method="post", style="display:inline")
+          input(type="hidden", name="state", value=state)
+          button.btn.btn-secondary(type="submit") Try Again
