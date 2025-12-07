@@ -1,0 +1,16 @@
+extends layout
+
+block content
+  .abort-container
+    h2 #{title}
+    
+    .message
+      p Authorization cancelled.
+      p You have denied access to the application.
+    
+    .actions
+      a.btn.btn-primary(href="/") Return to Home
+    
+    if content
+      .debug
+        pre= content

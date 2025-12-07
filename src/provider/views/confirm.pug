@@ -1,0 +1,16 @@
+extends layout
+
+block content
+  .confirm-container
+    h2 #{title}
+    
+    .message
+      p Authorization successful!
+      p You have granted access to the application.
+    
+    .actions
+      a.btn.btn-primary(href="/") Return to Home
+    
+    if content
+      .debug
+        pre= content

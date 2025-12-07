@@ -1,7 +1,11 @@
+/**
+ * User interface defines the structure of user objects for OIDC Provider.
+ * Includes standard OpenID Connect claims and custom fields.
+ */
 export interface User {
-  id: string; // required
-  email: string; // required
-  password: string; // required
+  id: string; // required, unique user identifier
+  email: string; // required, user email address
+  password: string; // required, user password (hashed in production)
 
   address?: {
     country?: string,

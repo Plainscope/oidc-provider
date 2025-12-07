@@ -1,10 +1,19 @@
+/**
+ * Loads and merges OIDC Provider configuration from environment, file, or defaults.
+ * Handles client registration, claims, cookies, and feature flags.
+ */
 import { ClientMetadata, Configuration } from 'oidc-provider';
 import path from "node:path";
 import fs from "node:fs";
 
-// File path to the users.json file
-const configFilePath = process.env.CONFIG_FILE || path.join(__dirname, 'config.json');
+// Log configuration loading
+console.log('[CONFIG] Loading OIDC configuration...');
 
+// File path to the config.json file
+const configFilePath = process.env.CONFIG_FILE || path.join(__dirname, 'config.json');
+console.log(`[CONFIG] Using config file path: ${configFilePath}`);
+
+// Load client metadata from environment or defaults
 const CLIENTS: ClientMetadata[] = process.env.CLIENTS ? JSON.parse(process.env.CLIENTS) : [
   {
     client_id: process.env.CLIENT_ID || '325c2ce7-7390-411b-af3a-2bdf5a260f9d',
@@ -18,12 +27,15 @@ const CLIENTS: ClientMetadata[] = process.env.CLIENTS ? JSON.parse(process.env.C
     application_type: process.env.APPLICATION_TYPE || 'web',
   }
 ];
+console.log(`[CONFIG] Registered clients:`, CLIENTS.map(c => c.client_id));
 
+// Load main configuration from environment, file, or defaults
 let configuration: Configuration = process.env.CONFIG ?
   JSON.parse(process.env.CONFIG) :
   fs.existsSync(configFilePath) ?
     JSON.parse(fs.readFileSync(configFilePath, "utf-8")) :
     {} as Configuration;
+console.log('[CONFIG] Base configuration loaded:', configuration);
 
 // Set default configuration values if not provided
 configuration = {
@@ -48,5 +60,6 @@ configuration = {
     },
   }
 };
+console.log('[CONFIG] Final merged configuration:', configuration);
 
 export { configuration };

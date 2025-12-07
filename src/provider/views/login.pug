@@ -1,0 +1,40 @@
+extends layout
+
+block content
+  .login-container
+    h2 #{title}
+    
+    if client
+      .client-info
+        p
+          strong #{client.clientName || client.clientId}
+          |  is requesting access to your account
+    
+    form(action=`/interaction/${uid}/login`, method="post")
+      .form-group
+        label(for="username") Username:
+        input.form-control(type="text", id="username", name="username", required, autofocus)
+      
+      .form-group
+        label(for="password") Password:
+        input.form-control(type="password", id="password", name="password", required)
+      
+      .form-actions
+        button.btn.btn-primary(type="submit") Sign In
+    
+    if session
+      details.session-debug
+        h4 Session Information
+        pre= session
+    
+    if dbg
+      details.debug-info
+        h4 Debug Information
+        if dbg.params
+          div
+            strong Parameters:
+            pre= dbg.params
+        if dbg.prompt
+          div
+            strong Prompt:
+            pre= dbg.prompt

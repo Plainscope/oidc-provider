@@ -10,7 +10,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "oidc-provider": "^9.5.2"
+    "express": "^5.2.1",
+    "oidc-provider": "^9.5.2",
+    "pug": "^3.0.3"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
