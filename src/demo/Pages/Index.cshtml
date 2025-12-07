@@ -1,0 +1,30 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+<div class="card">
+    <h2>Welcome to the OIDC Razor Pages demo</h2>
+    <p>This sample signs in against the local OIDC provider and shows your profile and claims.</p>
+    <div class="button-row">
+        @if (User?.Identity?.IsAuthenticated == true)
+        {
+            <form method="post" action="/auth/signout">
+                <button class="btn secondary" type="submit">Sign out</button>
+            </form>
+            <a class="btn primary" href="/Profile">View profile</a>
+        }
+        else
+        {
+            <a class="btn primary" href="/auth/signin">Sign in</a>
+        }
+    </div>
+</div>
+@if (User?.Identity?.IsAuthenticated == true)
+{
+    <div class="card">
+        <h3>Quick glance</h3>
+        <p><strong>Name:</strong> @Model.DisplayName</p>
+        <p><strong>Email:</strong> @Model.Email</p>
+    </div>
+}

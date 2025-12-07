@@ -1,0 +1,50 @@
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.AspNetCore.Authentication.OpenIdConnect
+@{
+    var userName = User?.Identity?.IsAuthenticated == true ? (User.Identity?.Name ?? "Account") : null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OIDC Demo - @ViewData["Title"]</title>
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <header class="top-nav">
+        <div class="brand">
+            <a href="/">OIDC Demo</a>
+        </div>
+        <div class="nav-actions">
+            @if (User?.Identity?.IsAuthenticated == true)
+            {
+                <div class="user-menu">
+                    <button class="user-button" aria-haspopup="true">
+                        <span class="user-name">@userName</span>
+                        <span class="caret">▼</span>
+                    </button>
+                    <div class="dropdown">
+                        <a href="/Profile">Profile</a>
+                        <form method="post" action="/auth/signout">
+                            <button type="submit">Sign out</button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <a class="sign-in" href="/auth/signin">Sign in</a>
+            }
+        </div>
+    </header>
+    <main role="main" class="content">
+        @RenderBody()
+    </main>
+    <footer class="footer">
+        <p>OIDC Demo · @DateTime.UtcNow.Year</p>
+    </footer>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
