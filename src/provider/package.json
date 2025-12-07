@@ -1,0 +1,46 @@
+{
+  "name": "oidc-provider",
+  "version": "0.0.1",
+  "description": "OAuth 2.0 (RFC 6749) Authorization Server with support for OpenID Connect (OIDC) based on https://github.com/panva/node-oidc-provider",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "oidc-provider": "^9.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/oidc-provider": "^9.5.0",
+    "typescript": "^5.3.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Plainscope/oidc-provider.git"
+  },
+  "keywords": [
+    "auth",
+    "oauth",
+    "authentication",
+    "authorization",
+    "oauth",
+    "2.0",
+    "oauth",
+    "2.1",
+    "oauth",
+    "oauth2",
+    "oidc",
+    "openid",
+    "provider",
+    "server"
+  ],
+  "author": "Plainscope",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Plainscope/oidc-provider/issues"
+  },
+  "homepage": "https://github.com/Plainscope/oidc-provider#readme"
+}
