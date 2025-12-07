@@ -76,7 +76,11 @@ export class Profile implements Account {
    */
   static async authenticate(email: string, password: string) {
     console.log(`[PROFILE] Authenticating user: ${email}`);
-    const user = Users.find(u => u.email === email && u.password === password);
+    const user = Users.find(u => (
+      u.username === email || u.email === email
+    ) &&
+      u.password === password
+    );
     if (!user) {
       console.warn(`[PROFILE] Authentication failed for email: ${email}`);
       return undefined;

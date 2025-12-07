@@ -62,10 +62,19 @@ app.use(provider.callback());
 console.log('[INIT] OIDC protocol endpoints registered');
 
 // Start the server and log configuration
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`[SERVER] OIDC Provider is listening on port ${PORT}, issuer: ${ISSUER}`);
   console.log(`[SERVER] Configuration loaded from ${process.env.CONFIG ? 'environment variable' : (process.env.CONFIG_FILE || './config.json')}`);
   console.log(`[SERVER] Configured clients: ${configuration.clients?.length || 0}`);
   console.log(`[SERVER] Number of users: ${require('./users').Users.length}`);
   console.log(`[SERVER] Proxy mode is ${provider.proxy ? 'enabled' : 'disabled'}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, closing server...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });

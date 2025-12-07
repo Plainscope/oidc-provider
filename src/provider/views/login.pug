@@ -3,6 +3,8 @@ extends layout
 block content
   .login-container
     h2 #{title}
+    if error
+      .error-banner= error
     
     if client
       .client-info
@@ -12,8 +14,8 @@ block content
     
     form(action=`/interaction/${uid}/login`, method="post")
       .form-group
-        label(for="username") Username:
-        input.form-control(type="text", id="username", name="username", required, autofocus)
+        label(for="email") Email:
+        input.form-control(type="email", id="email", name="email", required, autofocus)
       
       .form-group
         label(for="password") Password:

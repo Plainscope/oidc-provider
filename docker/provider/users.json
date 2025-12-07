@@ -1,0 +1,62 @@
+[
+  {
+    "id": "8276bb5b-d0b7-41e9-a805-77b62a2865f4",
+    "email": "admin@localhost",
+    "password": "Rays-93-Accident",
+    "address": {
+      "country": "Germany",
+      "formatted": "123 Main Street, 10115 Berlin, Germany",
+      "locality": "Berlin",
+      "postal_code": "10115",
+      "region": "Berlin",
+      "street_address": "123 Main Street"
+    },
+    "birthdate": "1987-10-16",
+    "email_verified": false,
+    "family_name": "Doe",
+    "gender": "male",
+    "given_name": "John",
+    "locale": "en-US",
+    "middle_name": "Middle",
+    "name": "John Doe",
+    "nickname": "Johny",
+    "phone_number": "+49 000 000000",
+    "phone_number_verified": false,
+    "picture": "http://lorempixel.com/400/200/",
+    "preferred_username": "johnny",
+    "profile": "https://johnswebsite.com",
+    "updated_at": 1454704946,
+    "website": "http://example.com",
+    "zoneinfo": "Europe/Berlin"
+  },
+  {
+    "id": "c1a5f5e3-5c3e-4f8b-8e1e-5f7c3e8e1d2b",
+    "email": "user@localhost",
+    "password": "Signal-27-Bridge",
+    "address": {
+      "country": "Canada",
+      "formatted": "456 Elm Street, Toronto, ON, M5A 1A1, Canada",
+      "locality": "Toronto",
+      "postal_code": "M5A 1A1",
+      "region": "Ontario",
+      "street_address": "456 Elm Street"
+    },
+    "birthdate": "1990-05-22",
+    "email_verified": true,
+    "family_name": "Smith",
+    "gender": "female",
+    "given_name": "Emily",
+    "locale": "en-CA",
+    "middle_name": "Anne",
+    "name": "Emily Anne Smith",
+    "nickname": "Em",
+    "phone_number": "+1 416 555 1234",
+    "phone_number_verified": true,
+    "picture": "http://lorempixel.com/400/200/",
+    "preferred_username": "emilysmith",
+    "profile": "https://emilyswebsite.com",
+    "updated_at": 1654704946,
+    "website": "http://example.ca",
+    "zoneinfo": "America/Toronto"
+  }
+]

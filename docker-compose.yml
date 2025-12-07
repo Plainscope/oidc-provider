@@ -1,0 +1,47 @@
+services:
+  provider:
+    build:
+      context: ./src/provider
+      dockerfile: Dockerfile
+    container_name: oidc-provider
+    environment:
+      PORT: 8080
+      ISSUER: http://provider:8080
+      CLIENT_ID: 85125d57-a403-4fe2-84d8-62c6db9b6d73
+      CLIENT_SECRET: +XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq
+      REDIRECT_URIS: http://localhost:8080/signin-oidc
+      POST_LOGOUT_REDIRECT_URIS: http://localhost:8080/Auth/SignedOut
+      FEATURES_DEV_INTERACTIONS: false
+    volumes:
+      - ./docker/provider/users.json:/app/dist/users.json:ro
+    ports:
+      - "9080:8080"
+    networks:
+      - oidc-net
+
+  demo:
+    build:
+      context: ./src/demo
+      dockerfile: Dockerfile
+    container_name: oidc-demo
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Development
+      OPENID__AUTHORITY: http://provider:8080
+      OPENID__PUBLICORIGIN: http://localhost:9080
+      OPENID__CLIENTID: 85125d57-a403-4fe2-84d8-62c6db9b6d73
+      OPENID__CLIENTSECRET: +XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq
+      OPENID__REQUIREHTTPSMETADATA: false
+      OPENID__SCOPES__0: openid
+      OPENID__SCOPES__1: profile
+      OPENID__SCOPES__2: email
+    depends_on:
+      - provider
+    ports:
+      - "8080:8080"
+    networks:
+      - oidc-net
+
+networks:
+  oidc-net:
+    driver: bridge

@@ -62,19 +62,44 @@ export default (app: Express, provider: Provider) => {
   // POST /interaction/:uid/login - Handles login form submission
   app.post('/interaction/:uid/login', async (req, res, next) => {
     try {
-      const { prompt: { name } } = await provider.interactionDetails(req, res);
+      const interaction = await provider.interactionDetails(req, res);
+      const { uid, prompt, params, session } = interaction;
+      const { name } = prompt;
       assert.equal(name, 'login');
+      const client = await provider.Client.find(params.client_id as string);
+
       const { email, password } = req.body;
-      console.log(`[INTERACTION] POST /interaction/${req.params.uid}/login - email: ${email}`);
+      console.log(`[INTERACTION] POST /interaction/${uid}/login - email: ${email}`);
+
       if (!email || !password) {
         console.warn(`[INTERACTION] Missing email or password`);
-        throw new Error('Invalid request: email and password are required');
+        return res.status(400).render('login', {
+          client,
+          uid,
+          details: prompt.details,
+          params,
+          title: 'Sign-in',
+          session: session ? debug(session) : undefined,
+          dbg: { params: debug(params), prompt: debug(prompt) },
+          error: 'Email and password are required',
+        });
       }
+
       const account = await Profile.authenticate(email, password);
       if (!account) {
         console.warn(`[INTERACTION] Invalid credentials for email: ${email}`);
-        throw new Error('Invalid email or password');
+        return res.status(401).render('login', {
+          client,
+          uid,
+          details: prompt.details,
+          params,
+          title: 'Sign-in',
+          session: session ? debug(session) : undefined,
+          dbg: { params: debug(params), prompt: debug(prompt) },
+          error: 'Invalid email or password',
+        });
       }
+
       const result = {
         login: {
           accountId: account.accountId,
