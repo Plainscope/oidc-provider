@@ -116,12 +116,16 @@ export class SqliteAdapter implements Adapter {
   upsert(id: string, payload: AdapterPayload, expiresIn: number): Promise<undefined | void> {
     return new Promise((resolve, reject) => {
       try {
-        initializeDatabase();
+        const database = initializeDatabase();
+        if (!database) {
+          throw new Error('Database not initialized');
+        }
+        
         const expiresAt = expiresIn ? Math.floor(Date.now() / 1000) + expiresIn : null;
         const payloadStr = JSON.stringify(payload);
 
         // Use SQLite UPSERT for atomic operation (more efficient than SELECT + INSERT/UPDATE)
-        const upsertStmt = db!.prepare(`
+        const upsertStmt = database.prepare(`
           INSERT INTO oidc_models (id, model_name, payload, expires_at) 
           VALUES (?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET 
@@ -158,8 +162,13 @@ export class SqliteAdapter implements Adapter {
         initializeDatabase();
         const now = Math.floor(Date.now() / 1000);
 
+        // Ensure statement is initialized
+        if (!statements.find) {
+          throw new Error('Find statement not initialized');
+        }
+
         // Use prepared statement
-        const row = statements.find!.get(id, now) as { payload: string; expires_at: number | null } | undefined;
+        const row = statements.find.get(id, now) as { payload: string; expires_at: number | null } | undefined;
 
         if (!row) {
           resolve(undefined);
@@ -268,8 +277,13 @@ export class SqliteAdapter implements Adapter {
       try {
         initializeDatabase();
 
+        // Ensure statement is initialized
+        if (!statements.consume) {
+          throw new Error('Consume statement not initialized');
+        }
+
         // Use prepared statement
-        statements.consume!.run(id);
+        statements.consume.run(id);
 
         console.log(`[SqliteAdapter:${this.modelName}] Consumed: ${id}`);
         resolve();
@@ -295,8 +309,13 @@ export class SqliteAdapter implements Adapter {
       try {
         initializeDatabase();
 
+        // Ensure statement is initialized
+        if (!statements.destroy) {
+          throw new Error('Destroy statement not initialized');
+        }
+
         // Use prepared statement
-        statements.destroy!.run(id);
+        statements.destroy.run(id);
 
         console.log(`[SqliteAdapter:${this.modelName}] Destroyed: ${id}`);
         resolve();

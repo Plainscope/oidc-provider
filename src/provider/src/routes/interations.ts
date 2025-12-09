@@ -110,6 +110,9 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
       const rawEmail = req.body.email;
       const rawPassword = req.body.password;
       
+      // Start timing for attack prevention (must be before any validation)
+      const startTime = Date.now();
+      
       // Sanitize and validate inputs
       let email: string;
       let password: string;
@@ -119,6 +122,13 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
         password = sanitizeInput(rawPassword);
       } catch (error) {
         console.warn(`[INTERACTION] Input validation error:`, error);
+        
+        // Ensure minimum response time even for validation errors
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < MIN_AUTH_RESPONSE_TIME) {
+          await new Promise(resolve => setTimeout(resolve, MIN_AUTH_RESPONSE_TIME - elapsedTime));
+        }
+        
         return res.status(400).render('login', {
           client,
           uid,
@@ -135,6 +145,13 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
 
       if (!email || !password) {
         console.warn(`[INTERACTION] Missing email or password`);
+        
+        // Ensure minimum response time
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < MIN_AUTH_RESPONSE_TIME) {
+          await new Promise(resolve => setTimeout(resolve, MIN_AUTH_RESPONSE_TIME - elapsedTime));
+        }
+        
         return res.status(400).render('login', {
           client,
           uid,
@@ -150,6 +167,13 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
       // Validate email format
       if (!isValidEmail(email)) {
         console.warn(`[INTERACTION] Invalid email format: ${email}`);
+        
+        // Ensure minimum response time
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < MIN_AUTH_RESPONSE_TIME) {
+          await new Promise(resolve => setTimeout(resolve, MIN_AUTH_RESPONSE_TIME - elapsedTime));
+        }
+        
         return res.status(400).render('login', {
           client,
           uid,
@@ -161,9 +185,6 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
           error: 'Invalid email format',
         });
       }
-
-      // Prevent timing attacks by adding a small delay
-      const startTime = Date.now();
 
       const account = await directory.validate(email, password);
       
