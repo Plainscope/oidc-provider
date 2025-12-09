@@ -9,6 +9,7 @@ import { Provider } from 'oidc-provider';
 import { configuration } from './configuration';
 import useDirectory, { IDirectory } from './directories/directory';
 import useInteractions from './routes/interations';
+import useSqliteAdapter from './sqlite-adapter';
 
 // Log environment variables for debugging
 console.log('[INIT] Starting OIDC Provider with environment:', {
@@ -62,6 +63,7 @@ console.log('[INIT] Express app configured with Pug view engine and views direct
 // Initialize OIDC Provider with configuration and custom account finder
 const provider = new Provider(ISSUER, {
   ...configuration,
+  adapter: useSqliteAdapter,
   findAccount: (_ctx, id) => directory.find(id),
   renderError: async (ctx, out, _error) => {
     console.log('[CONFIG] Custom error renderer called:', { error: out.error, error_description: out.error_description });

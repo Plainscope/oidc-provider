@@ -71,8 +71,10 @@ services:
       REDIRECT_URIS: http://localhost:8080/signin-oidc
       POST_LOGOUT_REDIRECT_URIS: http://localhost:8080/signout-callback-oidc
       FEATURES_DEV_INTERACTIONS: false
+      SQLITE_DB_PATH: /data/oidc.db
     volumes:
       - ./users.json:/app/dist/users.json:ro
+      - provider-data:/data
     ports:
       - "8080:8080"
     networks:
@@ -81,7 +83,12 @@ services:
 networks:
   oidc-network:
     driver: bridge
+
+volumes:
+  provider-data:
 ```
+
+**Note**: The `provider-data` volume ensures SQLite database persistence across container restarts. See [SQLite Adapter Documentation](../configuration/sqlite-adapter.md) for more details.
 
 ## Remote Directory Deployment
 
@@ -174,9 +181,11 @@ services:
       POST_LOGOUT_REDIRECT_URIS: https://app.example.com/logout
       PROXY: 'true'
       COOKIES_KEYS: ${COOKIES_KEYS}
+      SQLITE_DB_PATH: /data/oidc.db
     volumes:
       - ./users.json:/app/dist/users.json:ro
       - ./config.json:/app/config.json:ro
+      - provider-data:/data
     expose:
       - "8080"
     healthcheck:

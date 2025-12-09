@@ -92,6 +92,7 @@ Complete documentation is available in the [`docs/`](./docs) directory:
 - **[Configuration Reference](./docs/configuration/environment-variables.md)** - All configuration options
 - **[Client Configuration](./docs/configuration/client-configuration.md)** - Register OAuth clients
 - **[User Management](./docs/configuration/user-management.md)** - Manage users and authentication
+- **[SQLite Adapter](./docs/configuration/sqlite-adapter.md)** - SQLite database adapter for persistent storage
 - **[API Endpoints](./docs/api/endpoints.md)** - OpenID Connect endpoints
 - **[OAuth Flows](./docs/api/oauth-flows.md)** - Supported authentication flows
 - **[Token Management](./docs/api/token-endpoints.md)** - Token handling and validation

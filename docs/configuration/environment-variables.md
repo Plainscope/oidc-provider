@@ -311,6 +311,28 @@ CONFIG='{
 
 ## Database
 
+### SQLITE_DB_PATH
+
+- **Type**: String (file path)
+- **Default**: `../../data/oidc.db` (relative to adapter file)
+- **Description**: Path to SQLite database file for persistent storage of sessions, tokens, grants, and interactions
+- **Example**: `SQLITE_DB_PATH=/data/oidc.db`
+- **Note**: The directory will be created automatically if it doesn't exist. In Docker, use a volume to persist data.
+- **Docker Volume Example**:
+
+```yaml
+services:
+  provider:
+    environment:
+      SQLITE_DB_PATH: /data/oidc.db
+    volumes:
+      - provider-data:/data
+volumes:
+  provider-data:
+```
+
+See the [SQLite Adapter Documentation](../configuration/sqlite-adapter.md) for detailed implementation information.
+
 ### USERS_FILE
 
 - **Type**: String (file path)
@@ -330,6 +352,7 @@ CONFIG='{
 | PROXY | Boolean | false | No | true |
 | NODE_ENV | String | production | No | production |
 | SCOPES | Comma-CSV | openid,profile,email | No | openid,profile,email,phone |
+| SQLITE_DB_PATH | Path | ../../data/oidc.db | No | /data/oidc.db |
 | FEATURES_DEV_INTERACTIONS | Boolean | false | No | true |
 
 ## Setting Environment Variables

@@ -37,8 +37,11 @@ services:
       DIRECTORY_BASE_URL: ${DIRECTORY_BASE_URL:-http://directory:8080}
       DIRECTORY_HEADERS: ${DIRECTORY_HEADERS:-{"Authorization":"Bearer sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth"}}
       FEATURES_DEV_INTERACTIONS: false
+      SQLITE_DB_PATH: /data/oidc.db
     ports:
       - "${PROVIDER_PORT:-9080}:8080"
+    volumes:
+      - provider-data:/data
     networks:
       - oidc-net
     depends_on:
@@ -82,3 +85,6 @@ services:
 networks:
   oidc-net:
     driver: bridge
+
+volumes:
+  provider-data:

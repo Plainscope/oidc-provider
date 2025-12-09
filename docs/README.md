@@ -16,6 +16,7 @@ Welcome to the Simple OIDC Provider documentation. This comprehensive guide cove
 - **[User Management](configuration/user-management.md)** - User authentication and profile setup
 - **[Remote Directory Configuration](configuration/remote-directory.md)** - Integrate with external user management systems
 - **[Advanced Configuration](configuration/advanced-configuration.md)** - Fine-tuning and custom configurations
+- **[SQLite Adapter](configuration/sqlite-adapter.md)** - SQLite database adapter for persistent storage
 
 ### API & Endpoints
 

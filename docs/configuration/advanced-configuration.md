@@ -2,6 +2,25 @@
 
 Advanced configuration options and customization for the OIDC provider.
 
+## Data Persistence
+
+The OIDC provider uses a SQLite adapter for persistent storage of sessions, tokens, and grants. For detailed information about the SQLite adapter implementation, see the [SQLite Adapter Documentation](../configuration/sqlite-adapter.md).
+
+### SQLite Database Configuration
+
+Configure the SQLite database path using the environment variable:
+
+```bash
+SQLITE_DB_PATH=/data/oidc.db
+```
+
+The adapter automatically:
+
+- Creates the database file and schema if it doesn't exist
+- Manages token expiration based on TTL
+- Handles session persistence and recovery
+- Supports concurrent access via WAL mode
+
 ## Configuration File (config.json)
 
 The provider can be configured via a JSON configuration file for complex setups.
