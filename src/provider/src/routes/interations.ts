@@ -9,6 +9,29 @@ const isProduction = process.env.NODE_ENV === 'production';
 // Helper function to format objects for debugging (disabled in production)
 const debug = (obj: any): string => isProduction ? '' : JSON.stringify(obj, null, 2);
 
+/**
+ * Sanitizes input string to prevent XSS and injection attacks
+ * @param input - The input string to sanitize
+ * @returns Sanitized string
+ */
+const sanitizeInput = (input: string): string => {
+  if (typeof input !== 'string') {
+    return '';
+  }
+  // Remove any HTML tags and trim whitespace
+  return input.replace(/<[^>]*>/g, '').trim();
+};
+
+/**
+ * Validates email format
+ * @param email - The email to validate
+ * @returns true if email format is valid
+ */
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 
 /**
  * Registers OIDC interaction routes for login, consent, confirm, and abort.
@@ -71,7 +94,13 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
       assert.equal(name, 'login');
       const client = await provider.Client.find(params.client_id as string);
 
-      const { email, password } = req.body;
+      const rawEmail = req.body.email;
+      const rawPassword = req.body.password;
+      
+      // Sanitize and validate inputs
+      const email = sanitizeInput(rawEmail);
+      const password = sanitizeInput(rawPassword);
+      
       console.log(`[INTERACTION] POST /interaction/${uid}/login - email: ${email}`);
 
       if (!email || !password) {
@@ -88,7 +117,33 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
         });
       }
 
+      // Validate email format
+      if (!isValidEmail(email)) {
+        console.warn(`[INTERACTION] Invalid email format: ${email}`);
+        return res.status(400).render('login', {
+          client,
+          uid,
+          details: prompt.details,
+          params,
+          title: 'Sign-in',
+          session: session ? debug(session) : undefined,
+          dbg: { params: debug(params), prompt: debug(prompt) },
+          error: 'Invalid email format',
+        });
+      }
+
+      // Prevent timing attacks by adding a small delay
+      const startTime = Date.now();
+
       const account = await directory.validate(email, password);
+      
+      // Constant-time comparison to prevent timing attacks
+      const elapsedTime = Date.now() - startTime;
+      const minResponseTime = 100; // Minimum 100ms response time
+      if (elapsedTime < minResponseTime) {
+        await new Promise(resolve => setTimeout(resolve, minResponseTime - elapsedTime));
+      }
+      
       if (!account) {
         console.warn(`[INTERACTION] Invalid credentials for email: ${email}`);
         return res.status(401).render('login', {

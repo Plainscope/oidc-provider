@@ -5,6 +5,21 @@ import fs from 'node:fs';
 
 let db: Database.Database | null = null;
 
+// Prepared statement cache for better performance
+interface PreparedStatements {
+  upsertCheck?: Database.Statement;
+  upsertUpdate?: Database.Statement;
+  upsertInsert?: Database.Statement;
+  find?: Database.Statement;
+  findDeviceCode?: Database.Statement;
+  findSession?: Database.Statement;
+  consume?: Database.Statement;
+  destroy?: Database.Statement;
+  findByGrantId?: Database.Statement;
+}
+
+const statements: PreparedStatements = {};
+
 /**
  * Initialize the SQLite database connection
  */
@@ -22,7 +37,19 @@ function initializeDatabase(): Database.Database {
   }
 
   db = new Database(dbPath);
+  
+  // Enable WAL mode for better concurrency
   db.pragma('journal_mode = WAL');
+  
+  // Enable foreign keys
+  db.pragma('foreign_keys = ON');
+  
+  // Set reasonable timeout for busy database
+  db.pragma('busy_timeout = 5000');
+  
+  // Optimize for performance
+  db.pragma('synchronous = NORMAL');
+  db.pragma('cache_size = -64000'); // 64MB cache
 
   // Create table if it doesn't exist
   db.exec(`
@@ -37,7 +64,31 @@ function initializeDatabase(): Database.Database {
 
     CREATE INDEX IF NOT EXISTS idx_model_name ON oidc_models(model_name);
     CREATE INDEX IF NOT EXISTS idx_expires_at ON oidc_models(expires_at);
+    CREATE INDEX IF NOT EXISTS idx_model_expires ON oidc_models(model_name, expires_at);
   `);
+  
+  // Prepare common statements for reuse
+  statements.upsertCheck = db.prepare('SELECT id FROM oidc_models WHERE id = ?');
+  statements.upsertUpdate = db.prepare(
+    `UPDATE oidc_models 
+     SET payload = ?, expires_at = ?, updated_at = unixepoch() 
+     WHERE id = ?`
+  );
+  statements.upsertInsert = db.prepare(
+    `INSERT INTO oidc_models (id, model_name, payload, expires_at) 
+     VALUES (?, ?, ?, ?)`
+  );
+  statements.find = db.prepare(
+    `SELECT payload, expires_at FROM oidc_models 
+     WHERE id = ? AND (expires_at IS NULL OR expires_at > ?)`
+  );
+  statements.consume = db.prepare(
+    `UPDATE oidc_models 
+     SET payload = json_set(payload, '$.consumed', unixepoch()),
+         updated_at = unixepoch()
+     WHERE id = ?`
+  );
+  statements.destroy = db.prepare('DELETE FROM oidc_models WHERE id = ?');
 
   console.log(`[SqliteAdapter] Database initialized at: ${dbPath}`);
   return db;
@@ -78,28 +129,19 @@ export class SqliteAdapter implements Adapter {
   upsert(id: string, payload: AdapterPayload, expiresIn: number): Promise<undefined | void> {
     return new Promise((resolve, reject) => {
       try {
-        const database = initializeDatabase();
+        initializeDatabase();
         const expiresAt = expiresIn ? Math.floor(Date.now() / 1000) + expiresIn : null;
         const payloadStr = JSON.stringify(payload);
 
-        // Check if record exists
-        const existing = database.prepare(
-          'SELECT id FROM oidc_models WHERE id = ?'
-        ).get(id);
+        // Use prepared statements for better performance
+        const existing = statements.upsertCheck!.get(id);
 
         if (existing) {
           // Update existing record
-          database.prepare(
-            `UPDATE oidc_models 
-             SET payload = ?, expires_at = ?, updated_at = unixepoch() 
-             WHERE id = ?`
-          ).run(payloadStr, expiresAt, id);
+          statements.upsertUpdate!.run(payloadStr, expiresAt, id);
         } else {
           // Insert new record
-          database.prepare(
-            `INSERT INTO oidc_models (id, model_name, payload, expires_at) 
-             VALUES (?, ?, ?, ?)`
-          ).run(id, this.modelName, payloadStr, expiresAt);
+          statements.upsertInsert!.run(id, this.modelName, payloadStr, expiresAt);
         }
 
         console.log(`[SqliteAdapter:${this.modelName}] Upserted: ${id}`);
@@ -125,13 +167,11 @@ export class SqliteAdapter implements Adapter {
   find(id: string): Promise<AdapterPayload | undefined | void> {
     return new Promise((resolve, reject) => {
       try {
-        const database = initializeDatabase();
+        initializeDatabase();
         const now = Math.floor(Date.now() / 1000);
 
-        const row = database.prepare(
-          `SELECT payload, expires_at FROM oidc_models 
-           WHERE id = ? AND (expires_at IS NULL OR expires_at > ?)`
-        ).get(id, now) as { payload: string; expires_at: number | null } | undefined;
+        // Use prepared statement
+        const row = statements.find!.get(id, now) as { payload: string; expires_at: number | null } | undefined;
 
         if (!row) {
           resolve(undefined);
@@ -238,14 +278,10 @@ export class SqliteAdapter implements Adapter {
   consume(id: string): Promise<undefined | void> {
     return new Promise((resolve, reject) => {
       try {
-        const database = initializeDatabase();
+        initializeDatabase();
 
-        database.prepare(
-          `UPDATE oidc_models 
-           SET payload = json_set(payload, '$.consumed', unixepoch()),
-               updated_at = unixepoch()
-           WHERE id = ?`
-        ).run(id);
+        // Use prepared statement
+        statements.consume!.run(id);
 
         console.log(`[SqliteAdapter:${this.modelName}] Consumed: ${id}`);
         resolve();
@@ -269,11 +305,10 @@ export class SqliteAdapter implements Adapter {
   destroy(id: string): Promise<undefined | void> {
     return new Promise((resolve, reject) => {
       try {
-        const database = initializeDatabase();
+        initializeDatabase();
 
-        database.prepare(
-          'DELETE FROM oidc_models WHERE id = ?'
-        ).run(id);
+        // Use prepared statement
+        statements.destroy!.run(id);
 
         console.log(`[SqliteAdapter:${this.modelName}] Destroyed: ${id}`);
         resolve();
