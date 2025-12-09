@@ -1,24 +1,32 @@
-# OIDC Provider E2E Test Suite
+# OIDC Provider Test Suite
 
-Comprehensive end-to-end tests for the OIDC provider using Playwright.
+Comprehensive test suite for the OIDC provider including end-to-end tests and unit tests.
 
 > 📚 **Full Documentation**: See [Testing Index](../docs/testing/index.md) for complete testing documentation including quick start, implementation details, and comprehensive reference.
 
 ## Overview
 
-This test suite validates the complete OpenID Connect authentication flow, including:
+This test suite includes:
 
+### End-to-End Tests (E2E)
 - Authorization Code flow
 - Token exchange and validation
 - User profile and claims
 - Logout flow
 - Security validations
 
+### Unit Tests
+- Configuration module tests
+- Configuration precedence validation
+- Array replacement behavior
+- Environment variable override behavior
+- Prototype pollution protection
+
 ## Prerequisites
 
 - Node.js 18+ with npm
-- Docker and Docker Compose
-- All OIDC provider services running
+- Docker and Docker Compose (for E2E tests)
+- All OIDC provider services running (for E2E tests)
 
 ## Installation
 
@@ -34,13 +42,25 @@ cd test
 npm install
 ```
 
-3. Install Playwright browsers:
+3. Install Playwright browsers (for E2E tests):
 
 ```bash
 npm run playwright:install
 ```
 
 ## Running Tests
+
+### Unit Tests
+
+Run unit tests for the configuration module:
+
+```bash
+npm run test:unit
+```
+
+Note: The provider must be built first (`npm run build` in `src/provider`).
+
+### E2E Tests
 
 ### Start Services
 

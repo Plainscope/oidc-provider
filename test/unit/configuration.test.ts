@@ -1,6 +1,8 @@
 /**
  * Unit tests for configuration module
- * Run with: node --test dist/configuration.test.js
+ * Run with: node --test test/unit/configuration.test.js
+ * 
+ * Note: This test requires the provider to be built first (npm run build in src/provider)
  */
 
 import { describe, it } from 'node:test';
@@ -41,8 +43,8 @@ describe('Configuration Module', () => {
       process.env.CONFIG_FILE = testConfigPath;
       
       // Clear require cache and reload
-      delete require.cache[require.resolve('./configuration')];
-      const { configuration } = require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      const { configuration } = require('../../../src/provider/dist/configuration');
       
       assert.ok(Array.isArray(configuration.scopes), 'scopes should be an array');
       assert.ok(configuration.scopes.includes('openid'), 'should include openid scope');
@@ -61,8 +63,8 @@ describe('Configuration Module', () => {
       }));
       process.env.CONFIG_FILE = testConfigPath;
       
-      delete require.cache[require.resolve('./configuration')];
-      const { configuration } = require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      const { configuration } = require('../../../src/provider/dist/configuration');
       
       assert.deepStrictEqual(configuration.scopes, ['custom', 'scopes'], 'should use config file scopes');
       
@@ -80,8 +82,8 @@ describe('Configuration Module', () => {
       process.env.CONFIG_FILE = testConfigPath;
       process.env.CONFIG = JSON.stringify({ scopes: ['from', 'env'] });
       
-      delete require.cache[require.resolve('./configuration')];
-      const { configuration } = require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      const { configuration } = require('../../../src/provider/dist/configuration');
       
       assert.deepStrictEqual(configuration.scopes, ['from', 'env'], 'CONFIG env var should override file');
       
@@ -94,8 +96,8 @@ describe('Configuration Module', () => {
       process.env.CONFIG = JSON.stringify({ scopes: ['from', 'config'] });
       process.env.SCOPES = 'explicit,override';
       
-      delete require.cache[require.resolve('./configuration')];
-      const { configuration } = require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      const { configuration } = require('../../../src/provider/dist/configuration');
       
       assert.deepStrictEqual(configuration.scopes, ['explicit', 'override'], 'explicit SCOPES should win');
       
@@ -114,8 +116,8 @@ describe('Configuration Module', () => {
       process.env.CONFIG_FILE = testConfigPath;
       process.env.SCOPES = 'new1,new2';
       
-      delete require.cache[require.resolve('./configuration')];
-      const { configuration } = require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      const { configuration } = require('../../../src/provider/dist/configuration');
       
       assert.strictEqual(configuration.scopes.length, 2, 'should have 2 scopes, not 5');
       assert.deepStrictEqual(configuration.scopes, ['new1', 'new2'], 'should replace not concat');
@@ -133,8 +135,8 @@ describe('Configuration Module', () => {
       process.env.CLIENT_NAME = 'Test Client';
       process.env.REDIRECT_URIS = 'http://localhost:3000/callback,http://localhost:3001/callback';
       
-      delete require.cache[require.resolve('./configuration')];
-      const { configuration } = require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      const { configuration } = require('../../../src/provider/dist/configuration');
       
       assert.strictEqual(configuration.clients.length, 1, 'should have 1 client');
       assert.strictEqual(configuration.clients[0].client_id, 'test-client-id');
@@ -153,8 +155,8 @@ describe('Configuration Module', () => {
         { client_id: 'json-client-2' }
       ]);
       
-      delete require.cache[require.resolve('./configuration')];
-      const { configuration } = require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      const { configuration } = require('../../../src/provider/dist/configuration');
       
       assert.strictEqual(configuration.clients.length, 2, 'should use CLIENTS array');
       assert.strictEqual(configuration.clients[0].client_id, 'json-client-1');
@@ -168,8 +170,8 @@ describe('Configuration Module', () => {
       resetEnv();
       process.env.SCOPES = 'openid,,profile, ,email';
       
-      delete require.cache[require.resolve('./configuration')];
-      const { configuration } = require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      const { configuration } = require('../../../src/provider/dist/configuration');
       
       assert.deepStrictEqual(configuration.scopes, ['openid', 'profile', 'email'], 'should filter empty strings');
       
@@ -180,8 +182,8 @@ describe('Configuration Module', () => {
       resetEnv();
       process.env.SCOPES = '';
       
-      delete require.cache[require.resolve('./configuration')];
-      const { configuration } = require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      const { configuration } = require('../../../src/provider/dist/configuration');
       
       // Should use default scopes when SCOPES is empty
       assert.ok(Array.isArray(configuration.scopes), 'scopes should still be an array');
@@ -195,8 +197,8 @@ describe('Configuration Module', () => {
       resetEnv();
       process.env.JWKS = JSON.stringify({ keys: [{ kty: 'RSA', kid: 'test-key' }] });
       
-      delete require.cache[require.resolve('./configuration')];
-      const { configuration } = require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      const { configuration } = require('../../../src/provider/dist/configuration');
       
       assert.ok(configuration.jwks, 'should have jwks config');
       assert.strictEqual(configuration.jwks.keys.length, 1);
@@ -211,8 +213,8 @@ describe('Configuration Module', () => {
       resetEnv();
       process.env.CLIENTS = 'invalid json {{{';
       
-      delete require.cache[require.resolve('./configuration')];
-      const { configuration } = require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      const { configuration } = require('../../../src/provider/dist/configuration');
       
       // Should not crash and should use defaults
       assert.ok(Array.isArray(configuration.clients), 'should still have clients array');
@@ -229,8 +231,8 @@ describe('Configuration Module', () => {
         '__proto__': { polluted: true }
       });
       
-      delete require.cache[require.resolve('./configuration')];
-      require('./configuration');
+      delete require.cache[require.resolve('../../../src/provider/dist/configuration')];
+      require('../../../src/provider/dist/configuration');
       
       assert.strictEqual((Object.prototype as any).polluted, undefined, 'prototype should not be polluted');
       assert.strictEqual(Object.prototype.toString(), originalPrototype, 'prototype should be unchanged');
