@@ -48,9 +48,6 @@ COPY --from=build /app/dist ./dist
 COPY src/views ./views
 COPY public ./public
 
-# Copy optional configuration if present
-COPY config*.json ./ 2>/dev/null || true
-
 # Create data directory with correct permissions
 RUN mkdir -p /data \
     && chown -R nodejs:nodejs /app /data

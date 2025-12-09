@@ -41,8 +41,11 @@ const securityHeaders = (_req: Request, res: Response, next: NextFunction) => {
   );
   
   // HSTS header for HTTPS (only in production with HTTPS)
+  // Note: Start with shorter max-age in initial deployment and gradually increase
+  // Default is 1 day (86400s), can be increased to 1 year (31536000s) after validation
   if (process.env.NODE_ENV === 'production' && process.env.ISSUER?.startsWith('https://')) {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    const hstsMaxAge = process.env.HSTS_MAX_AGE || '86400'; // Default: 1 day
+    res.setHeader('Strict-Transport-Security', `max-age=${hstsMaxAge}; includeSubDomains; preload`);
   }
   
   next();
@@ -97,8 +100,12 @@ const validateEnvironment = () => {
           errors.push('COOKIES_KEYS must be a non-empty array');
         }
         keys.forEach((key: any, index: number) => {
-          if (typeof key !== 'string' || key.length < 32) {
-            errors.push(`COOKIES_KEYS[${index}] must be at least 32 characters long`);
+          if (typeof key !== 'string' || key.length < 64) {
+            errors.push(`COOKIES_KEYS[${index}] must be at least 64 characters long for cryptographic security`);
+          }
+          // Optionally validate hexadecimal format
+          if (typeof key === 'string' && !/^[a-fA-F0-9]+$/.test(key)) {
+            console.warn(`[VALIDATION WARNING] COOKIES_KEYS[${index}] is not in hexadecimal format. Consider using: openssl rand -hex 32`);
           }
         });
       } catch {

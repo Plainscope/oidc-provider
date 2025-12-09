@@ -11,6 +11,8 @@ const debug = (obj: any): string => isProduction ? '' : JSON.stringify(obj, null
 
 /**
  * Sanitizes input string to prevent XSS and injection attacks
+ * Note: This is a basic sanitization. For production, consider using
+ * a library like validator.js for more robust validation
  * @param input - The input string to sanitize
  * @returns Sanitized string
  */
@@ -18,19 +20,30 @@ const sanitizeInput = (input: string): string => {
   if (typeof input !== 'string') {
     return '';
   }
-  // Remove any HTML tags and trim whitespace
-  return input.replace(/<[^>]*>/g, '').trim();
+  // Basic sanitization: remove potential script tags and trim whitespace
+  // For production, consider using a library like validator.js or DOMPurify
+  return input
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
+    .trim()
+    .substring(0, 255); // Limit length
 };
 
 /**
- * Validates email format
+ * Validates email format using a more robust regex
  * @param email - The email to validate
  * @returns true if email format is valid
  */
 const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  // More robust email validation
+  // For production, consider using validator.js for comprehensive validation
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  return email.length <= 254 && emailRegex.test(email);
 };
+
+// Configurable timing attack prevention delay (ms)
+const MIN_AUTH_RESPONSE_TIME = parseInt(process.env.MIN_AUTH_RESPONSE_TIME || '100', 10);
 
 
 /**
@@ -139,9 +152,8 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
       
       // Constant-time comparison to prevent timing attacks
       const elapsedTime = Date.now() - startTime;
-      const minResponseTime = 100; // Minimum 100ms response time
-      if (elapsedTime < minResponseTime) {
-        await new Promise(resolve => setTimeout(resolve, minResponseTime - elapsedTime));
+      if (elapsedTime < MIN_AUTH_RESPONSE_TIME) {
+        await new Promise(resolve => setTimeout(resolve, MIN_AUTH_RESPONSE_TIME - elapsedTime));
       }
       
       if (!account) {
