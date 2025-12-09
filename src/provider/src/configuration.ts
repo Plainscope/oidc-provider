@@ -21,33 +21,41 @@ function safeJSONParse<T>(input?: string): T | undefined {
 }
 
 // Deep merge helper where arrays are replaced (not concatenated)
-function mergeDeep(target: any, ...sources: any[]) {
+// Creates a new object instead of mutating the target
+function mergeDeep(target: any, ...sources: any[]): any {
   if (!sources.length) return target;
   const src = sources.shift();
   if (src === undefined) return mergeDeep(target, ...sources);
 
+  // Create a new result object to avoid mutating the target
+  let result: any;
+  
   if (isObject(target) && isObject(src)) {
+    result = { ...target };
     for (const key of Object.keys(src)) {
       // Guard against prototype pollution
       if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
         continue;
       }
       const srcVal = src[key];
-      const tgtVal = target[key];
+      const tgtVal = result[key];
       if (Array.isArray(srcVal)) {
         // replace arrays entirely
-        target[key] = srcVal;
+        result[key] = srcVal;
       } else if (isObject(srcVal)) {
-        if (!isObject(tgtVal)) target[key] = {};
-        mergeDeep(target[key], srcVal);
+        if (!isObject(tgtVal)) {
+          result[key] = mergeDeep({}, srcVal);
+        } else {
+          result[key] = mergeDeep(tgtVal, srcVal);
+        }
       } else {
-        target[key] = srcVal;
+        result[key] = srcVal;
       }
     }
   } else {
-    target = src;
+    result = src;
   }
-  return mergeDeep(target, ...sources);
+  return mergeDeep(result, ...sources);
 }
 function isObject(item: any) {
   return item && typeof item === 'object' && !Array.isArray(item);
@@ -87,12 +95,58 @@ const defaultConfig: Partial<Configuration> = {
   },
 };
 
+// Helper: validate basic configuration structure
+function validateConfig(config: any): void {
+  if (!config || typeof config !== 'object') {
+    console.warn('[CONFIG] Invalid configuration: not an object');
+    return;
+  }
+  
+  // Validate clients array if present
+  if (config.clients !== undefined) {
+    if (!Array.isArray(config.clients)) {
+      console.warn('[CONFIG] Invalid configuration: clients must be an array');
+    } else {
+      config.clients.forEach((client: any, index: number) => {
+        if (!client.client_id) {
+          console.warn(`[CONFIG] Invalid client at index ${index}: missing client_id`);
+        }
+      });
+    }
+  }
+  
+  // Validate scopes array if present
+  if (config.scopes !== undefined && !Array.isArray(config.scopes)) {
+    console.warn('[CONFIG] Invalid configuration: scopes must be an array');
+  }
+  
+  // Validate cookies object if present
+  if (config.cookies !== undefined) {
+    if (typeof config.cookies !== 'object') {
+      console.warn('[CONFIG] Invalid configuration: cookies must be an object');
+    } else if (config.cookies.keys !== undefined && !Array.isArray(config.cookies.keys)) {
+      console.warn('[CONFIG] Invalid configuration: cookies.keys must be an array');
+    }
+  }
+  
+  // Validate claims object if present
+  if (config.claims !== undefined && typeof config.claims !== 'object') {
+    console.warn('[CONFIG] Invalid configuration: claims must be an object');
+  }
+  
+  // Validate features object if present
+  if (config.features !== undefined && typeof config.features !== 'object') {
+    console.warn('[CONFIG] Invalid configuration: features must be an object');
+  }
+}
+
 // Load configuration from config file (if present)
 let fileConfig: Partial<Configuration> = {};
 if (fs.existsSync(configFilePath)) {
   try {
     const raw = fs.readFileSync(configFilePath, 'utf-8');
     fileConfig = JSON.parse(raw);
+    validateConfig(fileConfig);
     console.log('[CONFIG] Loaded configuration file:', configFilePath);
   } catch (err) {
     console.warn('[CONFIG] Failed to read/parse config file, ignoring fileConfig:', err);
@@ -104,10 +158,13 @@ if (fs.existsSync(configFilePath)) {
 
 // If process.env.CONFIG is set treat it as a config object that is applied after the file config
 const envConfigFull = safeJSONParse<Partial<Configuration>>(process.env.CONFIG);
+if (envConfigFull) {
+  validateConfig(envConfigFull);
+}
 
 // Apply precedence: defaults -> file -> process.env.CONFIG -> explicit env vars
-// Start with defaults
-let configuration: Configuration = structuredClone(defaultConfig) as Configuration;
+// Start with defaults (using JSON clone for compatibility)
+let configuration: Configuration = JSON.parse(JSON.stringify(defaultConfig)) as Configuration;
 
 // Merge file config
 if (Object.keys(fileConfig).length > 0) {
@@ -137,9 +194,9 @@ if (clientsEnv) {
       client_secret: process.env.CLIENT_SECRET,
       client_name: process.env.CLIENT_NAME,
       redirect_uris: process.env.REDIRECT_URIS ? process.env.REDIRECT_URIS.split(',').map(u => u.trim()) : undefined,
-      grant_types: process.env.GRANT_TYPES ? process.env.GRANT_TYPES.split(',').map(g => g.trim()) : undefined,
-      response_types: process.env.RESPONSE_TYPES ? process.env.RESPONSE_TYPES.split(',').map(r => r.trim()) : undefined,
-      token_endpoint_auth_method: process.env.TOKEN_ENDPOINT_AUTH_METHOD,
+      grant_types: process.env.GRANT_TYPES ? process.env.GRANT_TYPES.split(',').map(g => g.trim()) as any : undefined,
+      response_types: process.env.RESPONSE_TYPES ? process.env.RESPONSE_TYPES.split(',').map(r => r.trim()) as any : undefined,
+      token_endpoint_auth_method: process.env.TOKEN_ENDPOINT_AUTH_METHOD as any,
     };
     envOverrides.clients = [client];
     console.log('[CONFIG] Override clients from individual client env vars');
@@ -170,8 +227,11 @@ if (claimsEnv) {
 
 // SCOPES override
 if (process.env.SCOPES) {
-  envOverrides.scopes = process.env.SCOPES.split(',').map(s => s.trim());
-  console.log('[CONFIG] Override scopes from SCOPES env var');
+  const scopesArray = process.env.SCOPES.split(',').map(s => s.trim()).filter(s => s);
+  if (scopesArray.length > 0) {
+    envOverrides.scopes = scopesArray;
+    console.log('[CONFIG] Override scopes from SCOPES env var');
+  }
 }
 
 // FEATURES_DEV_INTERACTIONS override
@@ -180,6 +240,13 @@ if (process.env.FEATURES_DEV_INTERACTIONS !== undefined) {
   if (!envOverrides.features.devInteractions) envOverrides.features.devInteractions = {};
   envOverrides.features.devInteractions.enabled = process.env.FEATURES_DEV_INTERACTIONS === 'true';
   console.log('[CONFIG] Override features.devInteractions.enabled from FEATURES_DEV_INTERACTIONS env var');
+}
+
+// JWKS override
+const jwksEnv = safeJSONParse<any>(process.env.JWKS);
+if (jwksEnv) {
+  envOverrides.jwks = jwksEnv;
+  console.log('[CONFIG] Override jwks from JWKS env var');
 }
 
 // Apply env overrides
