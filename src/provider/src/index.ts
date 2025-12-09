@@ -8,7 +8,7 @@ import path from 'node:path';
 import { Provider } from 'oidc-provider';
 import { configuration } from './configuration';
 import useDirectory, { IDirectory } from './directories/directory';
-import useInteractions from './routes/interations';
+import useInteractions from './routes/interactions';
 import useSqliteAdapter from './sqlite-adapter';
 
 /**

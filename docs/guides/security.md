@@ -421,24 +421,27 @@ npm audit fix
 The provider implements input validation and sanitization to prevent injection attacks:
 
 ```typescript
-// Email validation using robust regex
-if (!isValidEmail(email)) {
+// Email validation using validator.js
+import validator from 'validator';
+
+if (!validator.isEmail(email)) {
   return res.status(400).render('login', {
     error: 'Invalid email format'
   });
 }
 
-// Input sanitization
 // Input sanitization using validator.js
-const sanitizedEmail = validator.escape(email);
+const sanitizedEmail = validator.escape(validator.trim(email));
 ```
 
-**Recommended Libraries:**
-- **validator.js**: Comprehensive validation and sanitization
-- **DOMPurify**: HTML/XSS sanitization
+**Libraries Used:**
+- **validator.js** (v13.15.22+): Comprehensive validation and sanitization (already included)
+
+**Alternative Libraries:**
+- **DOMPurify**: Client-side HTML/XSS sanitization
 - **express-validator**: Express middleware for validation
 
-Example with validator.js:
+Example with validator.js (already implemented):
 
 ```bash
 npm install validator

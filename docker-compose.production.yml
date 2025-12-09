@@ -48,10 +48,11 @@ services:
     
     volumes:
       # User database (read-only)
-      - ./config/users.json:/app/dist/users.json:ro
+      # Create this file before deploying: docker/provider/users.json
+      - ./docker/provider/users.json:/app/dist/users.json:ro
       
-      # Optional configuration file
-      - ./config/config.json:/app/config.json:ro
+      # Optional configuration file (if needed)
+      # - ./docker/provider/config.json:/app/config.json:ro
       
       # Persistent data (ensure this directory has correct permissions)
       # If using bind mount: mkdir -p ./data && chown 1001:1001 ./data
@@ -66,7 +67,7 @@ services:
     
     # Health check
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
