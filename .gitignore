@@ -143,4 +143,6 @@ bin/
 obj/
 
 # Playwright MCP artifacts
-.playwright-mcp
+.playwright-mcp/
+playwright-report/
+test-results/

@@ -353,6 +353,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE
 ### Resources
 
 - 📚 [Documentation](./docs)
+- 🧪 [Testing Guide](./docs/testing/index.md)
 - 🐛 [Issue Tracker](https://github.com/Plainscope/oidc-provider/issues)
 - 💬 [Discussions](https://github.com/Plainscope/oidc-provider/discussions)
 - 🔗 [OAuth 2.0 Spec](https://tools.ietf.org/html/rfc6749)
@@ -365,7 +366,36 @@ This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE
 3. Search [existing issues](https://github.com/Plainscope/oidc-provider/issues)
 4. [Open a new issue](https://github.com/Plainscope/oidc-provider/issues/new)
 
-## Roadmap
+## Testing
+
+This project includes a comprehensive end-to-end test suite using Playwright.
+
+### Quick Start
+
+```bash
+cd test
+npm install
+npm run playwright:install
+docker-compose up -d
+npm run test:e2e
+```
+
+### Test Coverage
+
+- ✅ 30+ test cases across 6 test suites
+- ✅ Complete OIDC/OAuth 2.0 flow validation
+- ✅ Security and compliance testing
+- ✅ Cross-browser support (Chrome, Firefox, WebKit, Mobile)
+
+### Documentation
+
+- 🚀 [Quick Start Guide](./docs/testing/quick-start.md) - Get running in 4 commands
+- 📖 [Complete Guide](./docs/testing/complete-guide.md) - Full overview and features
+- 🔧 [Implementation Details](./docs/testing/implementation.md) - Technical deep dive
+- 📚 [Reference](./docs/testing/reference.md) - Comprehensive reference
+- 📋 [Testing Index](./docs/testing/index.md) - Navigation hub
+
+## Support
 
 Future enhancements:
 

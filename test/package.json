@@ -1,0 +1,31 @@
+{
+  "name": "oidc-provider-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for OIDC provider using Playwright",
+  "private": true,
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed",
+    "test:coverage": "playwright test --reporter=coverage",
+    "test:ui": "playwright test --ui",
+    "playwright:install": "playwright install",
+    "playwright:codegen": "playwright codegen http://localhost:8080"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/node": "^20.0.0",
+    "jsonwebtoken": "^9.0.0",
+    "typescript": "^5.3.0"
+  },
+  "keywords": [
+    "oidc",
+    "oauth2",
+    "openid-connect",
+    "playwright",
+    "e2e-tests"
+  ],
+  "author": "OIDC Provider Team",
+  "license": "MIT"
+}

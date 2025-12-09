@@ -33,6 +33,14 @@ Welcome to the Simple OIDC Provider documentation. This comprehensive guide cove
 - **[Troubleshooting Guide](guides/troubleshooting.md)** - Common issues and solutions
 - **[Development Guide](guides/development.md)** - Building and extending the provider
 
+### Testing
+
+- **[Testing Index](testing/index.md)** - Complete testing documentation hub
+- **[Quick Start Guide](testing/quick-start.md)** - Get running in 4 commands
+- **[Complete Guide](testing/complete-guide.md)** - Full overview and features
+- **[Implementation Details](testing/implementation.md)** - Technical deep dive
+- **[Reference](testing/reference.md)** - Comprehensive testing reference
+
 ## Quick Links
 
 - **Image Repository**: `docker.io/plainscope/simple-oidc-provider`
