@@ -1,6 +1,7 @@
 import { Express } from 'express';
 import { Provider } from 'oidc-provider';
 import assert from 'assert';
+import validator from 'validator';
 import { IDirectory } from '../directories/directory';
 
 // Production mode flag
@@ -10,9 +11,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const debug = (obj: any): string => isProduction ? '' : JSON.stringify(obj, null, 2);
 
 /**
- * Sanitizes input string to prevent XSS and injection attacks
- * Note: This is a basic sanitization. For production, consider using
- * a library like validator.js for more robust validation
+ * Sanitizes input string using validator.js to prevent XSS and injection attacks
  * @param input - The input string to sanitize
  * @returns Sanitized string
  */
@@ -20,26 +19,20 @@ const sanitizeInput = (input: string): string => {
   if (typeof input !== 'string') {
     return '';
   }
-  // Basic sanitization: remove potential script tags and trim whitespace
-  // For production, consider using a library like validator.js or DOMPurify
-  return input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+\s*=/gi, '')
-    .trim()
-    .substring(0, 255); // Limit length
+  // Use validator.js for proper sanitization
+  return validator.escape(validator.trim(input)).substring(0, 255);
 };
 
 /**
- * Validates email format using a more robust regex
+ * Validates email format using validator.js
  * @param email - The email to validate
  * @returns true if email format is valid
  */
 const isValidEmail = (email: string): boolean => {
-  // More robust email validation
-  // For production, consider using validator.js for comprehensive validation
-  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-  return email.length <= 254 && emailRegex.test(email);
+  return validator.isEmail(email, {
+    allow_utf8_local_part: false,
+    require_tld: true
+  });
 };
 
 // Configurable timing attack prevention delay (ms)
