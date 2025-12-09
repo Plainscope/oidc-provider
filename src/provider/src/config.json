@@ -1,0 +1,23 @@
+{
+  "clients": [],
+  "cookies": {
+    "keys": ["CHANGE_ME_IN_PRODUCTION_VIA_COOKIES_KEYS_ENV_VAR"]
+  },
+  "claims": {
+    "openid": ["sub", "sid"],
+    "email": ["email", "email_verified"],
+    "profile": ["name", "nickname", "given_name", "family_name", "groups", "picture"]
+  },
+  "scopes": ["openid", "profile", "email", "offline_access"],
+  "features": {
+    "devInteractions": {
+      "enabled": false
+    }
+  },
+  "ttl": {
+    "AccessToken": 3600,
+    "AuthorizationCode": 600,
+    "IdToken": 3600,
+    "RefreshToken": 1209600
+  }
+}
