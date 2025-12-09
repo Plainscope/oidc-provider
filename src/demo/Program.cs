@@ -196,6 +196,8 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/healthz", () => Results.Json(new { status = "ok" })).AllowAnonymous();
+
 // Minimal endpoints for auth flows
 app.MapGet("/auth/signin", () => Results.Challenge(new AuthenticationProperties { RedirectUri = "/" }, new[] { OpenIdConnectDefaults.AuthenticationScheme }))
   .AllowAnonymous();

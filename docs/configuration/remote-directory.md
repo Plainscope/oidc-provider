@@ -28,7 +28,7 @@ The Remote Directory service is implemented as a Python Flask application that e
 │  GET    /count           │
 │  GET    /find/:id        │
 │  POST   /validate        │
-│  GET    /health          │
+│  GET    /healthz          │
 └──────────────────────────┘
 ```
 
@@ -156,7 +156,7 @@ Validate user credentials (login).
 - `401 Unauthorized`: Invalid credentials or missing bearer token
 - `404 Not Found`: User not found
 
-### GET /health
+### GET /healthz
 
 Health check endpoint for container orchestration.
 
@@ -227,7 +227,7 @@ Or test manually with curl:
 
 ```bash
 # Test health endpoint
-curl -X GET http://localhost:7090/health \
+curl -X GET http://localhost:7090/healthz \
   -H "Authorization: Bearer remote-directory-secret-token"
 
 # Test count endpoint
@@ -327,7 +327,7 @@ docker logs oidc-remote-directory
 Verify network connectivity:
 
 ```bash
-docker exec oidc-provider curl -v http://remote-directory:5000/health
+docker exec oidc-provider curl -v http://remote-directory:5000/healthz
 ```
 
 ### Authentication Failures

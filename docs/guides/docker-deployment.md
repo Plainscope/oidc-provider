@@ -106,7 +106,7 @@ services:
     networks:
       - oidc-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "-H", "Authorization: Bearer ${REMOTE_DIRECTORY_TOKEN:-your-secure-token}", "http://localhost:5000/health"]
+      test: ["CMD", "curl", "-f", "-H", "Authorization: Bearer ${REMOTE_DIRECTORY_TOKEN:-your-secure-token}", "http://localhost:5000/healthz"]
       interval: 10s
       timeout: 5s
       retries: 3

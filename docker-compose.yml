@@ -15,7 +15,7 @@ services:
     networks:
       - oidc-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -43,6 +43,12 @@ services:
       - oidc-net
     depends_on:
       - directory
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   demo:
     build:
@@ -66,6 +72,12 @@ services:
       - "${DEMO_PORT:-8080}:8080"
     networks:
       - oidc-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
 networks:
   oidc-net:

@@ -14,6 +14,8 @@ ENV NODE_ENV=production
 ENV PORT=8080
 COPY package*.json ./
 RUN npm ci --omit=dev
+# Install curl for container health checks
+RUN apk add --no-cache curl
 COPY --from=build /app/dist ./dist
 COPY src/views ./views
 COPY public ./public

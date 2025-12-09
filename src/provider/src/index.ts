@@ -100,6 +100,11 @@ console.log('[INIT] Serving static files from ./public');
 app.use(express.urlencoded({ extended: false }));
 console.log('[INIT] URL-encoded body parser enabled');
 
+// Lightweight health check for container orchestration
+app.get('/healthz', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Register OIDC interaction routes
 useInteractions(app, provider, directory);
 console.log('[INIT] OIDC interaction routes registered');

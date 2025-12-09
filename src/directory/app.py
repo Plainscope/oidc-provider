@@ -76,6 +76,10 @@ def exclude_password(user):
 @app.before_request
 def verify_auth():
     """Verify authorization for all requests."""
+    # Allow unauthenticated health checks so container health probes work
+    if request.path == '/healthz':
+        return
+
     if not check_bearer_token():
         abort(401)
 
@@ -143,13 +147,13 @@ def validate():
     return jsonify(exclude_password(user))
 
 
-@app.route('/health', methods=['GET'])
+@app.route('/healthz', methods=['GET'])
 def health():
     """
-    GET /health
+    GET /healthz
     Health check endpoint.
     """
-    logger.info('[API] GET /health')
+    logger.info('[API] GET /healthz')
     return jsonify({
         'status': 'ok',
         'users_count': len(USERS)
