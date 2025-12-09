@@ -1,7 +1,7 @@
 {
   "clients": [],
   "cookies": {
-    "keys": ["CHANGE_ME_BEFORE_PRODUCTION"]
+    "keys": []
   },
   "claims": {
     "openid": ["sub", "sid"],
