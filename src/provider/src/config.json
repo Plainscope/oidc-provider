@@ -18,6 +18,15 @@
   "features": {
     "devInteractions": {
       "enabled": false
+    },
+    "introspection": {
+      "enabled": true
+    },
+    "revocation": {
+      "enabled": true
     }
+  },
+  "jwks": {
+    "keys": []
   }
 }
