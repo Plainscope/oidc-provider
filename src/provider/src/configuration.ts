@@ -129,6 +129,21 @@ const clientsEnv = safeJSONParse<ClientMetadata[]>(process.env.CLIENTS);
 if (clientsEnv) {
   envOverrides.clients = clientsEnv;
   console.log('[CONFIG] Override clients from CLIENTS env var');
+} else {
+  // Support individual client environment variables for backward compatibility
+  if (process.env.CLIENT_ID) {
+    const client: ClientMetadata = {
+      client_id: process.env.CLIENT_ID,
+      client_secret: process.env.CLIENT_SECRET,
+      client_name: process.env.CLIENT_NAME,
+      redirect_uris: process.env.REDIRECT_URIS ? process.env.REDIRECT_URIS.split(',').map(u => u.trim()) : undefined,
+      grant_types: process.env.GRANT_TYPES ? process.env.GRANT_TYPES.split(',').map(g => g.trim()) : undefined,
+      response_types: process.env.RESPONSE_TYPES ? process.env.RESPONSE_TYPES.split(',').map(r => r.trim()) : undefined,
+      token_endpoint_auth_method: process.env.TOKEN_ENDPOINT_AUTH_METHOD,
+    };
+    envOverrides.clients = [client];
+    console.log('[CONFIG] Override clients from individual client env vars');
+  }
 }
 
 // COOKIES override
