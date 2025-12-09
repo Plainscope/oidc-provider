@@ -13,7 +13,7 @@
     "AccessToken": 3600,
     "AuthorizationCode": 600,
     "IdToken": 3600,
-    "RefreshToken": 86400
+    "RefreshToken": 1209600
   },
   "features": {
     "devInteractions": {
