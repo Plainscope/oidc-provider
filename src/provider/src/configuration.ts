@@ -31,6 +31,7 @@ function safeJSONParse<T>(input?: string): T | undefined {
 }
 
 // Deep merge helper where arrays are replaced (not concatenated)
+// Guards against prototype pollution by checking for dangerous keys
 function mergeDeep(target: any, ...sources: any[]): any {
   if (!sources.length) return target;
   const src = sources.shift();
@@ -38,6 +39,12 @@ function mergeDeep(target: any, ...sources: any[]): any {
 
   if (isObject(target) && isObject(src)) {
     for (const key of Object.keys(src)) {
+      // Guard against prototype pollution
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        console.warn('[CONFIG] Skipping dangerous key in configuration:', key);
+        continue;
+      }
+      
       const srcVal = src[key];
       const tgtVal = target[key];
       if (Array.isArray(srcVal)) {
