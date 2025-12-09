@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc && cp src/config.json dist/config.json",
+    "build": "tsc && node -e \"require('fs').copyFileSync('src/config.json', 'dist/config.json')\"",
     "dev": "tsc --watch",
     "clean": "rm -rf dist"
   },
