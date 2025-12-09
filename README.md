@@ -84,20 +84,33 @@ docker run -d \
 
 Complete documentation is available in the [`docs/`](./docs) directory:
 
+### Getting Started
 - **[Getting Started](./docs/guides/quickstart.md)** - Quick start guide
 - **[Installation Guide](./docs/guides/installation.md)** - Detailed setup instructions
 - **[Docker Deployment](./docs/guides/docker-deployment.md)** - Docker and Docker Compose
+- **[Development Guide](./docs/guides/development.md)** - Building and extending
+
+### Production Deployment
 - **[Production Deployment](./docs/guides/production-deployment.md)** - Production best practices
 - **[Security Guide](./docs/guides/security.md)** - Security considerations and hardening
-- **[Configuration Reference](./docs/configuration/environment-variables.md)** - All configuration options
+- **[Performance Tuning](./docs/guides/performance-tuning.md)** - Optimization and scaling
+- **[Troubleshooting](./docs/guides/troubleshooting.md)** - Solutions to common issues
+
+### Configuration
+- **[Environment Variables](./docs/configuration/environment-variables.md)** - All configuration options
 - **[Client Configuration](./docs/configuration/client-configuration.md)** - Register OAuth clients
 - **[User Management](./docs/configuration/user-management.md)** - Manage users and authentication
 - **[SQLite Adapter](./docs/configuration/sqlite-adapter.md)** - SQLite database adapter for persistent storage
+
+### API Reference
 - **[API Endpoints](./docs/api/endpoints.md)** - OpenID Connect endpoints
 - **[OAuth Flows](./docs/api/oauth-flows.md)** - Supported authentication flows
 - **[Token Management](./docs/api/token-endpoints.md)** - Token handling and validation
-- **[Development Guide](./docs/guides/development.md)** - Building and extending
-- **[Troubleshooting](./docs/guides/troubleshooting.md)** - Solutions to common issues
+
+### Testing
+- **[Testing Quick Start](./docs/testing/quick-start.md)** - Get running in 4 commands
+- **[Complete Testing Guide](./docs/testing/complete-guide.md)** - Full overview and features
+- **[Testing Reference](./docs/testing/reference.md)** - Comprehensive reference
 
 ## Architecture
 
@@ -292,6 +305,17 @@ See [Security Guide](./docs/guides/security.md) for complete checklist including
 
 We welcome contributions! Here's how to get started:
 
+### Quick Start
+
+1. **Fork** the repository
+2. **Clone** your fork: `git clone https://github.com/YOUR-USERNAME/oidc-provider.git`
+3. **Create** a feature branch: `git checkout -b feature/my-feature`
+4. **Make** your changes and commit: `git commit -am 'Add my feature'`
+5. **Push** to your branch: `git push origin feature/my-feature`
+6. **Open** a Pull Request
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
+
 ### Development Setup
 
 ```bash
@@ -308,24 +332,20 @@ npm run build
 
 # Run in development
 npm run dev
+
+# Or use Docker Compose
+cd ../..
+docker-compose up
 ```
-
-### Contributing Guidelines
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/my-feature`)
-3. **Make** your changes and commit (`git commit -am 'Add my feature'`)
-4. **Build** and test locally (`npm run build`)
-5. **Push** to your branch (`git push origin feature/my-feature`)
-6. **Open** a Pull Request
 
 ### Code Standards
 
-- Use TypeScript for type safety
+- Use TypeScript with strict mode
 - Follow existing code style
 - Write clear commit messages
 - Update documentation for new features
-- Test changes locally
+- Add tests for new functionality
+- Ensure all tests pass
 
 ### Reporting Issues
 
@@ -337,6 +357,10 @@ Found a bug or have a feature request?
    - Steps to reproduce
    - Expected vs actual behavior
    - Environment details (Docker version, OS, etc.)
+
+### Security Issues
+
+**DO NOT** open public issues for security vulnerabilities. Email security concerns to the maintainers privately. See [CONTRIBUTING.md](./CONTRIBUTING.md#security-issues) for details.
 
 ## License
 

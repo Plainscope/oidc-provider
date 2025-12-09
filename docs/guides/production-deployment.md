@@ -102,6 +102,8 @@ FEATURES_DEV_INTERACTIONS=false
 
 ## Docker Compose Production Setup
 
+### Basic Production Configuration
+
 ```yaml
 version: '3.8'
 
@@ -109,7 +111,7 @@ services:
   oidc-provider:
     image: docker.io/plainscope/simple-oidc-provider:latest
     container_name: oidc-provider
-    restart: always
+    restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 8080
@@ -121,14 +123,16 @@ services:
       POST_LOGOUT_REDIRECT_URIS: ${POST_LOGOUT_REDIRECT_URIS}
       COOKIES_KEYS: ${COOKIES_KEYS}
       FEATURES_DEV_INTERACTIONS: 'false'
+      SQLITE_DB_PATH: /data/oidc.db
     volumes:
       - ./data/users.json:/app/dist/users.json:ro
       - ./data/config.json:/app/config.json:ro
+      - provider-data:/data
       - provider-logs:/var/log/oidc-provider
     expose:
       - "8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "https://oidc.example.com/.well-known/openid-configuration"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -140,10 +144,18 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: false  # Set to true for maximum security (requires tmpfs mounts)
 
   reverse-proxy:
     image: nginx:alpine
-    restart: always
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
@@ -155,18 +167,124 @@ services:
       - oidc-provider
     networks:
       - backend
+      - frontend
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
+  provider-data:
+    driver: local
   provider-logs:
+    driver: local
   nginx-logs:
+    driver: local
 
 networks:
   backend:
+    driver: bridge
+    internal: false
+  frontend:
+    driver: bridge
+```
+
+### High-Availability Configuration
+
+For production environments requiring high availability:
+
+```yaml
+version: '3.8'
+
+services:
+  # Load Balancer
+  traefik:
+    image: traefik:v2.10
+    restart: unless-stopped
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@example.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-certs:/letsencrypt
+    networks:
+      - frontend
+    security_opt:
+      - no-new-privileges:true
+
+  # OIDC Provider Instances
+  provider-1:
+    image: docker.io/plainscope/simple-oidc-provider:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      ISSUER: https://oidc.example.com
+      PROXY: 'true'
+      CLIENT_ID: ${CLIENT_ID}
+      CLIENT_SECRET: ${CLIENT_SECRET}
+      REDIRECT_URIS: ${REDIRECT_URIS}
+      POST_LOGOUT_REDIRECT_URIS: ${POST_LOGOUT_REDIRECT_URIS}
+      COOKIES_KEYS: ${COOKIES_KEYS}
+      FEATURES_DEV_INTERACTIONS: 'false'
+      SQLITE_DB_PATH: /data/oidc.db
+    volumes:
+      - ./data/users.json:/app/dist/users.json:ro
+      - provider-data:/data
+    networks:
+      - backend
+      - frontend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.oidc.rule=Host(`oidc.example.com`)"
+      - "traefik.http.routers.oidc.entrypoints=websecure"
+      - "traefik.http.routers.oidc.tls.certresolver=letsencrypt"
+      - "traefik.http.services.oidc.loadbalancer.server.port=8080"
+      - "traefik.http.services.oidc.loadbalancer.healthcheck.path=/healthz"
+      - "traefik.http.services.oidc.loadbalancer.healthcheck.interval=30s"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    security_opt:
+      - no-new-privileges:true
+
+  provider-2:
+    extends: provider-1
+    container_name: oidc-provider-2
+
+  provider-3:
+    extends: provider-1
+    container_name: oidc-provider-3
+
+volumes:
+  provider-data:
+    driver: local
+  traefik-certs:
+    driver: local
+
+networks:
+  backend:
+    driver: bridge
+    internal: true
+  frontend:
     driver: bridge
 ```
 
