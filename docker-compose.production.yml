@@ -53,7 +53,8 @@ services:
       # Optional configuration file
       - ./config/config.json:/app/config.json:ro
       
-      # Persistent data
+      # Persistent data (ensure this directory has correct permissions)
+      # If using bind mount: mkdir -p ./data && chown 1001:1001 ./data
       - provider-data:/data
       
       # Logs

@@ -103,10 +103,6 @@ const validateEnvironment = () => {
           if (typeof key !== 'string' || key.length < 64) {
             errors.push(`COOKIES_KEYS[${index}] must be at least 64 characters long for cryptographic security`);
           }
-          // Optionally validate hexadecimal format
-          if (typeof key === 'string' && !/^[a-fA-F0-9]+$/.test(key)) {
-            console.warn(`[VALIDATION WARNING] COOKIES_KEYS[${index}] is not in hexadecimal format. Consider using: openssl rand -hex 32`);
-          }
         });
       } catch {
         errors.push('COOKIES_KEYS must be valid JSON array');

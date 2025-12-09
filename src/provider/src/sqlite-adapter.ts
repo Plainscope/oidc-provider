@@ -7,9 +7,6 @@ let db: Database.Database | null = null;
 
 // Prepared statement cache for better performance
 interface PreparedStatements {
-  upsertCheck?: Database.Statement;
-  upsertUpdate?: Database.Statement;
-  upsertInsert?: Database.Statement;
   find?: Database.Statement;
   findDeviceCode?: Database.Statement;
   findSession?: Database.Statement;
@@ -67,17 +64,7 @@ function initializeDatabase(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_model_expires ON oidc_models(model_name, expires_at);
   `);
   
-  // Prepare common statements for reuse
-  statements.upsertCheck = db.prepare('SELECT id FROM oidc_models WHERE id = ?');
-  statements.upsertUpdate = db.prepare(
-    `UPDATE oidc_models 
-     SET payload = ?, expires_at = ?, updated_at = unixepoch() 
-     WHERE id = ?`
-  );
-  statements.upsertInsert = db.prepare(
-    `INSERT INTO oidc_models (id, model_name, payload, expires_at) 
-     VALUES (?, ?, ?, ?)`
-  );
+  // Prepare common statements for reuse (UPSERT is handled separately for atomicity)
   statements.find = db.prepare(
     `SELECT payload, expires_at FROM oidc_models 
      WHERE id = ? AND (expires_at IS NULL OR expires_at > ?)`
@@ -133,16 +120,17 @@ export class SqliteAdapter implements Adapter {
         const expiresAt = expiresIn ? Math.floor(Date.now() / 1000) + expiresIn : null;
         const payloadStr = JSON.stringify(payload);
 
-        // Use prepared statements for better performance
-        const existing = statements.upsertCheck!.get(id);
-
-        if (existing) {
-          // Update existing record
-          statements.upsertUpdate!.run(payloadStr, expiresAt, id);
-        } else {
-          // Insert new record
-          statements.upsertInsert!.run(id, this.modelName, payloadStr, expiresAt);
-        }
+        // Use SQLite UPSERT for atomic operation (more efficient than SELECT + INSERT/UPDATE)
+        const upsertStmt = db!.prepare(`
+          INSERT INTO oidc_models (id, model_name, payload, expires_at) 
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET 
+            payload = excluded.payload,
+            expires_at = excluded.expires_at,
+            updated_at = unixepoch()
+        `);
+        
+        upsertStmt.run(id, this.modelName, payloadStr, expiresAt);
 
         console.log(`[SqliteAdapter:${this.modelName}] Upserted: ${id}`);
         resolve();

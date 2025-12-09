@@ -14,13 +14,20 @@ const debug = (obj: any): string => isProduction ? '' : JSON.stringify(obj, null
  * Sanitizes input string using validator.js to prevent XSS and injection attacks
  * @param input - The input string to sanitize
  * @returns Sanitized string
+ * @throws Error if input exceeds maximum length
  */
 const sanitizeInput = (input: string): string => {
   if (typeof input !== 'string') {
     return '';
   }
+  
+  const MAX_INPUT_LENGTH = 255;
+  if (input.length > MAX_INPUT_LENGTH) {
+    throw new Error(`Input exceeds maximum length of ${MAX_INPUT_LENGTH} characters`);
+  }
+  
   // Use validator.js for proper sanitization
-  return validator.escape(validator.trim(input)).substring(0, 255);
+  return validator.escape(validator.trim(input));
 };
 
 /**
@@ -104,8 +111,25 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
       const rawPassword = req.body.password;
       
       // Sanitize and validate inputs
-      const email = sanitizeInput(rawEmail);
-      const password = sanitizeInput(rawPassword);
+      let email: string;
+      let password: string;
+      
+      try {
+        email = sanitizeInput(rawEmail);
+        password = sanitizeInput(rawPassword);
+      } catch (error) {
+        console.warn(`[INTERACTION] Input validation error:`, error);
+        return res.status(400).render('login', {
+          client,
+          uid,
+          details: prompt.details,
+          params,
+          title: 'Sign-in',
+          session: session ? debug(session) : undefined,
+          dbg: { params: debug(params), prompt: debug(prompt) },
+          error: 'Invalid input provided',
+        });
+      }
       
       console.log(`[INTERACTION] POST /interaction/${uid}/login - email: ${email}`);
 
