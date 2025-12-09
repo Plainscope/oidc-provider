@@ -107,7 +107,7 @@ const envConfigFull = safeJSONParse<Partial<Configuration>>(process.env.CONFIG);
 
 // Apply precedence: defaults -> file -> process.env.CONFIG -> explicit env vars
 // Start with defaults
-let configuration: Configuration = JSON.parse(JSON.stringify(defaultConfig)) as Configuration;
+let configuration: Configuration = structuredClone(defaultConfig) as Configuration;
 
 // Merge file config
 if (Object.keys(fileConfig).length > 0) {
