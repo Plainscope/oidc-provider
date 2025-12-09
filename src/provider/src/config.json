@@ -1,0 +1,32 @@
+{
+  "clients": [],
+  "cookies": {
+    "keys": []
+  },
+  "claims": {
+    "openid": ["sub", "sid"],
+    "email": ["email", "email_verified"],
+    "profile": ["name", "nickname", "given_name", "family_name", "groups", "picture"]
+  },
+  "scopes": ["openid", "profile", "email", "offline_access"],
+  "ttl": {
+    "AccessToken": 3600,
+    "AuthorizationCode": 600,
+    "IdToken": 3600,
+    "RefreshToken": 1209600
+  },
+  "features": {
+    "devInteractions": {
+      "enabled": false
+    },
+    "introspection": {
+      "enabled": true
+    },
+    "revocation": {
+      "enabled": true
+    }
+  },
+  "jwks": {
+    "keys": []
+  }
+}

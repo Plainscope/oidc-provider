@@ -217,7 +217,7 @@ COOKIES='{
 ### CONFIG
 
 - **Type**: JSON object (full OIDC configuration)
-- **Description**: Full OIDC configuration as JSON string (overrides all other settings)
+- **Description**: Full OIDC configuration as JSON string. Applied after config file but before explicit environment variables.
 - **Example**:
 
 ```bash
@@ -227,6 +227,21 @@ CONFIG='{
   "claims": {...}
 }'
 ```
+
+## Configuration Precedence
+
+The configuration is loaded and merged in the following order (later sources override earlier ones):
+
+1. **Default values** - Built-in defaults in the code
+2. **Config file** - JSON file at `CONFIG_FILE` path (default: `./config.json`)
+3. **CONFIG environment variable** - Full JSON configuration
+4. **Explicit environment variables** - Individual variables like `CLIENTS`, `SCOPES`, `COOKIES_KEYS`, etc.
+
+**Important Notes:**
+- Environment variables always override config file values
+- Arrays (clients, scopes, cookies.keys) are replaced entirely (not concatenated)
+- Use explicit environment variables for secrets (CLIENT_SECRET, COOKIES_KEYS)
+- The config.json file should contain production-safe defaults without sensitive secrets
 
 ## Feature Flags
 

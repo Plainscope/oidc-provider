@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "test:e2e": "playwright test",
+    "test:unit": "cd unit && npx tsc && node --test compiled/configuration.test.js",
     "test:debug": "playwright test --debug",
     "test:headed": "playwright test --headed",
     "test:coverage": "playwright test --reporter=coverage",

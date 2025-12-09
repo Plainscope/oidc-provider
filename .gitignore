@@ -146,3 +146,6 @@ obj/
 .playwright-mcp/
 playwright-report/
 test-results/
+
+# Compiled unit tests
+test/unit/compiled/
