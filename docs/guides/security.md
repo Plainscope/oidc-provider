@@ -2,6 +2,24 @@
 
 Critical security guidelines for deploying and maintaining the OIDC provider.
 
+## Table of Contents
+
+- [Client Credential Security](#client-credential-security)
+- [HTTPS/TLS Configuration](#httpstls-configuration)
+- [User Authentication Security](#user-authentication-security)
+- [Cookie Security](#cookie-security)
+- [CORS Configuration](#cors-configuration)
+- [Token Security](#token-security)
+- [Rate Limiting](#rate-limiting)
+- [Account Lockout](#account-lockout)
+- [Audit Logging](#audit-logging)
+- [Database and Configuration Security](#database-and-configuration-security)
+- [Network Security](#network-security)
+- [Security Scanning](#security-scanning)
+- [Compliance Considerations](#compliance-considerations)
+- [Security Incident Response](#security-incident-response)
+- [Production Security Checklist](#checklist-for-production)
+
 ## Client Credential Security
 
 ### Generating Strong Credentials
@@ -395,3 +413,331 @@ npm audit fix
 - [ ] Backup and recovery procedures tested
 - [ ] Incident response plan documented
 - [ ] Security team training completed
+
+## Additional Security Best Practices
+
+### Input Validation
+
+The provider implements input validation and sanitization to prevent injection attacks:
+
+```typescript
+// Email validation using validator.js
+import validator from 'validator';
+
+if (!validator.isEmail(email)) {
+  return res.status(400).render('login', {
+    error: 'Invalid email format'
+  });
+}
+
+// Input sanitization using validator.js
+const sanitizedEmail = validator.escape(validator.trim(email));
+```
+
+**Libraries Used:**
+- **validator.js** (v13.15.22+): Comprehensive validation and sanitization (already included)
+
+**Alternative Libraries:**
+- **DOMPurify**: Client-side HTML/XSS sanitization
+- **express-validator**: Express middleware for validation
+
+Example with validator.js (already implemented):
+
+```bash
+npm install validator
+```
+
+```typescript
+import validator from 'validator';
+
+// Validate and sanitize email
+const email = validator.normalizeEmail(req.body.email);
+if (!validator.isEmail(email)) {
+  return res.status(400).json({ error: 'Invalid email' });
+}
+
+// Sanitize input
+const sanitized = validator.escape(req.body.input);
+```
+
+### Timing Attack Prevention
+
+Login endpoints implement constant-time comparison to prevent timing attacks:
+
+```typescript
+// Minimum response time to prevent timing analysis
+const minResponseTime = 100; // 100ms
+const elapsedTime = Date.now() - startTime;
+if (elapsedTime < minResponseTime) {
+  await new Promise(resolve => setTimeout(resolve, minResponseTime - elapsedTime));
+}
+```
+
+### Security Headers
+
+The provider automatically sets comprehensive security headers:
+
+- **X-Frame-Options**: Prevents clickjacking attacks
+- **X-Content-Type-Options**: Prevents MIME type sniffing
+- **X-XSS-Protection**: Enables browser XSS filter
+- **Content-Security-Policy**: Controls resource loading
+- **Strict-Transport-Security**: Forces HTTPS (production only)
+- **Referrer-Policy**: Controls referrer information
+- **Permissions-Policy**: Restricts browser features
+
+### Environment Variable Security
+
+Environment variables are validated on startup:
+
+```bash
+# Required validations:
+# - PORT must be 1-65535
+# - ISSUER must be valid URL
+# - HTTPS required in production
+# - Cookie keys must be 32+ characters
+```
+
+If validation fails, the server will not start and will log specific errors.
+
+### Password Security Recommendations
+
+While the demo uses plain-text passwords for simplicity, production deployments should:
+
+1. **Hash passwords** using bcrypt, scrypt, or Argon2
+2. **Use unique salts** per password
+3. **Implement minimum password requirements**:
+   - At least 12 characters
+   - Mix of uppercase, lowercase, numbers, symbols
+   - No common dictionary words
+
+Example bcrypt implementation:
+
+```typescript
+import bcrypt from 'bcrypt';
+
+// Hash password
+const hashedPassword = await bcrypt.hash(password, 12);
+
+// Verify password
+const isValid = await bcrypt.compare(password, hashedPassword);
+```
+
+### SQL Injection Prevention
+
+The SQLite adapter uses parameterized queries and prepared statements:
+
+```typescript
+// Safe parameterized query
+statements.find!.get(id, now);
+
+// NOT vulnerable to SQL injection
+```
+
+### Session Security
+
+Configure secure session cookies:
+
+```bash
+# Strong cookie keys (32+ hex characters)
+COOKIES_KEYS='["$(openssl rand -hex 32)","$(openssl rand -hex 32)"]'
+```
+
+The provider enforces:
+- `httpOnly`: Prevents JavaScript access
+- `secure`: HTTPS-only (production)
+- `sameSite`: CSRF protection
+
+### Dependency Management
+
+Regular dependency updates are critical:
+
+```bash
+# Check for vulnerabilities
+npm audit
+
+# Update dependencies
+npm update
+
+# Fix vulnerabilities automatically
+npm audit fix
+```
+
+### Container Security
+
+Production containers should:
+
+1. **Run as non-root user** (already implemented)
+2. **Use read-only filesystem** where possible
+3. **Drop unnecessary capabilities**
+4. **Scan images regularly**
+
+```bash
+# Scan with Trivy
+trivy image docker.io/plainscope/simple-oidc-provider:latest
+
+# Scan with Snyk
+snyk container test docker.io/plainscope/simple-oidc-provider:latest
+```
+
+## Common Security Vulnerabilities to Avoid
+
+### 1. Information Disclosure
+
+**Problem**: Error messages revealing system details
+
+**Solution**: Generic error messages in production
+
+```typescript
+// Good: Generic error
+error: 'Invalid email or password'
+
+// Bad: Specific error
+error: 'Email not found in database'
+```
+
+### 2. Session Fixation
+
+**Problem**: Attacker fixes user's session ID
+
+**Solution**: Regenerate session ID after login (handled by oidc-provider)
+
+### 3. Cross-Site Request Forgery (CSRF)
+
+**Problem**: Unauthorized commands from trusted user
+
+**Solution**: 
+- State parameter in OAuth flows (implemented)
+- SameSite cookie attribute (implemented)
+- Additional CSRF tokens for sensitive operations
+
+### 4. Open Redirect
+
+**Problem**: Redirect to malicious site after login
+
+**Solution**: Validate redirect URIs strictly
+
+```bash
+# Only allow registered redirect URIs
+REDIRECT_URIS=https://app.example.com/callback,https://app.example.com/auth/callback
+```
+
+### 5. Insufficient Logging
+
+**Problem**: Security incidents go undetected
+
+**Solution**: Comprehensive audit logging
+
+```typescript
+// Log security events
+console.log('[AUDIT] Login attempt:', { email, ip, timestamp });
+console.log('[AUDIT] Login success:', { userId, ip, timestamp });
+console.log('[AUDIT] Login failure:', { email, ip, timestamp });
+```
+
+## Security Monitoring
+
+### Metrics to Track
+
+1. **Failed login attempts** per user/IP
+2. **Token issuance rates**
+3. **Unusual access patterns**
+4. **Error rates**
+5. **Response times** (detect DoS)
+
+### Alerting Rules
+
+Set up alerts for:
+
+```bash
+# Example alert conditions
+- Failed login attempts > 10 in 5 minutes
+- Token revocations > 100 in 1 hour
+- Error rate > 5% of requests
+- Response time > 2 seconds (99th percentile)
+```
+
+### Log Analysis
+
+Use centralized logging for security analysis:
+
+```bash
+# Example queries
+# Failed logins by IP
+grep "Invalid credentials" /var/log/oidc/*.log | awk '{print $5}' | sort | uniq -c | sort -rn
+
+# Successful logins by user
+grep "Login successful" /var/log/oidc/*.log | awk '{print $7}' | sort | uniq -c
+
+# Token operations
+grep "TOKEN" /var/log/oidc/*.log | tail -100
+```
+
+## Security Testing
+
+### Automated Security Tests
+
+1. **OWASP ZAP** for web application scanning
+2. **Burp Suite** for manual testing
+3. **dependency-check** for known vulnerabilities
+4. **Container scanning** with Trivy/Snyk
+
+Example ZAP scan:
+
+```bash
+docker run -t owasp/zap2docker-stable zap-baseline.py \
+  -t https://oidc.example.com \
+  -r zap-report.html
+```
+
+### Penetration Testing Checklist
+
+- [ ] SQL injection attempts
+- [ ] XSS attacks
+- [ ] CSRF attacks
+- [ ] Session hijacking
+- [ ] Brute force attacks
+- [ ] OAuth flow manipulation
+- [ ] Token theft/replay
+- [ ] Open redirect vulnerabilities
+- [ ] Information disclosure
+- [ ] Timing attacks
+
+## Security Resources
+
+### Standards and Specifications
+
+- [OAuth 2.0 Security Best Practices (RFC 6819)](https://tools.ietf.org/html/rfc6819)
+- [OAuth 2.0 for Browser-Based Apps](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps)
+- [OAuth 2.0 Security Best Current Practice](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)
+- [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)
+- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+
+### Tools
+
+- [OWASP ZAP](https://www.zaproxy.org/) - Web application scanner
+- [Burp Suite](https://portswigger.net/burp) - Security testing
+- [Trivy](https://github.com/aquasecurity/trivy) - Container scanning
+- [Snyk](https://snyk.io/) - Dependency scanning
+- [npm audit](https://docs.npmjs.com/cli/v8/commands/npm-audit) - Node.js security
+
+### Learning Resources
+
+- [OWASP Web Security Testing Guide](https://owasp.org/www-project-web-security-testing-guide/)
+- [PortSwigger Web Security Academy](https://portswigger.net/web-security)
+- [OAuth 2.0 Simplified](https://oauth.com/)
+- [OpenID Connect Explained](https://connect2id.com/learn/openid-connect)
+
+## Getting Security Help
+
+If you discover a security vulnerability:
+
+1. **DO NOT** open a public GitHub issue
+2. Email security concerns to the maintainers privately
+3. Include detailed information about the vulnerability
+4. Allow reasonable time for a patch before disclosure
+5. Follow responsible disclosure practices
+
+For security questions:
+- Check [Security FAQ](../troubleshooting.md#security-questions)
+- Review [GitHub Discussions](https://github.com/Plainscope/oidc-provider/discussions)
+- Consult OAuth/OIDC specifications

@@ -1,15 +1,29 @@
 # OpenID Connect Endpoints
 
-Reference for all OpenID Connect protocol endpoints provided by the OIDC provider.
+Complete reference for all OpenID Connect protocol endpoints provided by the OIDC provider.
+
+## Table of Contents
+
+- [Metadata Endpoint](#metadata-endpoint)
+- [Authorization Endpoint](#authorization-endpoint)
+- [Token Endpoint](#token-endpoint)
+- [Userinfo Endpoint](#userinfo-endpoint)
+- [Token Revocation Endpoint](#token-revocation-endpoint)
+- [Token Introspection Endpoint](#token-introspection-endpoint)
+- [End Session Endpoint](#end-session-endpoint)
+- [JWKs Endpoint](#jwks-endpoint)
+- [Health Check Endpoint](#health-check-endpoint)
+- [Error Responses](#error-responses)
 
 ## Metadata Endpoint
 
-Returns provider configuration and capabilities.
+Returns provider configuration and capabilities. This is the discovery endpoint for OpenID Connect.
 
 ### Request
 
 ```http
 GET /.well-known/openid-configuration
+Host: oidc.example.com
 ```
 
 ### Response
@@ -34,12 +48,17 @@ GET /.well-known/openid-configuration
   "response_types_supported": [
     "code",
     "id_token",
-    "token"
+    "token",
+    "code id_token",
+    "code token",
+    "id_token token",
+    "code id_token token"
   ],
   "grant_types_supported": [
     "authorization_code",
     "implicit",
-    "refresh_token"
+    "refresh_token",
+    "client_credentials"
   ],
   "response_modes_supported": [
     "form_post",

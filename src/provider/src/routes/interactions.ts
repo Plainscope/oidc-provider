@@ -1,6 +1,7 @@
 import { Express } from 'express';
 import { Provider } from 'oidc-provider';
 import assert from 'assert';
+import validator from 'validator';
 import { IDirectory } from '../directories/directory';
 
 // Production mode flag
@@ -8,6 +9,41 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // Helper function to format objects for debugging (disabled in production)
 const debug = (obj: any): string => isProduction ? '' : JSON.stringify(obj, null, 2);
+
+/**
+ * Sanitizes input string using validator.js to prevent XSS and injection attacks
+ * @param input - The input string to sanitize
+ * @returns Sanitized string
+ * @throws Error if input exceeds maximum length
+ */
+const sanitizeInput = (input: string): string => {
+  if (typeof input !== 'string') {
+    return '';
+  }
+  
+  const MAX_INPUT_LENGTH = 255;
+  if (input.length > MAX_INPUT_LENGTH) {
+    throw new Error(`Input exceeds maximum length of ${MAX_INPUT_LENGTH} characters`);
+  }
+  
+  // Use validator.js for proper sanitization
+  return validator.escape(validator.trim(input));
+};
+
+/**
+ * Validates email format using validator.js
+ * @param email - The email to validate
+ * @returns true if email format is valid
+ */
+const isValidEmail = (email: string): boolean => {
+  return validator.isEmail(email, {
+    allow_utf8_local_part: false,
+    require_tld: true
+  });
+};
+
+// Configurable timing attack prevention delay (ms)
+const MIN_AUTH_RESPONSE_TIME = parseInt(process.env.MIN_AUTH_RESPONSE_TIME || '100', 10);
 
 
 /**
@@ -71,11 +107,51 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
       assert.equal(name, 'login');
       const client = await provider.Client.find(params.client_id as string);
 
-      const { email, password } = req.body;
+      const rawEmail = req.body.email;
+      const rawPassword = req.body.password;
+      
+      // Start timing for attack prevention (must be before any validation)
+      const startTime = Date.now();
+      
+      // Sanitize and validate inputs
+      let email: string;
+      let password: string;
+      
+      try {
+        email = sanitizeInput(rawEmail);
+        password = sanitizeInput(rawPassword);
+      } catch (error) {
+        console.warn(`[INTERACTION] Input validation error:`, error);
+        
+        // Ensure minimum response time even for validation errors
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < MIN_AUTH_RESPONSE_TIME) {
+          await new Promise(resolve => setTimeout(resolve, MIN_AUTH_RESPONSE_TIME - elapsedTime));
+        }
+        
+        return res.status(400).render('login', {
+          client,
+          uid,
+          details: prompt.details,
+          params,
+          title: 'Sign-in',
+          session: session ? debug(session) : undefined,
+          dbg: { params: debug(params), prompt: debug(prompt) },
+          error: 'Invalid input provided',
+        });
+      }
+      
       console.log(`[INTERACTION] POST /interaction/${uid}/login - email: ${email}`);
 
       if (!email || !password) {
         console.warn(`[INTERACTION] Missing email or password`);
+        
+        // Ensure minimum response time
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < MIN_AUTH_RESPONSE_TIME) {
+          await new Promise(resolve => setTimeout(resolve, MIN_AUTH_RESPONSE_TIME - elapsedTime));
+        }
+        
         return res.status(400).render('login', {
           client,
           uid,
@@ -88,7 +164,36 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
         });
       }
 
+      // Validate email format
+      if (!isValidEmail(email)) {
+        console.warn(`[INTERACTION] Invalid email format: ${email}`);
+        
+        // Ensure minimum response time
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < MIN_AUTH_RESPONSE_TIME) {
+          await new Promise(resolve => setTimeout(resolve, MIN_AUTH_RESPONSE_TIME - elapsedTime));
+        }
+        
+        return res.status(400).render('login', {
+          client,
+          uid,
+          details: prompt.details,
+          params,
+          title: 'Sign-in',
+          session: session ? debug(session) : undefined,
+          dbg: { params: debug(params), prompt: debug(prompt) },
+          error: 'Invalid email format',
+        });
+      }
+
       const account = await directory.validate(email, password);
+      
+      // Constant-time comparison to prevent timing attacks
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < MIN_AUTH_RESPONSE_TIME) {
+        await new Promise(resolve => setTimeout(resolve, MIN_AUTH_RESPONSE_TIME - elapsedTime));
+      }
+      
       if (!account) {
         console.warn(`[INTERACTION] Invalid credentials for email: ${email}`);
         return res.status(401).render('login', {

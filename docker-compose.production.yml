@@ -1,0 +1,174 @@
+# Production Docker Compose Configuration
+#
+# This is a production-ready configuration example.
+# Copy this file and customize for your environment.
+#
+# IMPORTANT: Do not use default values in production!
+# Generate strong secrets using: openssl rand -hex 32
+
+version: '3.8'
+
+services:
+  # OIDC Provider
+  oidc-provider:
+    image: docker.io/plainscope/simple-oidc-provider:latest
+    container_name: oidc-provider
+    restart: unless-stopped
+    
+    environment:
+      # Node.js environment
+      NODE_ENV: production
+      PORT: 8080
+      
+      # Provider configuration
+      ISSUER: https://oidc.example.com
+      PROXY: 'true'
+      
+      # Client credentials (CHANGE THESE!)
+      CLIENT_ID: ${CLIENT_ID}
+      CLIENT_SECRET: ${CLIENT_SECRET}
+      
+      # OAuth redirect URIs
+      REDIRECT_URIS: ${REDIRECT_URIS}
+      POST_LOGOUT_REDIRECT_URIS: ${POST_LOGOUT_REDIRECT_URIS}
+      
+      # Cookie security
+      COOKIES_KEYS: ${COOKIES_KEYS}
+      
+      # Feature flags
+      FEATURES_DEV_INTERACTIONS: 'false'
+      
+      # Database
+      SQLITE_DB_PATH: /data/oidc.db
+      
+      # Directory service (optional)
+      DIRECTORY_TYPE: ${DIRECTORY_TYPE:-local}
+      DIRECTORY_BASE_URL: ${DIRECTORY_BASE_URL:-}
+      DIRECTORY_HEADERS: ${DIRECTORY_HEADERS:-}
+    
+    volumes:
+      # User database (read-only)
+      # Create this file before deploying: docker/provider/users.json
+      - ./docker/provider/users.json:/app/dist/users.json:ro
+      
+      # Optional configuration file (if needed)
+      # - ./docker/provider/config.json:/app/config.json:ro
+      
+      # Persistent data (ensure this directory has correct permissions)
+      # If using bind mount: mkdir -p ./data && chown 1001:1001 ./data
+      - provider-data:/data
+      
+      # Logs
+      - provider-logs:/var/log/oidc-provider
+    
+    # Only expose to internal network
+    expose:
+      - "8080"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    networks:
+      - backend
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        labels: "service,environment"
+      labels:
+        service: "oidc-provider"
+        environment: "production"
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    
+    # Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+  
+  # Reverse Proxy (Nginx)
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    restart: unless-stopped
+    
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      # Nginx configuration
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      
+      # SSL certificates (Let's Encrypt)
+      - /etc/letsencrypt/live/oidc.example.com:/etc/nginx/ssl:ro
+      
+      # Logs
+      - nginx-logs:/var/log/nginx
+    
+    depends_on:
+      oidc-provider:
+        condition: service_healthy
+    
+    networks:
+      - backend
+      - frontend
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+# Persistent volumes
+volumes:
+  provider-data:
+    driver: local
+  provider-logs:
+    driver: local
+  nginx-logs:
+    driver: local
+
+# Networks
+networks:
+  # Backend network (internal only)
+  backend:
+    driver: bridge
+    internal: false
+  
+  # Frontend network (external access)
+  frontend:
+    driver: bridge

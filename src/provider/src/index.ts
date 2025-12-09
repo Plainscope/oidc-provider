@@ -2,14 +2,54 @@
  * OIDC Provider - OAuth 2.0 Authorization Server with OpenID Connect support
  * Main server entry point. Sets up Express, OIDC Provider, and all routes.
  */
-import express, { Express } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Provider } from 'oidc-provider';
 import { configuration } from './configuration';
 import useDirectory, { IDirectory } from './directories/directory';
-import useInteractions from './routes/interations';
+import useInteractions from './routes/interactions';
 import useSqliteAdapter from './sqlite-adapter';
+
+/**
+ * Security headers middleware
+ * Adds comprehensive security headers to all responses
+ */
+const securityHeaders = (_req: Request, res: Response, next: NextFunction) => {
+  // Prevent clickjacking attacks
+  res.setHeader('X-Frame-Options', 'DENY');
+  
+  // Prevent MIME type sniffing
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // Enable XSS filter in browsers
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Control referrer information
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Content Security Policy
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
+  );
+  
+  // Permissions Policy (formerly Feature Policy)
+  res.setHeader(
+    'Permissions-Policy',
+    'geolocation=(), microphone=(), camera=(), payment=()'
+  );
+  
+  // HSTS header for HTTPS (only in production with HTTPS)
+  // Note: Start with shorter max-age in initial deployment and gradually increase
+  // Default is 1 day (86400s), can be increased to 1 year (31536000s) after validation
+  if (process.env.NODE_ENV === 'production' && process.env.ISSUER?.startsWith('https://')) {
+    const hstsMaxAge = process.env.HSTS_MAX_AGE || '86400'; // Default: 1 day
+    res.setHeader('Strict-Transport-Security', `max-age=${hstsMaxAge}; includeSubDomains; preload`);
+  }
+  
+  next();
+};
 
 // Log environment variables for debugging
 console.log('[INIT] Starting OIDC Provider with environment:', {
@@ -23,6 +63,64 @@ console.log('[INIT] Starting OIDC Provider with environment:', {
   DIRECTORY_USERS: process.env.DIRECTORY_USERS ? '<set>' : undefined,
   DIRECTORY_USERS_FILE: process.env.DIRECTORY_USERS_FILE,
 });
+
+/**
+ * Validates required environment variables on startup
+ * Throws an error if critical variables are missing or invalid
+ */
+const validateEnvironment = () => {
+  const errors: string[] = [];
+  
+  // Validate PORT
+  const port = process.env.PORT || '8080';
+  const portNum = parseInt(port, 10);
+  if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+    errors.push('PORT must be a valid number between 1 and 65535');
+  }
+  
+  // Validate ISSUER
+  const issuer = process.env.ISSUER || `http://localhost:${port}`;
+  try {
+    new URL(issuer);
+  } catch {
+    errors.push('ISSUER must be a valid URL');
+  }
+  
+  // Warn about production without HTTPS
+  if (process.env.NODE_ENV === 'production' && !issuer.startsWith('https://')) {
+    console.warn('[SECURITY WARNING] Production deployment should use HTTPS. Current issuer:', issuer);
+  }
+  
+  // Validate cookie keys in production
+  if (process.env.NODE_ENV === 'production') {
+    if (process.env.COOKIES_KEYS) {
+      try {
+        const keys = JSON.parse(process.env.COOKIES_KEYS);
+        if (!Array.isArray(keys) || keys.length === 0) {
+          errors.push('COOKIES_KEYS must be a non-empty array');
+        }
+        keys.forEach((key: any, index: number) => {
+          if (typeof key !== 'string' || key.length < 64) {
+            errors.push(`COOKIES_KEYS[${index}] must be at least 64 characters long for cryptographic security`);
+          }
+        });
+      } catch {
+        errors.push('COOKIES_KEYS must be valid JSON array');
+      }
+    }
+  }
+  
+  if (errors.length > 0) {
+    console.error('[VALIDATION ERROR] Environment validation failed:');
+    errors.forEach(error => console.error(`  - ${error}`));
+    throw new Error('Environment validation failed. See errors above.');
+  }
+  
+  console.log('[VALIDATION] Environment validation passed');
+};
+
+// Validate environment before proceeding
+validateEnvironment();
 
 const PORT = process.env.PORT || 8080;
 const ISSUER = process.env.ISSUER || `http://localhost:${PORT}`;
@@ -98,6 +196,11 @@ provider.use(async (ctx, next) => {
 // Serve static files (CSS, images, etc.)
 app.use(express.static('./public'));
 console.log('[INIT] Serving static files from ./public');
+
+// Apply security headers to all routes
+app.use(securityHeaders);
+console.log('[INIT] Security headers middleware enabled');
+
 // Parse URL-encoded bodies (for form submissions)
 app.use(express.urlencoded({ extended: false }));
 console.log('[INIT] URL-encoded body parser enabled');

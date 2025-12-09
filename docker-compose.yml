@@ -4,6 +4,7 @@ services:
       context: ./src/directory
       dockerfile: Dockerfile
     container_name: oidc-directory
+    restart: unless-stopped
     environment:
       PORT: 8080
       USERS_FILE: /app/config/users.json
@@ -20,12 +21,15 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+    security_opt:
+      - no-new-privileges:true
 
   provider:
     build:
       context: ./src/provider
       dockerfile: Dockerfile
     container_name: oidc-provider
+    restart: unless-stopped
     environment:
       PORT: 8080
       ISSUER: http://provider:8080
@@ -45,19 +49,23 @@ services:
     networks:
       - oidc-net
     depends_on:
-      - directory
+      directory:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 5s
+    security_opt:
+      - no-new-privileges:true
 
   demo:
     build:
       context: ./src/demo
       dockerfile: Dockerfile
     container_name: oidc-demo
+    restart: unless-stopped
     environment:
       ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_ENVIRONMENT: Development
@@ -70,7 +78,8 @@ services:
       OPENID__SCOPES__1: profile
       OPENID__SCOPES__2: email
     depends_on:
-      - provider
+      provider:
+        condition: service_healthy
     ports:
       - "${DEMO_PORT:-8080}:8080"
     networks:
@@ -81,6 +90,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+    security_opt:
+      - no-new-privileges:true
 
 networks:
   oidc-net:
@@ -88,3 +99,4 @@ networks:
 
 volumes:
   provider-data:
+    driver: local
