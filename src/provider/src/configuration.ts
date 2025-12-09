@@ -130,7 +130,16 @@ if (process.env.CLIENTS) {
   }
 }
 
-// COOKIES_KEYS override
+// COOKIES override (full cookies object) - should be checked before COOKIES_KEYS
+if (process.env.COOKIES) {
+  const cookies = safeJSONParse<Record<string, any>>(process.env.COOKIES);
+  if (cookies) {
+    envOverrides.cookies = cookies;
+    console.log('[CONFIG] Overriding cookies from COOKIES env var');
+  }
+}
+
+// COOKIES_KEYS override - more specific, overrides COOKIES if both are set
 if (process.env.COOKIES_KEYS) {
   const keys = safeJSONParse<string[]>(process.env.COOKIES_KEYS);
   if (keys) {
@@ -140,18 +149,9 @@ if (process.env.COOKIES_KEYS) {
   }
 }
 
-// COOKIES override (full cookies object)
-if (process.env.COOKIES) {
-  const cookies = safeJSONParse<any>(process.env.COOKIES);
-  if (cookies) {
-    envOverrides.cookies = cookies;
-    console.log('[CONFIG] Overriding cookies from COOKIES env var');
-  }
-}
-
 // CLAIMS override
 if (process.env.CLAIMS) {
-  const claims = safeJSONParse<any>(process.env.CLAIMS);
+  const claims = safeJSONParse<Record<string, string[]>>(process.env.CLAIMS);
   if (claims) {
     envOverrides.claims = claims;
     console.log('[CONFIG] Overriding claims from CLAIMS env var');
