@@ -28,6 +28,10 @@ function mergeDeep(target: any, ...sources: any[]) {
 
   if (isObject(target) && isObject(src)) {
     for (const key of Object.keys(src)) {
+      // Guard against prototype pollution
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        continue;
+      }
       const srcVal = src[key];
       const tgtVal = target[key];
       if (Array.isArray(srcVal)) {
