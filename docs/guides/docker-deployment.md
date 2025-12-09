@@ -83,7 +83,78 @@ networks:
     driver: bridge
 ```
 
-### Production Setup
+## Remote Directory Deployment
+
+For enterprise deployments with external user management systems, use the Remote Directory service:
+
+```yaml
+version: '3.8'
+
+services:
+  remote-directory:
+    build:
+      context: ./src/remote-directory
+      dockerfile: Dockerfile
+    container_name: oidc-remote-directory
+    restart: always
+    environment:
+      PORT: 5000
+      USERS_FILE: /app/config/users.json
+      BEARER_TOKEN: ${REMOTE_DIRECTORY_TOKEN:-your-secure-token}
+    volumes:
+      - ./users.json:/app/config/users.json:ro
+    networks:
+      - oidc-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-H", "Authorization: Bearer ${REMOTE_DIRECTORY_TOKEN:-your-secure-token}", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  oidc-provider:
+    image: docker.io/plainscope/simple-oidc-provider
+    container_name: oidc-provider
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      ISSUER: https://oidc.example.com
+      CLIENT_ID: ${OIDC_CLIENT_ID}
+      CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      REDIRECT_URIS: https://app.example.com/callback
+      POST_LOGOUT_REDIRECT_URIS: https://app.example.com/logout
+      PROXY: 'true'
+      DIRECTORY_TYPE: remote
+      DIRECTORY_BASE_URL: http://remote-directory:5000
+      DIRECTORY_HEADERS: '{"Authorization":"Bearer ${REMOTE_DIRECTORY_TOKEN:-your-secure-token}"}'
+    depends_on:
+      remote-directory:
+        condition: service_healthy
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/.well-known/openid-configuration"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - oidc-network
+
+networks:
+  oidc-network:
+    driver: bridge
+```
+
+**Benefits of Remote Directory**:
+
+- Centralized user management
+- Integration with Active Directory / LDAP
+- Support for custom authentication flows
+- Scalable enterprise deployments
+
+See [Remote Directory Configuration](../configuration/remote-directory.md) for detailed setup and API documentation.
+
+### Production Setup (Local Directory)
 
 ```yaml
 version: '3.8'

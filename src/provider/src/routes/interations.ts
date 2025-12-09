@@ -1,7 +1,7 @@
 import { Express } from 'express';
 import { Provider } from 'oidc-provider';
 import assert from 'assert';
-import { Profile } from '../profile';
+import { IDirectory } from '../directories/directory';
 
 // Production mode flag
 const isProduction = process.env.NODE_ENV === 'production';
@@ -15,7 +15,7 @@ const debug = (obj: any): string => isProduction ? '' : JSON.stringify(obj, null
  * @param app Express application instance
  * @param provider OIDC Provider instance
  */
-export default (app: Express, provider: Provider) => {
+export default (app: Express, provider: Provider, directory: IDirectory) => {
   // GET /interaction/:uid - Handles login and consent prompts
   app.get('/interaction/:uid', async (req, res) => {
     try {
@@ -88,7 +88,7 @@ export default (app: Express, provider: Provider) => {
         });
       }
 
-      const account = await Profile.authenticate(email, password);
+      const account = await directory.validate(email, password);
       if (!account) {
         console.warn(`[INTERACTION] Invalid credentials for email: ${email}`);
         return res.status(401).render('login', {

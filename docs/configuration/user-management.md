@@ -2,11 +2,23 @@
 
 Guide for managing user authentication and profiles in the OIDC provider.
 
-## User Storage
+## User Storage Options
 
-The OIDC provider stores user data in a JSON file format. This file contains user credentials, profile information, and authentication state.
+The OIDC provider supports two approaches for user management:
 
-### Default User Database
+### 1. Local Storage (Default)
+
+Users are loaded from a JSON file at startup. This is suitable for development, testing, and small deployments.
+
+See [below](#local-user-database) for configuration details.
+
+### 2. Remote Directory (Enterprise)
+
+Users are managed by an external HTTP service. This is ideal for enterprise integration with existing identity systems, Active Directory, LDAP, or other user management platforms.
+
+**See [Remote Directory Configuration](remote-directory.md)** for detailed setup instructions.
+
+## Local User Database
 
 Located at `/app/dist/users.json` (inside container).
 

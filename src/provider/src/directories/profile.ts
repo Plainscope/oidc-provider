@@ -1,9 +1,8 @@
 /**
  * Profile class implements OIDC Account interface for user authentication and claims.
- * Handles account lookup, authentication, and claims resolution for OIDC flows.
+ * Handles claims resolution for OIDC flows.
  */
-import { Account, AccountClaims, ClaimsParameterMember, KoaContextWithOIDC } from 'oidc-provider';
-import { Users } from './users';
+import { Account, AccountClaims, ClaimsParameterMember } from 'oidc-provider';
 import { User } from './user';
 
 // In-memory account storage and OIDC account logic
@@ -56,36 +55,5 @@ export class Profile implements Account {
 
     console.log('[PROFILE] Final claims for', use, ':', Object.keys(result));
     return result;
-  }
-
-  /**
-   * Finds an account by ID for OIDC Provider.
-   */
-  static async find(_ctx: KoaContextWithOIDC, id: string) {
-    console.log(`[PROFILE] Looking up user by id: ${id}`);
-    const user = Users.find(u => u.id === id);
-    if (!user) {
-      console.warn(`[PROFILE] No user found for id: ${id}`);
-      return undefined;
-    }
-    return new Profile(id, user);
-  }
-
-  /**
-   * Authenticates a user by email and password.
-   */
-  static async authenticate(email: string, password: string) {
-    console.log(`[PROFILE] Authenticating user: ${email}`);
-    const user = Users.find(u => (
-      u.username === email || u.email === email
-    ) &&
-      u.password === password
-    );
-    if (!user) {
-      console.warn(`[PROFILE] Authentication failed for email: ${email}`);
-      return undefined;
-    }
-    console.log(`[PROFILE] Authentication successful for email: ${email}`);
-    return new Profile(user.id, user);
   }
 }

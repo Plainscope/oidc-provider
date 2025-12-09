@@ -3,7 +3,6 @@ FROM node:25-alpine AS build
 WORKDIR /app
 COPY package*.json tsconfig.json ./
 COPY src ./src
-COPY views ./views
 COPY public ./public
 RUN npm ci
 RUN npm run build
@@ -16,7 +15,7 @@ ENV PORT=8080
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
-COPY views ./views
+COPY src/views ./views
 COPY public ./public
 # Copy optional configuration if present
 COPY config*.json ./

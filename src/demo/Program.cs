@@ -8,6 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 var section = builder.Configuration.GetSection("OpenId");
 var settings = section.Get<OpenIdSettings>()!;
+var isDevelopment = builder.Environment.IsDevelopment();
+var securePolicy = isDevelopment ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
 
 // Add IOptions<TSettings> to the DI container
 // https://learn.microsoft.com/en-us/dotnet/core/extensions/options
@@ -32,7 +34,7 @@ builder.Services.AddAuthentication(options =>
 .AddCookie(options =>
 {
   options.Cookie.SameSite = SameSiteMode.Unspecified;
-  options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+  options.Cookie.SecurePolicy = securePolicy;
 })
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
@@ -47,7 +49,7 @@ builder.Services.AddAuthentication(options =>
   }
 
   // In Development, relax backchannel certificate validation to allow local dev certs
-  if (builder.Environment.IsDevelopment())
+  if (isDevelopment)
   {
     options.BackchannelHttpHandler = new HttpClientHandler
     {
@@ -78,9 +80,9 @@ builder.Services.AddAuthentication(options =>
 
   // 5. Address Correlation Failed issue
   options.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
-  options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+  options.CorrelationCookie.SecurePolicy = securePolicy;
   options.NonceCookie.SameSite = SameSiteMode.Unspecified;
-  options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+  options.NonceCookie.SecurePolicy = securePolicy;
 
   // This alone fixes the problem for most people in 2025
   options.UsePkce = true;

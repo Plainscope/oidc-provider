@@ -44,12 +44,14 @@ configuration = {
   cookies: process.env.COOKIES ? JSON.parse(process.env.COOKIES) : {
     keys: process.env.COOKIES_KEYS ? JSON.parse(process.env.COOKIES_KEYS) : [
       '40763539018b2f012d30aa7eba0123db3dc847b0eca146e5d7160838f8b2d092'
-    ]
+    ],
+    ...configuration.cookies,
   },
   claims: process.env.CLAIMS ? JSON.parse(process.env.CLAIMS) : {
     openid: ['sub', 'sid'],
     email: ['email', 'email_verified'],
-    profile: ['name', 'nickname', 'given_name', 'family_name', 'groups', 'picture']
+    profile: ['name', 'nickname', 'given_name', 'family_name', 'groups', 'picture'],
+    ...configuration.claims,
   },
   scopes: process.env.SCOPES ? process.env.SCOPES.split(',') : [
     'openid', 'profile', 'email', 'offline_access'
@@ -58,6 +60,7 @@ configuration = {
     devInteractions: {
       enabled: process.env.FEATURES_DEV_INTERACTIONS === 'true',
     },
+    ...configuration.features,
   },
   ...configuration,
 };

@@ -14,6 +14,7 @@ Welcome to the Simple OIDC Provider documentation. This comprehensive guide cove
 - **[Environment Variables](configuration/environment-variables.md)** - Complete reference for all configurable options
 - **[Client Configuration](configuration/client-configuration.md)** - Register and manage OAuth 2.0 clients
 - **[User Management](configuration/user-management.md)** - User authentication and profile setup
+- **[Remote Directory Configuration](configuration/remote-directory.md)** - Integrate with external user management systems
 - **[Advanced Configuration](configuration/advanced-configuration.md)** - Fine-tuning and custom configurations
 
 ### API & Endpoints
