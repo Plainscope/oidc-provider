@@ -429,8 +429,8 @@ if (!isValidEmail(email)) {
 }
 
 // Input sanitization
-// Note: For production, use a library like validator.js or DOMPurify
-const sanitizedEmail = sanitizeInput(email);
+// Input sanitization using validator.js
+const sanitizedEmail = validator.escape(email);
 ```
 
 **Recommended Libraries:**
