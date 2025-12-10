@@ -1,23 +1,52 @@
-# Remote Directory Configuration
+# Remote Directory Service - User Management
 
-This guide explains how to configure the OIDC Provider to use a remote directory service for user management and authentication instead of a local user file.
+This guide covers the enhanced Remote Directory Service with SQLite-based persistence, comprehensive user management API, and web-based UI.
 
 ## Overview
 
-The OIDC Provider supports two user directory modes:
+The Remote Directory Service now includes:
 
-- **Local Mode** (default): Users are loaded from a JSON file at startup
-- **Remote Mode**: Users are managed by an external HTTP service (ideal for enterprise integration)
-
-The Remote Directory service is implemented as a Python Flask application that exposes REST API endpoints for user operations.
+- **SQLite Database**: File-based relational database for persistent user storage
+- **Comprehensive API**: REST endpoints for users, roles, groups, domains, and audit logs
+- **Web Dashboard**: Professional Tailwind CSS UI for visual management
+- **Relational Data Model**: Support for multiple domains, emails, roles, and groups
+- **Audit Logging**: Complete change tracking for compliance
+- **Backward Compatibility**: Legacy endpoints still supported
 
 ## Architecture
 
 ```
-┌──────────────────┐
-│   OIDC Provider  │
-│   (Node.js)      │
-└────────┬─────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                   OIDC Provider (Node.js)                    │
+├──────────────────────────────────────────────────────────────┤
+│  oidc-provider library with custom adapter for OAuth/OIDC    │
+└────────────────────────┬─────────────────────────────────────┘
+                         │ HTTPS/HTTP
+                         │
+┌────────────────────────▼─────────────────────────────────────┐
+│          Remote Directory Service (Python Flask)             │
+├──────────────────────────────────────────────────────────────┤
+│ REST API: Users, Roles, Groups, Domains, Audit Logs         │
+│ Web UI: Management Dashboard with Tailwind CSS              │
+│ Models: Python data access layer                            │
+└────────────────────────┬─────────────────────────────────────┘
+                         │
+┌────────────────────────▼─────────────────────────────────────┐
+│              SQLite Database (/app/data/users.db)            │
+├──────────────────────────────────────────────────────────────┤
+│ ┌──────────┐ ┌──────────┐ ┌─────────────┐ ┌────────────┐   │
+│ │ Domains  │ │  Users   │ │ Roles       │ │ Groups     │   │
+│ └──────────┘ └──────────┘ └─────────────┘ └────────────┘   │
+│ ┌──────────────────┐ ┌─────────────────┐                    │
+│ │ User Emails      │ │ User Properties │                    │
+│ └──────────────────┘ └─────────────────┘                    │
+│ ┌──────────────────┐ ┌─────────────────┐                    │
+│ │ User Roles       │ │ User Groups     │                    │
+│ └──────────────────┘ └─────────────────┘                    │
+│ ┌──────────────────┐                                         │
+│ │ Audit Logs       │                                         │
+│ └──────────────────┘                                         │
+└──────────────────────────────────────────────────────────────┘
          │
          │ HTTP + Bearer Token
          │

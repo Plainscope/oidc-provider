@@ -149,3 +149,8 @@ test-results/
 
 # Compiled unit tests
 test/unit/compiled/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
