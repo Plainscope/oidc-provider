@@ -21,7 +21,15 @@
         {% for user in users %}
         <tr>
             <td>{{ user.email }}</td>
-            <td>{{ user.name or user.given_name + ' ' + user.family_name if user.given_name and user.family_name else 'N/A' }}</td>
+            <td>
+                {% if user.name %}
+                    {{ user.name }}
+                {% elif user.given_name and user.family_name %}
+                    {{ user.given_name }} {{ user.family_name }}
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
             <td>
                 {% if user.email_verified %}
                 <span class="badge badge-success">Verified</span>

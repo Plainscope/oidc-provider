@@ -105,15 +105,18 @@
     {% if user.address %}
     <div class="detail-label">Address:</div>
     <div class="detail-value">
-        {% if user.address is mapping %}
-        {{ user.address.formatted or 
-           (user.address.street_address or '') + ', ' + 
-           (user.address.locality or '') + ', ' + 
-           (user.address.region or '') + ' ' + 
-           (user.address.postal_code or '') + ', ' + 
-           (user.address.country or '') }}
+        {% if user.address is mapping and user.address.formatted %}
+            {{ user.address.formatted }}
+        {% elif user.address is mapping %}
+            {% set parts = [] %}
+            {% if user.address.street_address %}{% set _ = parts.append(user.address.street_address) %}{% endif %}
+            {% if user.address.locality %}{% set _ = parts.append(user.address.locality) %}{% endif %}
+            {% if user.address.region %}{% set _ = parts.append(user.address.region) %}{% endif %}
+            {% if user.address.postal_code %}{% set _ = parts.append(user.address.postal_code) %}{% endif %}
+            {% if user.address.country %}{% set _ = parts.append(user.address.country) %}{% endif %}
+            {{ parts|join(', ') }}
         {% else %}
-        {{ user.address }}
+            {{ user.address }}
         {% endif %}
     </div>
     {% endif %}
