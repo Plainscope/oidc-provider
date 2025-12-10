@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+
+{% block title %}Users - Remote Directory{% endblock %}
+
+{% block content %}
+<h2>User Directory</h2>
+
+<p>Total users: <strong>{{ users|length }}</strong></p>
+
+{% if users %}
+<table>
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Email Verified</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.email }}</td>
+            <td>{{ user.name or user.given_name + ' ' + user.family_name if user.given_name and user.family_name else 'N/A' }}</td>
+            <td>
+                {% if user.email_verified %}
+                <span class="badge badge-success">Verified</span>
+                {% else %}
+                <span class="badge badge-warning">Not Verified</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="/users/{{ user.id }}" class="user-link">View Details</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+    <p>No users found in the directory.</p>
+</div>
+{% endif %}
+
+<div class="api-info">
+    <strong>API Endpoints:</strong><br>
+    <code>GET /count</code> - Get total user count<br>
+    <code>GET /find/&lt;user_id&gt;</code> - Find user by ID<br>
+    <code>POST /validate</code> - Validate user credentials<br>
+    <code>GET /healthz</code> - Health check
+</div>
+{% endblock %}

@@ -5,7 +5,8 @@ Provides REST API endpoints for user management and authentication.
 import os
 import json
 from pathlib import Path
-from flask import Flask, request, jsonify, abort
+from datetime import datetime
+from flask import Flask, request, jsonify, abort, render_template
 import logging
 
 # Configure logging
@@ -15,7 +16,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger('remote-directory')
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='views')
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 # Load users from environment or file
 def load_users():
@@ -78,6 +80,11 @@ def verify_auth():
     """Verify authorization for all requests."""
     # Allow unauthenticated health checks so container health probes work
     if request.path == '/healthz':
+        return
+    
+    # Allow web UI access without authentication
+    # Web UI routes: /, /users/<id>
+    if request.path in ['/', '/healthz'] or request.path.startswith('/users/'):
         return
 
     if not check_bearer_token():
@@ -151,13 +158,56 @@ def validate():
 def health():
     """
     GET /healthz
-    Health check endpoint.
+    Health check endpoint. Returns JSON by default, HTML if Accept header includes text/html.
     """
     logger.info('[API] GET /healthz')
-    return jsonify({
+    health_data = {
         'status': 'ok',
         'users_count': len(USERS)
-    })
+    }
+    
+    # Check if client prefers HTML
+    if request.accept_mimetypes.best_match(['text/html', 'application/json']) == 'text/html':
+        return render_template('health.html', 
+                             health=health_data, 
+                             bearer_token_enabled=bool(BEARER_TOKEN),
+                             current_year=datetime.now().year)
+    
+    return jsonify(health_data)
+
+
+# Web UI Routes
+@app.route('/', methods=['GET'])
+def index():
+    """
+    GET /
+    Web UI: Display list of all users.
+    """
+    logger.info('[WEB] GET /')
+    return render_template('index.html', 
+                         users=USERS,
+                         current_year=datetime.now().year)
+
+
+@app.route('/users/<user_id>', methods=['GET'])
+def user_detail(user_id):
+    """
+    GET /users/<user_id>
+    Web UI: Display detailed information about a specific user.
+    """
+    logger.info(f'[WEB] GET /users/{user_id}')
+    
+    user = next((u for u in USERS if u.get('id') == user_id), None)
+    if not user:
+        logger.warning(f'[WEB] User not found: {user_id}')
+        abort(404)
+    
+    logger.info(f'[WEB] User found: {user_id}')
+    # Exclude password from user data for display
+    safe_user = exclude_password(user)
+    return render_template('user_detail.html', 
+                         user=safe_user,
+                         current_year=datetime.now().year)
 
 
 @app.errorhandler(400)

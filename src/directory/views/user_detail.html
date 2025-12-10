@@ -1,0 +1,128 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ user.email }} - Remote Directory{% endblock %}
+
+{% block content %}
+<h2>User Details</h2>
+
+<div class="detail-grid">
+    <div class="detail-label">ID:</div>
+    <div class="detail-value">{{ user.id }}</div>
+    
+    <div class="detail-label">Email:</div>
+    <div class="detail-value">{{ user.email }}</div>
+    
+    <div class="detail-label">Email Verified:</div>
+    <div class="detail-value">
+        {% if user.email_verified %}
+        <span class="badge badge-success">Verified</span>
+        {% else %}
+        <span class="badge badge-warning">Not Verified</span>
+        {% endif %}
+    </div>
+    
+    {% if user.name %}
+    <div class="detail-label">Full Name:</div>
+    <div class="detail-value">{{ user.name }}</div>
+    {% endif %}
+    
+    {% if user.given_name %}
+    <div class="detail-label">Given Name:</div>
+    <div class="detail-value">{{ user.given_name }}</div>
+    {% endif %}
+    
+    {% if user.family_name %}
+    <div class="detail-label">Family Name:</div>
+    <div class="detail-value">{{ user.family_name }}</div>
+    {% endif %}
+    
+    {% if user.middle_name %}
+    <div class="detail-label">Middle Name:</div>
+    <div class="detail-value">{{ user.middle_name }}</div>
+    {% endif %}
+    
+    {% if user.nickname %}
+    <div class="detail-label">Nickname:</div>
+    <div class="detail-value">{{ user.nickname }}</div>
+    {% endif %}
+    
+    {% if user.preferred_username %}
+    <div class="detail-label">Preferred Username:</div>
+    <div class="detail-value">{{ user.preferred_username }}</div>
+    {% endif %}
+    
+    {% if user.profile %}
+    <div class="detail-label">Profile URL:</div>
+    <div class="detail-value"><a href="{{ user.profile }}" target="_blank">{{ user.profile }}</a></div>
+    {% endif %}
+    
+    {% if user.picture %}
+    <div class="detail-label">Picture:</div>
+    <div class="detail-value"><img src="{{ user.picture }}" alt="Profile Picture" style="max-width: 150px; border-radius: 4px;"></div>
+    {% endif %}
+    
+    {% if user.website %}
+    <div class="detail-label">Website:</div>
+    <div class="detail-value"><a href="{{ user.website }}" target="_blank">{{ user.website }}</a></div>
+    {% endif %}
+    
+    {% if user.gender %}
+    <div class="detail-label">Gender:</div>
+    <div class="detail-value">{{ user.gender }}</div>
+    {% endif %}
+    
+    {% if user.birthdate %}
+    <div class="detail-label">Birthdate:</div>
+    <div class="detail-value">{{ user.birthdate }}</div>
+    {% endif %}
+    
+    {% if user.zoneinfo %}
+    <div class="detail-label">Timezone:</div>
+    <div class="detail-value">{{ user.zoneinfo }}</div>
+    {% endif %}
+    
+    {% if user.locale %}
+    <div class="detail-label">Locale:</div>
+    <div class="detail-value">{{ user.locale }}</div>
+    {% endif %}
+    
+    {% if user.phone_number %}
+    <div class="detail-label">Phone Number:</div>
+    <div class="detail-value">{{ user.phone_number }}</div>
+    {% endif %}
+    
+    {% if user.phone_number_verified is defined %}
+    <div class="detail-label">Phone Verified:</div>
+    <div class="detail-value">
+        {% if user.phone_number_verified %}
+        <span class="badge badge-success">Verified</span>
+        {% else %}
+        <span class="badge badge-warning">Not Verified</span>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% if user.address %}
+    <div class="detail-label">Address:</div>
+    <div class="detail-value">
+        {% if user.address is mapping %}
+        {{ user.address.formatted or 
+           (user.address.street_address or '') + ', ' + 
+           (user.address.locality or '') + ', ' + 
+           (user.address.region or '') + ' ' + 
+           (user.address.postal_code or '') + ', ' + 
+           (user.address.country or '') }}
+        {% else %}
+        {{ user.address }}
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% if user.updated_at %}
+    <div class="detail-label">Last Updated:</div>
+    <div class="detail-value">{{ user.updated_at }}</div>
+    {% endif %}
+</div>
+
+<a href="/" class="back-link">← Back to User List</a>
+{% endblock %}
