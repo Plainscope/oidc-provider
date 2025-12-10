@@ -3,12 +3,32 @@
 {% block title %}Users - Remote Directory{% endblock %}
 
 {% block content %}
-<h2>User Directory</h2>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2 style="margin: 0;">User Directory</h2>
+    <a href="/users/new" class="btn btn-primary">+ Add User</a>
+</div>
 
-<p>Total users: <strong>{{ users|length }}</strong></p>
+<div class="filter-controls">
+    <input type="text" id="searchInput" placeholder="Search by email or name..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+    
+    <select id="filterVerified" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        <option value="">All Users</option>
+        <option value="verified">Verified Only</option>
+        <option value="unverified">Unverified Only</option>
+    </select>
+    
+    <select id="sortBy" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        <option value="email-asc">Email (A-Z)</option>
+        <option value="email-desc">Email (Z-A)</option>
+        <option value="name-asc">Name (A-Z)</option>
+        <option value="name-desc">Name (Z-A)</option>
+    </select>
+</div>
+
+<p style="margin-top: 15px;">Total users: <strong id="userCount">{{ users|length }}</strong> | Showing: <strong id="visibleCount">{{ users|length }}</strong></p>
 
 {% if users %}
-<table>
+<table id="userTable">
     <thead>
         <tr>
             <th>Email</th>
@@ -19,7 +39,7 @@
     </thead>
     <tbody>
         {% for user in users %}
-        <tr>
+        <tr data-email="{{ user.email|lower }}" data-name="{% if user.name %}{{ user.name|lower }}{% elif user.given_name and user.family_name %}{{ user.given_name|lower }} {{ user.family_name|lower }}{% else %}n/a{% endif %}" data-verified="{{ 'true' if user.email_verified else 'false' }}">
             <td>{{ user.email }}</td>
             <td>
                 {% if user.name %}
@@ -38,12 +58,18 @@
                 {% endif %}
             </td>
             <td>
-                <a href="/users/{{ user.id }}" class="user-link">View Details</a>
+                <a href="/users/{{ user.id }}" class="user-link">View</a> |
+                <a href="/users/{{ user.id }}/edit" class="user-link">Edit</a> |
+                <a href="#" class="user-link delete-link" data-user-id="{{ user.id }}" data-user-email="{{ user.email }}" onclick="return confirmDelete(event, '{{ user.id }}', '{{ user.email }}')">Delete</a>
             </td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+
+<div id="noResults" class="empty-state" style="display: none;">
+    <p>No users match your search criteria.</p>
+</div>
 {% else %}
 <div class="empty-state">
     <p>No users found in the directory.</p>
@@ -57,4 +83,112 @@
     <code>POST /validate</code> - Validate user credentials<br>
     <code>GET /healthz</code> - Health check
 </div>
+
+<script>
+// Search, filter, and sort functionality
+const searchInput = document.getElementById('searchInput');
+const filterVerified = document.getElementById('filterVerified');
+const sortBy = document.getElementById('sortBy');
+const userTable = document.getElementById('userTable');
+const noResults = document.getElementById('noResults');
+const visibleCount = document.getElementById('visibleCount');
+
+function filterAndSortUsers() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const filterValue = filterVerified.value;
+    const sortValue = sortBy.value;
+    const tbody = userTable.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Filter rows
+    let visibleRows = rows.filter(row => {
+        const email = row.dataset.email;
+        const name = row.dataset.name;
+        const verified = row.dataset.verified;
+        
+        // Search filter
+        const matchesSearch = email.includes(searchTerm) || name.includes(searchTerm);
+        
+        // Verification filter
+        let matchesFilter = true;
+        if (filterValue === 'verified') {
+            matchesFilter = verified === 'true';
+        } else if (filterValue === 'unverified') {
+            matchesFilter = verified === 'false';
+        }
+        
+        return matchesSearch && matchesFilter;
+    });
+    
+    // Sort rows
+    visibleRows.sort((a, b) => {
+        const [field, direction] = sortValue.split('-');
+        let aVal, bVal;
+        
+        if (field === 'email') {
+            aVal = a.dataset.email;
+            bVal = b.dataset.email;
+        } else if (field === 'name') {
+            aVal = a.dataset.name;
+            bVal = b.dataset.name;
+        }
+        
+        if (direction === 'asc') {
+            return aVal.localeCompare(bVal);
+        } else {
+            return bVal.localeCompare(aVal);
+        }
+    });
+    
+    // Show/hide rows
+    rows.forEach(row => row.style.display = 'none');
+    visibleRows.forEach(row => row.style.display = '');
+    
+    // Update visible count
+    visibleCount.textContent = visibleRows.length;
+    
+    // Show/hide no results message
+    if (visibleRows.length === 0 && userTable) {
+        userTable.style.display = 'none';
+        noResults.style.display = 'block';
+    } else if (userTable) {
+        userTable.style.display = 'table';
+        noResults.style.display = 'none';
+    }
+}
+
+if (searchInput) {
+    searchInput.addEventListener('input', filterAndSortUsers);
+}
+if (filterVerified) {
+    filterVerified.addEventListener('change', filterAndSortUsers);
+}
+if (sortBy) {
+    sortBy.addEventListener('change', filterAndSortUsers);
+}
+
+// Delete confirmation
+function confirmDelete(event, userId, userEmail) {
+    event.preventDefault();
+    if (confirm(`Are you sure you want to delete user "${userEmail}"?`)) {
+        fetch(`/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to delete user. Please try again.');
+            }
+        })
+        .catch(error => {
+            alert('Error deleting user: ' + error.message);
+        });
+    }
+    return false;
+}
+</script>
 {% endblock %}

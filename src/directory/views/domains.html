@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+
+{% block title %}Domains - Remote Directory{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2 style="margin: 0;">Domains</h2>
+    <a href="/domains/new" class="btn btn-primary">+ Add Domain</a>
+</div>
+
+<div class="filter-controls">
+    <input type="text" id="searchInput" placeholder="Search domains..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+</div>
+
+<p style="margin-top: 15px;">Total domains: <strong id="totalCount">{{ domains|length }}</strong> | Showing: <strong id="visibleCount">{{ domains|length }}</strong></p>
+
+{% if domains %}
+<table id="domainTable">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for domain in domains %}
+        <tr data-name="{{ domain.name|lower }}" data-description="{{ domain.description|lower if domain.description else '' }}">
+            <td>{{ domain.name }}</td>
+            <td>{{ domain.description or 'N/A' }}</td>
+            <td>
+                {% if domain.active %}
+                <span class="badge badge-success">Active</span>
+                {% else %}
+                <span class="badge badge-warning">Inactive</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="/domains/{{ domain.id }}/edit" class="user-link">Edit</a> |
+                <a href="#" class="user-link" onclick="return confirmDelete(event, '{{ domain.id }}', '{{ domain.name }}', 'domain')">Delete</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div id="noResults" class="empty-state" style="display: none;">
+    <p>No domains match your search criteria.</p>
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No domains found. Create your first domain to get started.</p>
+</div>
+{% endif %}
+
+<script>
+const searchInput = document.getElementById('searchInput');
+const domainTable = document.getElementById('domainTable');
+const noResults = document.getElementById('noResults');
+const visibleCount = document.getElementById('visibleCount');
+
+function filterDomains() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const tbody = domainTable.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    let visibleRows = rows.filter(row => {
+        const name = row.dataset.name;
+        const description = row.dataset.description;
+        return name.includes(searchTerm) || description.includes(searchTerm);
+    });
+    
+    rows.forEach(row => row.style.display = 'none');
+    visibleRows.forEach(row => row.style.display = '');
+    
+    visibleCount.textContent = visibleRows.length;
+    
+    if (visibleRows.length === 0 && domainTable) {
+        domainTable.style.display = 'none';
+        noResults.style.display = 'block';
+    } else if (domainTable) {
+        domainTable.style.display = 'table';
+        noResults.style.display = 'none';
+    }
+}
+
+if (searchInput) {
+    searchInput.addEventListener('input', filterDomains);
+}
+
+function confirmDelete(event, id, name, type) {
+    event.preventDefault();
+    if (confirm(`Are you sure you want to delete ${type} "${name}"?`)) {
+        fetch(`/${type}s/${id}`, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert(`Failed to delete ${type}. Please try again.`);
+            }
+        })
+        .catch(error => {
+            alert(`Error deleting ${type}: ` + error.message);
+        });
+    }
+    return false;
+}
+</script>
+{% endblock %}

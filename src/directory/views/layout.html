@@ -178,6 +178,125 @@
             border-radius: 3px;
             font-family: 'Courier New', monospace;
         }
+        
+        /* Button styles */
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        /* Filter controls */
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        /* Form styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="password"],
+        .form-group input[type="date"],
+        .form-group input[type="tel"],
+        .form-group input[type="url"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+            font-family: inherit;
+        }
+        
+        .form-group input[type="checkbox"] {
+            margin-right: 5px;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -185,7 +304,10 @@
         <header>
             <h1>Remote Directory Service</h1>
             <nav>
-                <a href="/" {% if request.path == '/' %}class="active"{% endif %}>Users</a>
+                <a href="/" {% if request.path == '/' or request.path.startswith('/users') %}class="active"{% endif %}>Users</a>
+                <a href="/domains" {% if request.path.startswith('/domains') %}class="active"{% endif %}>Domains</a>
+                <a href="/groups" {% if request.path.startswith('/groups') %}class="active"{% endif %}>Groups</a>
+                <a href="/roles" {% if request.path.startswith('/roles') %}class="active"{% endif %}>Roles</a>
                 <a href="/healthz" {% if request.path == '/healthz' %}class="active"{% endif %}>Health</a>
             </nav>
         </header>

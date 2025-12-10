@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+
+{% block title %}Roles - Remote Directory{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2 style="margin: 0;">Roles</h2>
+    <a href="/roles/new" class="btn btn-primary">+ Add Role</a>
+</div>
+
+<div class="filter-controls">
+    <input type="text" id="searchInput" placeholder="Search roles..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+</div>
+
+<p style="margin-top: 15px;">Total roles: <strong id="totalCount">{{ roles|length }}</strong> | Showing: <strong id="visibleCount">{{ roles|length }}</strong></p>
+
+{% if roles %}
+<table id="roleTable">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Permissions</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for role in roles %}
+        <tr data-name="{{ role.name|lower }}" data-description="{{ role.description|lower if role.description else '' }}">
+            <td>{{ role.name }}</td>
+            <td>{{ role.description or 'N/A' }}</td>
+            <td>{{ role.permissions|length if role.permissions else 0 }}</td>
+            <td>
+                <a href="/roles/{{ role.id }}/edit" class="user-link">Edit</a> |
+                <a href="#" class="user-link" onclick="return confirmDelete(event, '{{ role.id }}', '{{ role.name }}', 'role')">Delete</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div id="noResults" class="empty-state" style="display: none;">
+    <p>No roles match your search criteria.</p>
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No roles found. Create your first role to get started.</p>
+</div>
+{% endif %}
+
+<script>
+const searchInput = document.getElementById('searchInput');
+const roleTable = document.getElementById('roleTable');
+const noResults = document.getElementById('noResults');
+const visibleCount = document.getElementById('visibleCount');
+
+function filterRoles() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const tbody = roleTable.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    let visibleRows = rows.filter(row => {
+        const name = row.dataset.name;
+        const description = row.dataset.description;
+        return name.includes(searchTerm) || description.includes(searchTerm);
+    });
+    
+    rows.forEach(row => row.style.display = 'none');
+    visibleRows.forEach(row => row.style.display = '');
+    
+    visibleCount.textContent = visibleRows.length;
+    
+    if (visibleRows.length === 0 && roleTable) {
+        roleTable.style.display = 'none';
+        noResults.style.display = 'block';
+    } else if (roleTable) {
+        roleTable.style.display = 'table';
+        noResults.style.display = 'none';
+    }
+}
+
+if (searchInput) {
+    searchInput.addEventListener('input', filterRoles);
+}
+
+function confirmDelete(event, id, name, type) {
+    event.preventDefault();
+    if (confirm(`Are you sure you want to delete ${type} "${name}"?`)) {
+        fetch(`/${type}s/${id}`, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert(`Failed to delete ${type}. Please try again.`);
+            }
+        })
+        .catch(error => {
+            alert(`Error deleting ${type}: ` + error.message);
+        });
+    }
+    return false;
+}
+</script>
+{% endblock %}
