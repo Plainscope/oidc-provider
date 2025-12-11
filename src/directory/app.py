@@ -357,10 +357,19 @@ def edit_user(user_id):
     return render_template('user_form.html', user=user, current_year=datetime.now().year)
 
 
-@app.route('/users/<user_id>', methods=['POST'])
+@app.route('/users/<user_id>', methods=['POST', 'PUT', 'PATCH'])
 def update_user(user_id):
-    """POST /users/<user_id> - Update a user."""
-    logger.info(f'[WEB] POST /users/{user_id}')
+    """
+    POST/PUT/PATCH /users/<user_id> - Update a user.
+    Supports method override via a hidden '_method' form field for HTML form compatibility.
+    """
+    # Support method override for HTML forms
+    method = request.method
+    if method == 'POST':
+        override = request.form.get('_method', '').upper()
+        if override in ('PUT', 'PATCH'):
+            method = override
+    logger.info(f'[WEB] {method} /users/{user_id}')
     
     user = next((u for u in USERS if u.get('id') == user_id), None)
     if not user:
