@@ -133,15 +133,19 @@ def exclude_password(user):
 @app.before_request
 def verify_auth():
     """Verify authorization for all requests."""
-    # Allow unauthenticated access to health checks (for container probes) and web UI
+    # Allow unauthenticated access to health checks (for container probes)
     web_ui_paths = ['/', '/healthz', '/domains', '/groups', '/roles']
     
-    # Check if path starts with any web UI route
-    if (request.path in web_ui_paths or 
-        request.path.startswith('/users/') or
-        request.path.startswith('/domains/') or
-        request.path.startswith('/groups/') or
-        request.path.startswith('/roles/')):
+    # Allow unauthenticated access to web UI paths ONLY for safe methods (GET, HEAD, OPTIONS)
+    if (
+        request.method in ('GET', 'HEAD', 'OPTIONS') and (
+            request.path in web_ui_paths or
+            request.path.startswith('/users/') or
+            request.path.startswith('/domains/') or
+            request.path.startswith('/groups/') or
+            request.path.startswith('/roles/')
+        )
+    ):
         return
 
     if not check_bearer_token():
