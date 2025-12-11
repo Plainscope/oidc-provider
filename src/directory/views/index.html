@@ -60,7 +60,7 @@
             <td>
                 <a href="/users/{{ user.id }}" class="user-link">View</a> |
                 <a href="/users/{{ user.id }}/edit" class="user-link">Edit</a> |
-                <a href="#" class="user-link delete-link" data-user-id="{{ user.id }}" data-user-email="{{ user.email }}" onclick="return confirmDelete(event, '{{ user.id }}', '{{ user.email }}')">Delete</a>
+                <a href="#" class="user-link delete-link" data-user-id="{{ user.id }}" data-user-email="{{ user.email }}" aria-label="Delete user {{ user.email }}" onclick="return confirmDelete(event, '{{ user.id }}', '{{ user.email }}')">Delete</a>
             </td>
         </tr>
         {% endfor %}
