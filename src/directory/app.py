@@ -670,62 +670,123 @@ def create_role():
 
 
 @app.route('/roles/<role_id>/edit', methods=['GET'])
-def edit_role(role_id):
-    """GET /roles/<role_id>/edit - Display form to edit a role."""
-    role = next((r for r in ROLES if r.get('id') == role_id), None)
-    if not role:
-        abort(404)
-    return render_template('role_form.html', role=role, current_year=datetime.now().year)
+# --- Generic CRUD Route Factory ---
+def create_crud_routes(resource_name, collection_ref, fields, template_prefix, parse_fn=None):
+    """
+    Registers CRUD routes for a resource.
+    - resource_name: e.g. 'role'
+    - collection_ref: a function returning the collection list (to allow global updates)
+    - fields: list of field names
+    - template_prefix: e.g. 'role' for 'role_form.html'
+    - parse_fn: function(form) -> dict of parsed fields (optional)
+    """
+    plural = resource_name + 's'
+    singular = resource_name
+    list_route = f'/{plural}'
+    new_route = f'/{plural}/new'
+    edit_route = f'/{plural}/<item_id>/edit'
+    post_route = f'/{plural}/<item_id>'
+    delete_route = f'/{plural}/<item_id>'
 
+    # List
+    @app.route(list_route, methods=['GET'])
+    def list_items():
+        items = collection_ref()
+        return render_template(f'{template_prefix}_list.html', **{plural: items}, current_year=datetime.now().year)
 
-@app.route('/roles/<role_id>', methods=['POST'])
-def update_role(role_id):
-    """POST /roles/<role_id> - Update a role."""
-    logger.info(f'[WEB] POST /roles/{role_id}')
-    
-    role = next((r for r in ROLES if r.get('id') == role_id), None)
-    if not role:
-        abort(404)
-    
-    try:
-        permissions = []
-        permissions_str = request.form.get('permissions', '')
-        if permissions_str:
-            permissions = [p.strip() for p in permissions_str.split(',') if p.strip()]
-        
-        role['name'] = request.form.get('name')
-        role['description'] = request.form.get('description', '')
-        role['permissions'] = permissions
-        role['updated_at'] = int(datetime.now().timestamp())
-        
+    # New
+    @app.route(new_route, methods=['GET'])
+    def new_item():
+        return render_template(f'{template_prefix}_form.html', **{singular: {}}, current_year=datetime.now().year)
+
+    # Create
+    @app.route(list_route, methods=['POST'])
+    def create_item():
+        logger.info(f'[WEB] POST {list_route}')
+        try:
+            form = request.form
+            if parse_fn:
+                item = parse_fn(form)
+            else:
+                item = {field: form.get(field) for field in fields}
+            item['id'] = str(uuid.uuid4())
+            item['created_at'] = int(datetime.now().timestamp())
+            item['updated_at'] = int(datetime.now().timestamp())
+            collection = collection_ref()
+            collection.append(item)
+            save_data()
+            logger.info(f'[WEB] Created {singular}: {item.get("name", item["id"])}')
+            return redirect(url_for(f'list_items'))
+        except Exception as e:
+            logger.error(f'[WEB] Error creating {singular}: {str(e)}')
+            return render_template(f'{template_prefix}_form.html', **{singular: {}}, error=str(e), current_year=datetime.now().year)
+
+    # Edit
+    @app.route(edit_route, methods=['GET'])
+    def edit_item(item_id):
+        items = collection_ref()
+        item = next((i for i in items if i.get('id') == item_id), None)
+        if not item:
+            abort(404)
+        return render_template(f'{template_prefix}_form.html', **{singular: item}, current_year=datetime.now().year)
+
+    # Update
+    @app.route(post_route, methods=['POST'])
+    def update_item(item_id):
+        logger.info(f'[WEB] POST {post_route}')
+        items = collection_ref()
+        item = next((i for i in items if i.get('id') == item_id), None)
+        if not item:
+            abort(404)
+        try:
+            form = request.form
+            if parse_fn:
+                updated = parse_fn(form)
+            else:
+                updated = {field: form.get(field) for field in fields}
+            for k, v in updated.items():
+                item[k] = v
+            item['updated_at'] = int(datetime.now().timestamp())
+            save_data()
+            logger.info(f'[WEB] Updated {singular}: {item.get("name", item["id"])}')
+            return redirect(url_for(f'list_items'))
+        except Exception as e:
+            logger.error(f'[WEB] Error updating {singular}: {str(e)}')
+            return render_template(f'{template_prefix}_form.html', **{singular: item}, error=str(e), current_year=datetime.now().year)
+
+    # Delete
+    @app.route(delete_route, methods=['DELETE'])
+    def delete_item(item_id):
+        logger.info(f'[WEB] DELETE {delete_route}')
+        items = collection_ref()
+        item = next((i for i in items if i.get('id') == item_id), None)
+        if not item:
+            return jsonify({'error': f'{singular.capitalize()} not found'}), 404
+        items[:] = [i for i in items if i.get('id') != item_id]
         save_data()
-        
-        logger.info(f'[WEB] Updated role: {role["name"]}')
-        return redirect(url_for('list_roles'))
-        
-    except Exception as e:
-        logger.error(f'[WEB] Error updating role: {str(e)}')
-        return render_template('role_form.html', role=role, error=str(e), current_year=datetime.now().year)
+        logger.info(f'[WEB] Deleted {singular}: {item.get("name", item["id"])}')
+        return jsonify({'success': True})
 
+# --- Resource-specific parse functions ---
+def parse_role_form(form):
+    permissions = []
+    permissions_str = form.get('permissions', '')
+    if permissions_str:
+        permissions = [p.strip() for p in permissions_str.split(',') if p.strip()]
+    return {
+        'name': form.get('name'),
+        'description': form.get('description', ''),
+        'permissions': permissions
+    }
 
-@app.route('/roles/<role_id>', methods=['DELETE'])
-def delete_role(role_id):
-    """DELETE /roles/<role_id> - Delete a role."""
-    logger.info(f'[WEB] DELETE /roles/{role_id}')
-    
-    global ROLES
-    role = next((r for r in ROLES if r.get('id') == role_id), None)
-    if not role:
-        return jsonify({'error': 'Role not found'}), 404
-    
-    ROLES = [r for r in ROLES if r.get('id') != role_id]
-    save_data()
-    
-    logger.info(f'[WEB] Deleted role: {role["name"]}')
-    return jsonify({'success': True})
-
-
-@app.errorhandler(400)
+# --- Register CRUD routes for roles ---
+create_crud_routes(
+    resource_name='role',
+    collection_ref=lambda: ROLES,
+    fields=['name', 'description', 'permissions'],
+    template_prefix='role',
+    parse_fn=parse_role_form
+)
 def bad_request(error):
     """Handle 400 Bad Request errors."""
     return jsonify({'error': 'Bad request'}), 400
