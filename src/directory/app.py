@@ -312,7 +312,7 @@ def create_user():
             'password': request.form.get('password'),
             'email_verified': request.form.get('email_verified') == 'true',
             'phone_number_verified': request.form.get('phone_number_verified') == 'true',
-            'updated_at': int(datetime.now().timestamp())
+            'updated_at': datetime.now().isoformat()
         }
         
         # Add optional fields
