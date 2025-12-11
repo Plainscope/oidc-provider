@@ -60,17 +60,13 @@
     
     <div class="form-row">
         <div class="form-group">
-            <label for="email_verified">
-                <input type="checkbox" id="email_verified" name="email_verified" value="true" {{ 'checked' if user and user.email_verified else '' }}>
-                Email Verified
-            </label>
+            <input type="checkbox" id="email_verified" name="email_verified" value="true" {{ 'checked' if user and user.email_verified else '' }}>
+            <label for="email_verified">Email Verified</label>
         </div>
         
         <div class="form-group">
-            <label for="phone_number_verified">
-                <input type="checkbox" id="phone_number_verified" name="phone_number_verified" value="true" {{ 'checked' if user and user.phone_number_verified else '' }}>
-                Phone Verified
-            </label>
+            <input type="checkbox" id="phone_number_verified" name="phone_number_verified" value="true" {{ 'checked' if user and user.phone_number_verified else '' }}>
+            <label for="phone_number_verified">Phone Verified</label>
         </div>
     </div>
     
