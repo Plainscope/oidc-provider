@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ 'Edit Role' if role else 'Create Role' }} - Remote Directory{% endblock %}
+
+{% block content %}
+<h2>{{ 'Edit Role' if role else 'Create Role' }}</h2>
+
+{% if error %}
+<div class="error-message" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+    {{ error }}
+</div>
+{% endif %}
+
+<form method="POST" action="{{ '/roles/' + role.id if role else '/roles' }}">
+    <div class="form-group">
+        <label for="name">Role Name *</label>
+        <input type="text" id="name" name="name" value="{{ role.name if role else '' }}" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description">{{ role.description if role else '' }}</textarea>
+    </div>
+    
+    <div class="form-group">
+        <label for="permissions">Permissions (comma-separated)</label>
+        <textarea id="permissions" name="permissions" placeholder="read, write, delete, admin">{{ role.permissions|join(', ') if role and role.permissions else '' }}</textarea>
+        <small style="color: #6c757d; display: block; margin-top: 5px;">Example: read, write, delete, admin</small>
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{{ 'Update Role' if role else 'Create Role' }}</button>
+        <a href="/roles" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

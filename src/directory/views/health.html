@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+
+{% block title %}Health Status - Remote Directory{% endblock %}
+
+{% block content %}
+<h2>Service Health Status</h2>
+
+<div class="detail-grid">
+    <div class="detail-label">Status:</div>
+    <div class="detail-value status-ok">{{ health.status|upper }}</div>
+    
+    <div class="detail-label">Users Loaded:</div>
+    <div class="detail-value">{{ health.users_count }}</div>
+    
+    <div class="detail-label">Service:</div>
+    <div class="detail-value">Remote Directory Service</div>
+    
+    <div class="detail-label">Authentication:</div>
+    <div class="detail-value">
+        {% if bearer_token_enabled %}
+        <span class="badge badge-success">Bearer Token Enabled</span>
+        {% else %}
+        <span class="badge badge-warning">No Authentication</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="api-info">
+    <strong>API Health Endpoint:</strong><br>
+    <code>GET /healthz</code> - Returns JSON health status<br>
+    Note: Health checks do not require authentication
+</div>
+{% endblock %}
