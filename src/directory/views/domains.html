@@ -55,39 +55,13 @@
 {% endif %}
 
 <script>
-const searchInput = document.getElementById('searchInput');
-const domainTable = document.getElementById('domainTable');
-const noResults = document.getElementById('noResults');
-const visibleCount = document.getElementById('visibleCount');
-
-function filterDomains() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const tbody = domainTable.querySelector('tbody');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    
-    let visibleRows = rows.filter(row => {
-        const name = row.dataset.name;
-        const description = row.dataset.description;
-        return name.includes(searchTerm) || description.includes(searchTerm);
-    });
-    
-    rows.forEach(row => row.style.display = 'none');
-    visibleRows.forEach(row => row.style.display = '');
-    
-    visibleCount.textContent = visibleRows.length;
-    
-    if (visibleRows.length === 0 && domainTable) {
-        domainTable.style.display = 'none';
-        noResults.style.display = 'block';
-    } else if (domainTable) {
-        domainTable.style.display = 'table';
-        noResults.style.display = 'none';
-    }
-}
-
-if (searchInput) {
-    searchInput.addEventListener('input', filterDomains);
-}
-
+// Use the shared search/filter function from layout.html
+createSearchFilter(
+    'domainTable',      // tableId
+    'searchInput',      // searchInputId
+    'visibleCount',     // visibleCountId
+    'noResults',        // noResultsId
+    ['name', 'description'] // searchFields (data attributes)
+);
 </script>
 {% endblock %}
