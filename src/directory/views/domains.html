@@ -89,25 +89,5 @@ if (searchInput) {
     searchInput.addEventListener('input', filterDomains);
 }
 
-function confirmDelete(event, id, name, type) {
-    event.preventDefault();
-    if (confirm(`Are you sure you want to delete ${type} "${name}"?`)) {
-        fetch(`/${type}s/${id}`, {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'}
-        })
-        .then(response => {
-            if (response.ok) {
-                window.location.reload();
-            } else {
-                alert(`Failed to delete ${type}. Please try again.`);
-            }
-        })
-        .catch(error => {
-            alert(`Error deleting ${type}: ` + error.message);
-        });
-    }
-    return false;
-}
 </script>
 {% endblock %}
