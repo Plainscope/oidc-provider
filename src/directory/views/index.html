@@ -1,0 +1,65 @@
+{% extends 'layout.html' %}
+{% set current_tab = 'users' %}
+{% block content %}
+<div x-data="app()" x-init="init()" class="space-y-4">
+  <div class="flex justify-between items-center">
+    <h2 class="text-xl font-semibold text-gray-900">Users</h2>
+    <button @click="showCreateUserForm = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Add
+      User</button>
+  </div>
+
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="min-w-full">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Username</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Display Name</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <template x-for="user in users" :key="user.id">
+          <tr>
+            <td class="px-6 py-4 text-sm text-gray-900" x-text="user.username"></td>
+            <td class="px-6 py-4 text-sm text-gray-900" x-text="user.display_name"></td>
+            <td class="px-6 py-4 text-sm text-gray-600">
+              <template x-if="user.emails && user.emails.length > 0">
+                <span x-text="user.emails[0].email"></span>
+              </template>
+            </td>
+            <td class="px-6 py-4 text-sm">
+              <span x-show="user.is_active" class="px-2 py-1 bg-green-100 text-green-800 rounded">Active</span>
+              <span x-show="!user.is_active" class="px-2 py-1 bg-red-100 text-red-800 rounded">Inactive</span>
+            </td>
+            <td class="px-6 py-4 text-sm space-x-2">
+              <a :href="`/users/edit?id=${user.id}`" class="text-blue-600 hover:text-blue-700">Edit</a>
+              <button @click="deleteUser(user.id)" class="text-red-600 hover:text-red-700">Delete</button>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+  function app() {
+    return {
+      users: [],
+      async init() {
+        await this.loadUsers();
+      },
+      async loadUsers() {
+        const resp = await fetch('/api/users');
+        this.users = await resp.json();
+      },
+      async deleteUser(id) {
+        if (!confirm('Delete this user?')) return;
+        const r = await csrfFetch(`/api/users/${id}`, { method: 'DELETE' });
+        if (r.status === 204 || r.ok) { await this.loadUsers(); } else { alert('Failed to delete user'); }
+      }
+    }
+  }
+</script>
+{% endblock %}

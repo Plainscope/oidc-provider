@@ -38,6 +38,11 @@ def register_role_routes(bp):
             abort(400)
         
         try:
+            # Uniqueness validation
+            existing = Role.get_by_name(data['name']) if hasattr(Role, 'get_by_name') else None
+            if existing:
+                return jsonify({'error': 'Role name already exists'}), 409
+
             role_id = Role.create(data['name'], data.get('description', ''))
             role = Role.get(role_id)
             AuditLog.log('role', role_id, 'created', 

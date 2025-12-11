@@ -1,6 +1,7 @@
 """User management routes."""
 import logging
 from flask import request, jsonify, abort
+import bcrypt
 from models import User, UserEmail, UserProperty, UserRole, UserGroup, AuditLog
 
 logger = logging.getLogger('remote-directory')
@@ -50,9 +51,12 @@ def register_user_routes(bp):
             abort(400)
         
         try:
+            # Hash password
+            hashed = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
             user_id = User.create(
                 username=data['username'],
-                password=data['password'],
+                password=hashed,
                 domain_id=data['domain_id'],
                 first_name=data.get('first_name', ''),
                 last_name=data.get('last_name', ''),
@@ -60,10 +64,15 @@ def register_user_routes(bp):
             )
             
             if 'email' in data:
+                existing_user = User.get_by_email(data['email'])
+                if existing_user:
+                    return jsonify({'error': 'Email already in use'}), 409
                 UserEmail.add(user_id, data['email'], is_primary=True)
             
             for email in data.get('emails', []):
                 if email != data.get('email'):
+                    if User.get_by_email(email):
+                        return jsonify({'error': f'Email already in use: {email}'}), 409
                     UserEmail.add(user_id, email, is_primary=False)
             
             for key, value in data.get('properties', {}).items():
@@ -113,13 +122,19 @@ def register_user_routes(bp):
             update_fields = {}
             for field in ['password', 'first_name', 'last_name', 'display_name', 'is_active']:
                 if field in data:
-                    update_fields[field] = data[field]
+                    if field == 'password':
+                        update_fields[field] = bcrypt.hashpw(data[field].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    else:
+                        update_fields[field] = data[field]
                     changes[field] = data[field]
             
             if update_fields:
                 User.update(user_id, **update_fields)
             
             if 'email' in data:
+                existing = User.get_by_email(data['email'])
+                if existing and str(existing['id']) != str(user_id):
+                    return jsonify({'error': 'Email already in use'}), 409
                 UserEmail.add(user_id, data['email'], is_primary=True)
                 changes['email'] = data['email']
             

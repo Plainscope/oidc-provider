@@ -1,6 +1,7 @@
 """Legacy endpoints for backward compatibility."""
 import logging
 from flask import request, jsonify, abort
+import bcrypt
 from models import User
 
 logger = logging.getLogger('remote-directory')
@@ -61,7 +62,17 @@ def register_legacy_routes(bp):
                 return jsonify({'valid': False}), 200
             
             stored_password = user.get('password', '')
-            valid = stored_password == password
+            # Backward compatibility: plain match OR bcrypt check
+            valid = (stored_password == password) or (
+                stored_password.startswith('$2') and bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8'))
+            )
+            # If valid and stored is plain, rehash on first use
+            if valid and not stored_password.startswith('$2'):
+                new_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                try:
+                    User.update(user['id'], password=new_hash)
+                except Exception:
+                    logger.warning('[API] Failed to rehash password during migration')
             
             response = {'valid': valid}
             if valid:

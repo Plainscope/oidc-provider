@@ -1,0 +1,69 @@
+{% extends 'layout.html' %}
+{% set current_tab = 'groups' %}
+{% block content %}
+<div x-data="groupsPage()" x-init="init()" class="space-y-4">
+  <div class="flex justify-between items-center">
+    <h2 class="text-xl font-semibold text-gray-900">Groups</h2>
+    <button @click="showCreate = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Add
+      Group</button>
+  </div>
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="min-w-full">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Description</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <template x-for="group in groups" :key="group.id">
+          <tr>
+            <td class="px-6 py-4 text-sm text-gray-900" x-text="group.name"></td>
+            <td class="px-6 py-4 text-sm text-gray-600" x-text="group.description || '-'"></td>
+            <td class="px-6 py-4 text-sm space-x-2">
+              <button @click="remove(group.id)" class="text-red-600 hover:text-red-700">Delete</button>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+  <div x-show="showCreate" class="fixed inset-0 bg-black/30 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+      <h3 class="text-lg font-semibold mb-4">Create Group</h3>
+      <div x-show="error" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm" x-text="error">
+      </div>
+      <div class="space-y-3">
+        <input x-model="form.name" placeholder="Name" class="w-full border rounded px-3 py-2" />
+        <input x-model="form.domain_id" placeholder="Domain ID" class="w-full border rounded px-3 py-2" />
+        <input x-model="form.description" placeholder="Description" class="w-full border rounded px-3 py-2" />
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button @click="showCreate=false; error=null" class="px-4 py-2 border rounded">Cancel</button>
+        <button @click="create()" class="px-4 py-2 bg-blue-600 text-white rounded">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  function groupsPage() {
+    return {
+      groups: [],
+      showCreate: false,
+      error: null,
+      form: { name: '', domain_id: '', description: '' },
+      async init() { await this.load(); },
+      async load() { const r = await csrfFetch('/api/groups'); this.groups = await r.json(); },
+      async create() {
+        this.error = null;
+        const r = await csrfFetch('/api/groups', { method: 'POST', body: JSON.stringify(this.form) });
+        if (r.ok) { this.showCreate = false; this.form = { name: '', domain_id: '', description: '' }; await this.load(); }
+        else { const err = await r.json().catch(() => ({ error: 'Request failed' })); this.error = err.error || 'Failed to create group'; }
+      },
+      async remove(id) { if (confirm('Delete group?')) { const r = await csrfFetch(`/api/groups/${id}`, { method: 'DELETE' }); if (r.ok) { await this.load(); } else { alert('Failed to delete group'); } } }
+    }
+  }
+</script>
+{% endblock %}

@@ -38,6 +38,11 @@ def register_domain_routes(bp):
             abort(400)
         
         try:
+            # Uniqueness validation
+            existing = Domain.get_by_name(data['name']) if hasattr(Domain, 'get_by_name') else None
+            if existing:
+                return jsonify({'error': 'Domain name already exists'}), 409
+
             domain_id = Domain.create(
                 name=data['name'],
                 description=data.get('description', ''),

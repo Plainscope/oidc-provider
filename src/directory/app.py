@@ -26,7 +26,7 @@ from routes import (
     register_ui_routes
 )
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='views')
 
 # Initialize database on startup
 def init_app():
@@ -43,6 +43,21 @@ def init_app():
 BEARER_TOKEN = os.environ.get('BEARER_TOKEN')
 if BEARER_TOKEN:
     logger.info('[INIT] Bearer token authentication enabled')
+
+# CSRF protection
+try:
+    from flask_wtf.csrf import CSRFProtect
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-me')
+    csrf = CSRFProtect(app)
+    # Exempt API blueprints
+    csrf.exempt(domains_bp)
+    csrf.exempt(users_bp)
+    csrf.exempt(roles_bp)
+    csrf.exempt(groups_bp)
+    csrf.exempt(audit_bp)
+    csrf.exempt(legacy_bp)
+except Exception as e:
+    logger.warning(f'[INIT] CSRFProtect not configured: {e}')
 
 
 def check_bearer_token():
