@@ -343,9 +343,13 @@ def create_user():
         logger.info(f'[WEB] Created user: {new_user["email"]}')
         return redirect(url_for('index'))
         
+    except ValueError as e:
+        error_msg = 'Invalid input: Please check your form data'
+        return render_template('user_form.html', user=None, error=error_msg, current_year=datetime.now().year)
     except Exception as e:
         logger.error(f'[WEB] Error creating user: {str(e)}')
-        return render_template('user_form.html', user=None, error=str(e), current_year=datetime.now().year)
+        error_msg = 'An error occurred while creating the user. Please try again.'
+        return render_template('user_form.html', user=None, error=error_msg, current_year=datetime.now().year)
 
 
 @app.route('/users/<user_id>/edit', methods=['GET'])
