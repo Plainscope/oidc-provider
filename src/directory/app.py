@@ -251,7 +251,7 @@ def index():
 
 
 @app.route('/users/<user_id>', methods=['GET'])
-def user_detail(user_id):
+def get_user(user_id):
     """
     GET /users/<user_id>
     Web UI: Display detailed information about a specific user.
