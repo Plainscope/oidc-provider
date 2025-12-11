@@ -329,7 +329,12 @@ def create_user():
             new_user['address'] = address
         
         USERS.append(new_user)
-        save_data()
+        if not save_data():
+            logger.error('[WEB] Failed to persist data changes')
+            return render_template('user_form.html', 
+                                   user=None, 
+                                   error='User created but failed to save to disk. Changes may be lost on restart.', 
+                                   current_year=datetime.now().year)
         
         logger.info(f'[WEB] Created user: {new_user["email"]}')
         return redirect(url_for('index'))
