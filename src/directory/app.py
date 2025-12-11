@@ -54,7 +54,20 @@ ROLES = []
 
 # Load additional data from file if it exists
 def load_data():
-    """Load all data from JSON file."""
+    """
+    Load all data from JSON file.
+
+    Loads users, domains, groups, and roles from the file specified by the DATA_FILE
+    environment variable (default: /app/config/data.json). If the file exists, the global
+    USERS variable (potentially loaded from USERS_FILE) will be overwritten with the users
+    from DATA_FILE. DOMAINS, GROUPS, and ROLES are also overwritten with data from the file,
+    or set to empty lists if not present.
+
+    If DATA_FILE does not exist, the existing USERS are preserved and the other collections
+    (DOMAINS, GROUPS, ROLES) are initialized as empty lists.
+
+    Errors during loading are logged but do not raise exceptions.
+    """
     global USERS, DOMAINS, GROUPS, ROLES
     
     data_file = os.environ.get('DATA_FILE', '/app/config/data.json')
