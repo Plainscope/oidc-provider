@@ -363,7 +363,11 @@ def update_user(user_id):
         
         # Only update password if provided
         password = request.form.get('password')
-        if password:
+        if password is not None:
+            if password == '':
+                error_msg = 'Password cannot be empty.'
+                logger.error(f'[WEB] Error updating user: {error_msg}')
+                return render_template('user_form.html', user=user, error=error_msg, current_year=datetime.now().year)
             user['password'] = password
         
         user['email_verified'] = request.form.get('email_verified') == 'true'
