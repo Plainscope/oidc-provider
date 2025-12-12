@@ -80,8 +80,11 @@ def register_legacy_routes(bp):
                     logger.warning('[API] Failed to rehash password during migration')
             
             response = {'valid': valid}
-            if valid:
-                response['user'] = exclude_password(user)
+
+            if not valid:
+                return jsonify(response), 400
+
+            response['user'] = exclude_password(user)
             
             return jsonify(response)
         except Exception as e:

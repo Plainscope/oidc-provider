@@ -108,6 +108,7 @@ export class RemoteDirectory implements IDirectory {
       headers: { "Content-Type": "application/json", ...this.headers },
       body: JSON.stringify({ email, password })
     });
+
     if (!response.ok) {
       console.error(`[RemoteDirectory] Invalid credentials for: ${email}`);
       return undefined;
@@ -116,13 +117,18 @@ export class RemoteDirectory implements IDirectory {
     console.log(`[RemoteDirectory] User validated: ${email}`);
     const data = await response.json() as any;
 
+    if (!data.valid) {
+      console.error(`[RemoteDirectory] Invalid credentials for: ${email}`);
+      return undefined;
+    }
+
     // Directory API returns { user: {...}, valid: true }
     // Extract the user object from the response
     const dirUser = data.user || data;
     const user = this.mapUser(dirUser, email);
 
     // Use stable accountId based on email to tolerate id churn
-    const accountId = user.email || user.id;
+    const accountId = user.id || user.email;
     return new Profile(accountId, user);
   }
 }
