@@ -1,0 +1,46 @@
+{% extends 'layout.html' %}
+{% set current_tab = 'audit' %}
+{% block content %}
+<div x-data="auditPage()" x-init="init()" class="space-y-4">
+  <div class="flex justify-between items-center">
+    <h2 class="text-xl font-semibold text-gray-900">Audit Log</h2>
+  </div>
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="min-w-full">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Entity</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Action</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Timestamp</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Changes</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <template x-for="log in logs" :key="log.id">
+          <tr>
+            <td class="px-6 py-4 text-sm text-gray-900"><span
+                x-text="`${log.entity_type}:${(log.entity_id||'').substring(0,8)}`"></span></td>
+            <td class="px-6 py-4 text-sm text-gray-600" x-text="log.action"></td>
+            <td class="px-6 py-4 text-sm text-gray-600" x-text="new Date(log.created_at).toLocaleString()"></td>
+            <td class="px-6 py-4 text-sm text-gray-600">
+              <details>
+                <summary class="cursor-pointer text-blue-600">View</summary>
+                <pre class="mt-2 text-xs bg-gray-50 p-2 rounded"
+                  x-text="JSON.stringify(JSON.parse(log.changes || '{}'), null, 2)"></pre>
+              </details>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+  function auditPage() {
+    return {
+      logs: [],
+      async init() { const r = await csrfFetch('/api/audit?limit=50'); this.logs = await r.json(); }
+    }
+  }
+</script>
+{% endblock %}

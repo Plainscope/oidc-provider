@@ -1,12 +1,11 @@
 """
 Remote User Directory Service
 Provides REST API endpoints for user management and authentication.
+Supports SQLite-based persistence with relational entities.
 """
 import os
-import json
-from pathlib import Path
-from flask import Flask, request, jsonify, abort
 import logging
+from flask import Flask, request, abort, jsonify
 
 # Configure logging
 logging.basicConfig(
@@ -15,39 +14,49 @@ logging.basicConfig(
 )
 logger = logging.getLogger('remote-directory')
 
-app = Flask(__name__)
+# Import database
+from db_init import init_database
 
-# Load users from environment or file
-def load_users():
-    """Load user data from environment or file."""
-    if os.environ.get('USERS'):
-        logger.info('[INIT] Loading users from environment variable')
-        return json.loads(os.environ['USERS'])
-    
-    users_file = os.environ.get('USERS_FILE', '/app/config/users.json')
-    logger.info(f'[INIT] Loading users from file: {users_file}')
-    
-    if not Path(users_file).exists():
-        logger.error(f'[INIT] Users file not found: {users_file}')
-        raise FileNotFoundError(f'Users file not found: {users_file}')
-    
-    with open(users_file, 'r') as f:
-        users = json.load(f)
-    
-    logger.info(f'[INIT] Loaded {len(users)} users')
-    return users
+# Import blueprints
+from routes import (
+    domains_bp, users_bp, roles_bp, groups_bp, audit_bp, legacy_bp, ui_bp,
+    register_domain_routes, register_user_routes, register_role_routes,
+    register_group_routes, register_audit_routes, register_legacy_routes,
+    register_ui_routes
+)
 
-# Load users on startup
-try:
-    USERS = load_users()
-except Exception as e:
-    logger.error(f'[INIT] Failed to load users: {str(e)}')
-    USERS = []
+app = Flask(__name__, template_folder='views')
+
+# Initialize database on startup
+def init_app():
+    """Initialize application."""
+    logger.info('[INIT] Initializing application')
+    
+    # Initialize database schema and seed data
+    init_database()
+    
+    logger.info('[INIT] Application initialized successfully')
+
 
 # Optional bearer token for API security
 BEARER_TOKEN = os.environ.get('BEARER_TOKEN')
 if BEARER_TOKEN:
     logger.info('[INIT] Bearer token authentication enabled')
+
+# CSRF protection
+try:
+    from flask_wtf.csrf import CSRFProtect
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-me')
+    csrf = CSRFProtect(app)
+    # Exempt API blueprints
+    csrf.exempt(domains_bp)
+    csrf.exempt(users_bp)
+    csrf.exempt(roles_bp)
+    csrf.exempt(groups_bp)
+    csrf.exempt(audit_bp)
+    csrf.exempt(legacy_bp)
+except Exception as e:
+    logger.warning(f'[INIT] CSRFProtect not configured: {e}')
 
 
 def check_bearer_token():
@@ -68,97 +77,73 @@ def check_bearer_token():
     return True
 
 
-def exclude_password(user):
-    """Remove password field from user object for safe response."""
-    return {k: v for k, v in user.items() if k != 'password'}
-
-
 @app.before_request
 def verify_auth():
     """Verify authorization for all requests."""
-    # Allow unauthenticated health checks so container health probes work
-    if request.path == '/healthz':
+    # Allow unauthenticated health checks, UI, and legacy endpoints
+    if request.path == '/' or request.path == '/ui' or request.path == '/healthz':
         return
-
+    
+    if any(request.path.startswith(p) for p in ['/static/', '/ui/']):
+        return
+    
+    if request.path in ['/count', '/validate'] or request.path.startswith('/find/'):
+        return
+    
     if not check_bearer_token():
         abort(401)
 
 
-@app.route('/count', methods=['GET'])
-def count():
-    """
-    GET /count
-    Returns the total number of users.
-    """
-    logger.info('[API] GET /count')
-    return jsonify(len(USERS))
+# ============================================================================
+# Database Connection Management
+# ============================================================================
+# Each request gets its own database connection from Flask's g object.
+# This ensures thread safety and prevents race conditions.
+
+from database import close_db
+
+@app.teardown_appcontext
+def teardown_db(exception):
+    """Close per-request database connection."""
+    close_db(exception)
 
 
-@app.route('/find/<user_id>', methods=['GET'])
-def find(user_id):
-    """
-    GET /find/<user_id>
-    Returns user data by ID.
-    """
-    logger.info(f'[API] GET /find/{user_id}')
-    
-    user = next((u for u in USERS if u.get('id') == user_id), None)
-    if not user:
-        logger.warning(f'[API] User not found: {user_id}')
-        abort(404)
-    
-    logger.info(f'[API] User found: {user_id}')
-    return jsonify(exclude_password(user))
+# ============================================================================
+# Register Blueprints with Routes
+# ============================================================================
+
+# Register domain routes
+register_domain_routes(domains_bp)
+app.register_blueprint(domains_bp)
+
+# Register user routes
+register_user_routes(users_bp)
+app.register_blueprint(users_bp)
+
+# Register role routes
+register_role_routes(roles_bp)
+app.register_blueprint(roles_bp)
+
+# Register group routes
+register_group_routes(groups_bp)
+app.register_blueprint(groups_bp)
+
+# Register audit routes
+register_audit_routes(audit_bp)
+app.register_blueprint(audit_bp)
+
+# Register legacy routes for backward compatibility
+register_legacy_routes(legacy_bp)
+app.register_blueprint(legacy_bp)
+
+# Register UI routes
+register_ui_routes(ui_bp)
+app.register_blueprint(ui_bp)
 
 
-@app.route('/validate', methods=['POST'])
-def validate():
-    """
-    POST /validate
-    Validates user credentials.
-    Expected JSON: {"email": "string", "password": "string"}
-    """
-    logger.info('[API] POST /validate')
-    
-    data = request.get_json()
-    if not data:
-        logger.warning('[API] Missing request body')
-        abort(400)
-    
-    email = data.get('email')
-    password = data.get('password')
-    
-    if not email or not password:
-        logger.warning('[API] Missing email or password in request')
-        abort(400)
-    
-    logger.info(f'[API] Validating user: {email}')
-    
-    user = next(
-        (u for u in USERS if u.get('email') == email and u.get('password') == password),
-        None
-    )
-    
-    if not user:
-        logger.warning(f'[API] Invalid credentials for: {email}')
-        abort(401)
-    
-    logger.info(f'[API] User validated: {email}')
-    return jsonify(exclude_password(user))
-
-
-@app.route('/healthz', methods=['GET'])
-def health():
-    """
-    GET /healthz
-    Health check endpoint.
-    """
-    logger.info('[API] GET /healthz')
-    return jsonify({
-        'status': 'ok',
-        'users_count': len(USERS)
-    })
-
+# ============================================================================
+# Error Handlers
+# ============================================================================
 
 @app.errorhandler(400)
 def bad_request(error):
@@ -183,6 +168,10 @@ def internal_error(error):
     """Handle 500 Internal Server Error."""
     logger.error(f'[ERROR] Internal server error: {str(error)}')
     return jsonify({'error': 'Internal server error'}), 500
+
+
+# Initialize application
+init_app()
 
 
 if __name__ == '__main__':

@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN apk add --no-cache curl
 
 # Copy application code
-COPY app.py .
+COPY . .
 
 # Expose port
 EXPOSE 8080

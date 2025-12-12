@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title or 'Remote Directory' }}</title>
+  {% if csrf_token %}
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  {% endif %}
+  {% if auth_token %}
+  <meta name="auth-token" content="{{ auth_token }}">
+  {% endif %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script>
+    window.csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || null;
+    window.csrfFetch = async function (url, options = {}) {
+      const headers = new Headers(options.headers || {});
+      if (window.csrfToken) { headers.set('X-CSRFToken', window.csrfToken); }
+      headers.set('Content-Type', headers.get('Content-Type') || 'application/json');
+      // Preserve Authorization header from page context if present
+      const authMeta = document.querySelector('meta[name="auth-token"]');
+      if (authMeta) { headers.set('Authorization', authMeta.getAttribute('content')); }
+      return fetch(url, { ...options, headers });
+    }
+  </script>
+</head>
+
+<body class="bg-gray-50">
+  <nav class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <h1 class="text-2xl font-bold text-gray-900">Remote Directory</h1>
+        </div>
+        <div class="flex items-center gap-4">
+          <a href="/"
+            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'users' else 'text-gray-600' }}">Users</a>
+          <a href="/roles"
+            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'roles' else 'text-gray-600' }}">Roles</a>
+          <a href="/groups"
+            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'groups' else 'text-gray-600' }}">Groups</a>
+          <a href="/domains"
+            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'domains' else 'text-gray-600' }}">Domains</a>
+          <a href="/audit"
+            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'audit' else 'text-gray-600' }}">Audit</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+
+</html>
