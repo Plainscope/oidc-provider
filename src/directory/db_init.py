@@ -79,14 +79,18 @@ def init_seed_data(users_file: str = None):
         
         # Seed users
         for user_data in users_data:
-            # Check if user already exists
-            existing = User.get_by_username(user_data.get('email', ''), include_details=False)
-            if existing:
-                logger.info(f'[INIT] User already exists: {user_data.get("email")}')
+            # Prepare username and email
+            username = user_data.get('email', user_data.get('preferred_username', ''))
+            email = user_data.get('email', '')
+
+            # Check if user already exists by username or email
+            existing_by_username = User.get_by_username(username, include_details=False) if username else None
+            existing_by_email = User.get_by_email(email, include_details=False) if email else None
+            if existing_by_username or existing_by_email:
+                logger.info(f'[INIT] User already exists: {email or username}')
                 continue
             
             # Create user
-            username = user_data.get('email', user_data.get('preferred_username', ''))
             password = user_data.get('password', 'ChangeMe123!')
             first_name = user_data.get('given_name', '')
             last_name = user_data.get('family_name', '')
