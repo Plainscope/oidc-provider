@@ -46,10 +46,10 @@
     return {
       user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], error: null,
       async init() {
-        const u = await (await fetch(`/api/users/${userId}`)).json();
+        const u = await (await csrfFetch(`/api/users/${userId}`)).json();
         this.user = u; this.selectedRoles = (u.roles || []).map(r => r.id); this.selectedGroups = (u.groups || []).map(g => g.id);
-        this.roles = await (await fetch('/api/roles')).json();
-        this.groups = await (await fetch('/api/groups')).json();
+        this.roles = await (await csrfFetch('/api/roles')).json();
+        this.groups = await (await csrfFetch('/api/groups')).json();
       },
       toggleRole(id, on) { if (on) { if (!this.selectedRoles.includes(id)) this.selectedRoles.push(id); } else { this.selectedRoles = this.selectedRoles.filter(x => x !== id); } },
       toggleGroup(id, on) { if (on) { if (!this.selectedGroups.includes(id)) this.selectedGroups.push(id); } else { this.selectedGroups = this.selectedGroups.filter(x => x !== id); } },

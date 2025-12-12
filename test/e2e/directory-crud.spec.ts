@@ -39,8 +39,8 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.fill('input[placeholder="Description"]', 'Test role');
     await page.click('button:has-text("Create")');
 
-    // Wait for modal to close and list to reload
-    await page.waitForTimeout(500);
+    // Wait for role to appear in list (modal closes automatically)
+    await page.waitForSelector(`text=${testRoleName}`, { state: 'visible' });
 
     // Verify role appears in list
     await expect(page.locator(`text=${testRoleName}`)).toBeVisible();
@@ -67,7 +67,8 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.fill('input[placeholder="Description"]', 'Test domain');
     await page.click('button:has-text("Create")');
 
-    await page.waitForTimeout(500);
+    // Wait for domain to appear in list
+    await page.waitForSelector(`text=${testDomainName}`, { state: 'visible' });
 
     // Verify domain appears
     await expect(page.locator(`text=${testDomainName}`)).toBeVisible();
@@ -107,7 +108,8 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.fill('input[placeholder="Description"]', 'Test group');
     await page.click('button:has-text("Create")');
 
-    await page.waitForTimeout(500);
+    // Wait for group to appear in list
+    await page.waitForSelector(`text=${testGroupName}`, { state: 'visible' });
 
     // Verify group appears
     await expect(page.locator(`text=${testGroupName}`)).toBeVisible();
@@ -195,9 +197,13 @@ test.describe('Directory CRUD Operations with Security', () => {
     // Create role
     await page.click('button:has-text("Add Role")');
     await page.fill('input[placeholder="Name"]', testRoleName);
-    await page.click('button:has-text("Create")');
 
-    await page.waitForTimeout(500);
+    // Wait for the POST request to complete
+    const responsePromise = page.waitForResponse(response =>
+      response.url().includes('/api/roles') && response.request().method() === 'POST'
+    );
+    await page.click('button:has-text("Create")');
+    await responsePromise;
 
     // Verify POST request included CSRF token
     const postRequest = requests.find(r => r.method === 'POST' && r.url.includes('/api/roles'));
@@ -251,8 +257,8 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.fill('input[placeholder="Primary Email"]', email1);
     await page.click('button:has-text("Save")');
 
-    // Should show inline error
-    await page.waitForTimeout(500);
+    // Wait for error message to appear
+    await page.waitForSelector('div.text-red-600', { state: 'visible' });
     await expect(page.locator('div.text-red-600')).toBeVisible();
     await expect(page.locator('div.text-red-600')).toContainText(/email already in use/i);
   });
