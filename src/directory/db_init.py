@@ -5,8 +5,9 @@ Provides functions to populate the database with sample data.
 import os
 import json
 from pathlib import Path
+from database import init_schema
 from models import (
-    Domain, User, UserEmail, UserProperty, Role, UserRole, Group, UserGroup
+    Domain, User, UserEmail, UserProperty, Role, UserRole
 )
 import logging
 
@@ -37,18 +38,11 @@ def init_default_roles():
     
     role_ids = {}
     for name, description in roles.items():
-        existing = Role.get_by_name(name) if hasattr(Role, 'get_by_name') else None
+        existing = Role.get_by_name(name)
         if not existing:
-            # Check if role exists by listing all
-            all_roles = Role.list_all()
-            role_exists = any(r['name'] == name for r in all_roles)
-            
-            if not role_exists:
-                role_id = Role.create(name, description)
-                role_ids[name] = role_id
-                logger.info(f'[INIT] Created role: {name}')
-            else:
-                role_ids[name] = next(r['id'] for r in all_roles if r['name'] == name)
+            role_id = Role.create(name, description)
+            role_ids[name] = role_id
+            logger.info(f'[INIT] Created role: {name}')
         else:
             role_ids[name] = existing['id']
     
@@ -142,6 +136,9 @@ def init_database():
     logger.info('[INIT] Starting database initialization')
     
     try:
+        # Initialize schema
+        init_schema()
+        
         # Initialize default domain
         init_default_domain()
         
@@ -157,12 +154,3 @@ def init_database():
         logger.error(f'[INIT] Database initialization failed: {str(e)}')
         return False
 
-
-# Add helper method to Role class if not exists
-if not hasattr(Role, 'get_by_name'):
-    def get_role_by_name(name: str):
-        """Get role by name."""
-        all_roles = Role.list_all()
-        return next((r for r in all_roles if r['name'] == name), None)
-    
-    Role.get_by_name = staticmethod(get_role_by_name)

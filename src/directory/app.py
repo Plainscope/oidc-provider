@@ -15,7 +15,7 @@ logging.basicConfig(
 logger = logging.getLogger('remote-directory')
 
 # Import database
-from database import get_db, close_db
+from database import close_db
 from db_init import init_database
 
 # Import blueprints
@@ -82,7 +82,6 @@ def check_bearer_token():
 def verify_auth():
     """Verify authorization for all requests."""
     # Allow unauthenticated health checks, UI, and legacy endpoints
-    public_paths = ['/healthz', '/', '/ui', '/count', '/find', '/validate']
     if request.path == '/' or request.path == '/ui' or request.path == '/healthz':
         return
     
@@ -99,7 +98,7 @@ def verify_auth():
 @app.teardown_appcontext
 def close_connection(exception):
     """Close database connection on app context teardown."""
-    pass  # Connection is managed by the models layer
+    close_db(exception)
 
 # ============================================================================
 # Register Blueprints with Routes
@@ -163,10 +162,11 @@ def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
 
+# Initialize application
+init_app()
+
+
 if __name__ == '__main__':
-    # Initialize application
-    init_app()
-    
     port = int(os.environ.get('PORT', 8080))
     logger.info(f'[SERVER] Starting Remote Directory on port {port}')
     app.run(host='0.0.0.0', port=port, debug=os.environ.get('DEBUG', 'false').lower() == 'true')

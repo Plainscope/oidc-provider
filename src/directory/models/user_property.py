@@ -69,7 +69,7 @@ class UserProperty:
         
         try:
             return json.loads(row[0])
-        except:
+        except (json.JSONDecodeError, ValueError):
             return row[0]
     
     @staticmethod
@@ -86,7 +86,7 @@ class UserProperty:
             key, value = row
             try:
                 properties[key] = json.loads(value)
-            except:
+            except (json.JSONDecodeError, ValueError):
                 properties[key] = value
         
         return properties

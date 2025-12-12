@@ -231,7 +231,7 @@ test.describe('Directory CRUD Operations with Security', () => {
         display_name: 'User One'
       }
     });
-    const user1 = await user1Res.json();
+    await user1Res.json();
 
     const user2Res = await page.request.post(`${DIRECTORY_BASE_URL}/api/users`, {
       headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },

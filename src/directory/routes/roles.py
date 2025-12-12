@@ -39,7 +39,7 @@ def register_role_routes(bp):
         
         try:
             # Uniqueness validation
-            existing = Role.get_by_name(data['name']) if hasattr(Role, 'get_by_name') else None
+            existing = Role.get_by_name(data['name'])
             if existing:
                 return jsonify({'error': 'Role name already exists'}), 409
 
