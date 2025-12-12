@@ -165,7 +165,7 @@ test.describe('Directory Service Authentication', () => {
 
     // Manually corrupt the token in sessionStorage
     await page.evaluate(() => {
-      sessionStorage.setItem('bearer_token', 'sk-corrupted-token');
+      sessionStorage.setItem('directoryAuthToken', 'sk-corrupted-token');
     });
 
     // Reload the page - should trigger API call with corrupted token
