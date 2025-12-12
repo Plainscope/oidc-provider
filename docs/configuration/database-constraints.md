@@ -201,23 +201,6 @@ CREATE TABLE roles (
 ```sql
 CREATE TABLE groups (
     id TEXT PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL CHECK(length(trim(name)) > 0),
-    description TEXT,
-    domain_id TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE
-);
-```
-
-</details>
-
-<details>
-<summary>groups table</summary>
-
-```sql
-CREATE TABLE groups (
-    id TEXT PRIMARY KEY,
     name TEXT NOT NULL CHECK(length(trim(name)) > 0),
     description TEXT,
     domain_id TEXT NOT NULL,
