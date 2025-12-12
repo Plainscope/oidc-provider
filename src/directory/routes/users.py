@@ -51,21 +51,29 @@ def register_user_routes(bp):
             abort(400)
         
         try:
-            # Check all emails for uniqueness before creating user
+            # Check all emails for uniqueness and duplicates before creating user
             emails_to_add = []
             primary_email = data.get('email')
-            
+            secondary_emails = data.get('emails', [])
+
+            # Check for duplicate emails in the list (including primary)
+            all_emails = [primary_email] if primary_email else []
+            all_emails += secondary_emails
+            # Remove None values in case primary_email is None
+            all_emails = [e for e in all_emails if e]
+            if len(all_emails) != len(set(all_emails)):
+                return jsonify({'error': 'Duplicate emails provided'}), 400
+
             if primary_email:
                 if User.get_by_email(primary_email):
                     return jsonify({'error': 'Email already in use'}), 409
                 emails_to_add.append((primary_email, True))  # is_primary=True
-            
-            for email in data.get('emails', []):
+
+            for email in secondary_emails:
                 if email != primary_email:
                     if User.get_by_email(email):
                         return jsonify({'error': f'Email already in use: {email}'}), 409
                     emails_to_add.append((email, False))  # is_primary=False
-            
             # Hash password
             hashed = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
