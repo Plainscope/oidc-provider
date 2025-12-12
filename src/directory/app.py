@@ -39,8 +39,7 @@ def init_app():
             init_database()
     except Exception as e:
         logger.error(f'[INIT] Database initialization failed: {e}')
-        # Continue startup; runtime requests will create connections per-request
-        # This prevents container from crashing due to init-time context issues
+        raise
     
     logger.info('[INIT] Application initialized successfully')
 
