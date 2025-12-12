@@ -4,7 +4,6 @@ Provides high-level database operations and data access.
 """
 import uuid
 from typing import Optional, List, Dict, Any
-from datetime import datetime
 import json
 import logging
 
@@ -28,7 +27,7 @@ class Domain:
         domain_id = generate_id()
         
         try:
-            cursor = db.execute(
+            db.execute(
                 '''INSERT INTO domains (id, name, description, is_default)
                    VALUES (?, ?, ?, ?)''',
                 (domain_id, name, description, is_default)
@@ -90,7 +89,7 @@ class User:
         user_id = generate_id()
         
         try:
-            cursor = db.execute(
+            db.execute(
                 '''INSERT INTO users 
                    (id, username, password, domain_id, first_name, last_name, display_name)
                    VALUES (?, ?, ?, ?, ?, ?, ?)''',
@@ -262,7 +261,7 @@ class UserEmail:
                     (user_id,)
                 )
             
-            cursor = db.execute(
+            db.execute(
                 '''INSERT INTO user_emails (id, user_id, email, is_primary)
                    VALUES (?, ?, ?, ?)''',
                 (email_id, user_id, email, 1 if is_primary else 0)
@@ -373,7 +372,7 @@ class UserProperty:
         
         try:
             return json.loads(row[0])
-        except:
+        except (json.JSONDecodeError, ValueError):
             return row[0]
     
     @staticmethod
@@ -390,7 +389,7 @@ class UserProperty:
             key, value = row
             try:
                 properties[key] = json.loads(value)
-            except:
+            except (json.JSONDecodeError, ValueError):
                 properties[key] = value
         
         return properties

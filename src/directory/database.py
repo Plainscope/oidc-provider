@@ -4,10 +4,8 @@ Provides database initialization, schema creation, and connection management.
 """
 import sqlite3
 import os
-import json
 from pathlib import Path
-from typing import Optional, List, Dict, Any
-from datetime import datetime
+from typing import Optional
 import logging
 
 logger = logging.getLogger('remote-directory')

@@ -15,7 +15,6 @@ logging.basicConfig(
 logger = logging.getLogger('remote-directory')
 
 # Import database
-from database import get_db, close_db
 from db_init import init_database
 
 # Import blueprints
@@ -82,7 +81,6 @@ def check_bearer_token():
 def verify_auth():
     """Verify authorization for all requests."""
     # Allow unauthenticated health checks, UI, and legacy endpoints
-    public_paths = ['/healthz', '/', '/ui', '/count', '/find', '/validate']
     if request.path == '/' or request.path == '/ui' or request.path == '/healthz':
         return
     

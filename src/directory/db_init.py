@@ -6,7 +6,7 @@ import os
 import json
 from pathlib import Path
 from models import (
-    Domain, User, UserEmail, UserProperty, Role, UserRole, Group, UserGroup
+    Domain, User, UserEmail, UserProperty, Role, UserRole
 )
 import logging
 
