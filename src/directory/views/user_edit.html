@@ -51,10 +51,26 @@
       user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], error: null,
       async init() {
         try {
-          const u = await (await safeFetch(`/api/users/${userId}`)).json();
-          this.user = u; this.selectedRoles = (u.roles || []).map(r => r.id); this.selectedGroups = (u.groups || []).map(g => g.id);
-          this.roles = await (await safeFetch('/api/roles')).json();
-          this.groups = await (await safeFetch('/api/groups')).json();
+          const uRes = await safeFetch(`/api/users/${userId}`);
+          if (!uRes.ok) {
+            this.error = 'Failed to load user data';
+            console.error(`User fetch failed with status ${uRes.status}`);
+            return;
+          }
+          const u = await uRes.json();
+          this.user = u; 
+          this.selectedRoles = (u.roles || []).map(r => r.id); 
+          this.selectedGroups = (u.groups || []).map(g => g.id);
+          
+          const rolesRes = await safeFetch('/api/roles');
+          if (rolesRes.ok) {
+            this.roles = await rolesRes.json();
+          }
+          
+          const groupsRes = await safeFetch('/api/groups');
+          if (groupsRes.ok) {
+            this.groups = await groupsRes.json();
+          }
         } catch (err) {
           this.error = 'Failed to load user data';
           console.error('Error loading user data:', err);
@@ -69,8 +85,34 @@
           const r = await safeFetch(`/api/users/${userId}`, { method: 'PATCH', body: JSON.stringify(payload) });
           if (r.ok) { window.location.href = '/'; }
           else {
-            const err = await r.json().catch(() => ({ error: 'Update failed' }));
-            this.error = err.error || 'Failed to update user';
+            // Try to parse JSON response for detailed error message
+            let errorMessage = 'Failed to update user';
+            const contentType = r.headers.get('content-type');
+            
+            if (contentType && contentType.includes('application/json')) {
+              try {
+                const err = await r.json();
+                errorMessage = err.error || `Server error: ${r.status}`;
+              } catch (parseErr) {
+                errorMessage = `Server error (${r.status}): Invalid response`;
+              }
+            } else {
+              // Provide status-specific error messages for non-JSON responses
+              if (r.status === 400) {
+                errorMessage = 'Invalid request data';
+              } else if (r.status === 401 || r.status === 403) {
+                errorMessage = 'Not authorized to update user';
+              } else if (r.status === 404) {
+                errorMessage = 'User not found';
+              } else if (r.status === 409) {
+                errorMessage = 'Email already in use';
+              } else if (r.status >= 500) {
+                errorMessage = 'Server error - please try again later';
+              } else {
+                errorMessage = `Request failed (${r.status})`;
+              }
+            }
+            this.error = errorMessage;
           }
         } catch (err) {
           this.error = 'Network error occurred';

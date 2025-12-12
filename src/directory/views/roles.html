@@ -54,14 +54,56 @@
       error: null,
       form: { name: '', description: '' },
       async init() { await this.load(); },
-      async load() { const r = await csrfFetch('/api/roles'); this.roles = await r.json(); },
+      async load() { 
+        try {
+          const r = await csrfFetch('/api/roles'); 
+          if (r.ok) {
+            this.roles = await r.json();
+          }
+        } catch (err) {
+          console.error('Error loading roles:', err);
+        }
+      },
       async create() {
         this.error = null;
-        const r = await csrfFetch('/api/roles', { method: 'POST', body: JSON.stringify(this.form) });
-        if (r.ok) { this.showCreate = false; this.form = { name: '', description: '' }; await this.load(); }
-        else { const err = await r.json().catch(() => ({ error: 'Request failed' })); this.error = err.error || 'Failed to create role'; }
+        try {
+          const r = await csrfFetch('/api/roles', { method: 'POST', body: JSON.stringify(this.form) });
+          if (r.ok) { 
+            this.showCreate = false; 
+            this.form = { name: '', description: '' }; 
+            await this.load(); 
+          } else {
+            const contentType = r.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              try {
+                const err = await r.json();
+                this.error = err.error || `Error: ${r.status}`;
+              } catch (parseErr) {
+                this.error = `Server error (${r.status})`;
+              }
+            } else {
+              if (r.status === 409) {
+                this.error = 'Role name already exists';
+              } else {
+                this.error = `Request failed (${r.status})`;
+              }
+            }
+          }
+        } catch (err) {
+          this.error = 'Network error occurred';
+          console.error('Error creating role:', err);
+        }
       },
-      async remove(id) { if (confirm('Delete role?')) { const r = await csrfFetch(`/api/roles/${id}`, { method: 'DELETE' }); if (r.ok) { await this.load(); } else { alert('Failed to delete role'); } } }
+      async remove(id) { 
+        if (confirm('Delete role?')) { 
+          const r = await csrfFetch(`/api/roles/${id}`, { method: 'DELETE' }); 
+          if (r.ok) { 
+            await this.load(); 
+          } else { 
+            alert('Failed to delete role'); 
+          } 
+        } 
+      }
     }
   }
 </script>

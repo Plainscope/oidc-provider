@@ -55,14 +55,56 @@
       error: null,
       form: { name: '', domain_id: '', description: '' },
       async init() { await this.load(); },
-      async load() { const r = await csrfFetch('/api/groups'); this.groups = await r.json(); },
+      async load() { 
+        try {
+          const r = await csrfFetch('/api/groups'); 
+          if (r.ok) {
+            this.groups = await r.json();
+          }
+        } catch (err) {
+          console.error('Error loading groups:', err);
+        }
+      },
       async create() {
         this.error = null;
-        const r = await csrfFetch('/api/groups', { method: 'POST', body: JSON.stringify(this.form) });
-        if (r.ok) { this.showCreate = false; this.form = { name: '', domain_id: '', description: '' }; await this.load(); }
-        else { const err = await r.json().catch(() => ({ error: 'Request failed' })); this.error = err.error || 'Failed to create group'; }
+        try {
+          const r = await csrfFetch('/api/groups', { method: 'POST', body: JSON.stringify(this.form) });
+          if (r.ok) { 
+            this.showCreate = false; 
+            this.form = { name: '', domain_id: '', description: '' }; 
+            await this.load(); 
+          } else {
+            const contentType = r.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              try {
+                const err = await r.json();
+                this.error = err.error || `Error: ${r.status}`;
+              } catch (parseErr) {
+                this.error = `Server error (${r.status})`;
+              }
+            } else {
+              if (r.status === 409) {
+                this.error = 'Group name already exists';
+              } else {
+                this.error = `Request failed (${r.status})`;
+              }
+            }
+          }
+        } catch (err) {
+          this.error = 'Network error occurred';
+          console.error('Error creating group:', err);
+        }
       },
-      async remove(id) { if (confirm('Delete group?')) { const r = await csrfFetch(`/api/groups/${id}`, { method: 'DELETE' }); if (r.ok) { await this.load(); } else { alert('Failed to delete group'); } } }
+      async remove(id) { 
+        if (confirm('Delete group?')) { 
+          const r = await csrfFetch(`/api/groups/${id}`, { method: 'DELETE' }); 
+          if (r.ok) { 
+            await this.load(); 
+          } else { 
+            alert('Failed to delete group'); 
+          } 
+        } 
+      }
     }
   }
 </script>
