@@ -41,9 +41,10 @@ const isValidEmail = (email: string): boolean => {
     require_tld: isProduction,
   });
 
-  // In non-production, permit localhost-style emails for local testing
+  // In non-production, permit single-label domains (no TLD) via regex
   if (!baseValid && !isProduction) {
-    return email.toLowerCase().endsWith('@localhost');
+    const noTldEmail = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+$/i;
+    return noTldEmail.test(email);
   }
 
   return baseValid;
