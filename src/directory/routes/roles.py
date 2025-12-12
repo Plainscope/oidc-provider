@@ -28,16 +28,21 @@ def register_role_routes(bp):
         if not data or 'name' not in data:
             abort(400)
         
+        # Validate name is not empty
+        name = data['name'].strip() if data['name'] else ''
+        if not name:
+            return jsonify({'error': 'Role name is required'}), 400
+        
         try:
             # Uniqueness validation
-            existing = Role.get_by_name(data['name'])
+            existing = Role.get_by_name(name)
             if existing:
                 return jsonify({'error': 'Role name already exists'}), 409
 
-            role_id = Role.create(data['name'], data.get('description', ''))
+            role_id = Role.create(name, data.get('description', ''))
             role = Role.get(role_id)
             AuditLog.log('role', role_id, 'created', 
-                         changes={'name': data['name']}, **get_audit_metadata())
+                         changes={'name': name}, **get_audit_metadata())
             return jsonify(role), 201
         except Exception as e:
             logger.error(f'[API] Error creating role: {str(e)}')

@@ -46,23 +46,36 @@ def register_group_routes(bp):
         logger.info('[API] POST /api/groups')
         
         data = request.get_json()
-        if not data or not all(k in data for k in ['name', 'domain_id']):
-            abort(400)
+        if not data:
+            return jsonify({'error': 'Request body is required'}), 400
+        
+        # Validate required fields
+        name = data.get('name', '').strip() if data.get('name') else ''
+        domain_id = data.get('domain_id', '').strip() if data.get('domain_id') else ''
+        
+        if not name:
+            return jsonify({'error': 'Group name is required'}), 400
+        if not domain_id:
+            return jsonify({'error': 'Domain ID is required'}), 400
         
         try:
-            # Uniqueness validation - groups are globally unique
-            existing = Group.get_by_name(data['name'])
+            # Check for duplicate group name within the same domain
+            existing = Group.get_by_name(name, domain_id)
             if existing:
-                return jsonify({'error': 'Group name already exists'}), 409
+                return jsonify({'error': 'Group name already exists in this domain'}), 409
 
-            group_id = Group.create(data['name'], data['domain_id'], 
+            group_id = Group.create(name, domain_id, 
                                    data.get('description', ''))
             group = Group.get(group_id)
             AuditLog.log('group', group_id, 'created', 
-                         changes={'name': data['name']}, **get_audit_metadata())
+                         changes={'name': name, 'domain_id': domain_id}, **get_audit_metadata())
             return jsonify(group), 201
         except Exception as e:
             logger.error(f'[API] Error creating group: {str(e)}')
+            # Check if it's a database constraint error
+            error_msg = str(e).lower()
+            if 'unique' in error_msg or 'constraint' in error_msg:
+                return jsonify({'error': 'Group name already exists in this domain'}), 409
             abort(500)
     
     @bp.route('/<group_id>', methods=['GET'])

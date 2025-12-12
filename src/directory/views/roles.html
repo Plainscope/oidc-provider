@@ -66,6 +66,13 @@
       },
       async create() {
         this.error = null;
+
+        // Validate required fields
+        if (!this.form.name || !this.form.name.trim()) {
+          this.error = 'Role name is required';
+          return;
+        }
+
         try {
           const r = await csrfFetch('/api/roles', { method: 'POST', body: JSON.stringify(this.form) });
           if (r.ok) {
