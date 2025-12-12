@@ -35,7 +35,8 @@
             </td>
             <td class="px-6 py-4 text-sm space-x-2">
               <a :href="`/users/edit?id=${user.id}`" class="text-blue-600 hover:text-blue-700">Edit</a>
-              <button @click="deleteUser(user.id)" class="text-red-600 hover:text-red-700">Delete</button>
+              <button @click="deleteUser(user.id, user.username)"
+                class="text-red-600 hover:text-red-700">Delete</button>
             </td>
           </tr>
         </template>
@@ -47,17 +48,35 @@
   function app() {
     return {
       users: [],
+      showCreateUserForm: false,
       async init() {
         await this.loadUsers();
       },
       async loadUsers() {
-        const resp = await fetch('/api/users');
-        this.users = await resp.json();
+        const resp = await csrfFetch('/api/users');
+        if (resp.ok) {
+          this.users = await resp.json();
+        } else if (resp.status === 401) {
+          window.location.href = '/login?redirectTo=' + encodeURIComponent(window.location.pathname);
+        } else {
+          console.error('Failed to load users:', resp.status);
+          this.users = [];
+        }
       },
-      async deleteUser(id) {
-        if (!confirm('Delete this user?')) return;
+      async deleteUser(id, username) {
+        const confirmed = await window.confirmModal.show(
+          'Delete User',
+          `Are you sure you want to delete "${username}"? This action cannot be undone.`,
+          'Delete'
+        );
+        if (!confirmed) return;
+
         const r = await csrfFetch(`/api/users/${id}`, { method: 'DELETE' });
-        if (r.status === 204 || r.ok) { await this.loadUsers(); } else { alert('Failed to delete user'); }
+        if (r.status === 204 || r.ok) {
+          await this.loadUsers();
+        } else {
+          alert('Failed to delete user');
+        }
       }
     }
   }

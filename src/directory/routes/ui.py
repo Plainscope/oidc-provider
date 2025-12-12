@@ -16,6 +16,12 @@ def get_auth_token():
 def register_ui_routes(bp):
     """Register UI routes to blueprint."""
 
+    @bp.route('/login', methods=['GET'])
+    def ui_login():
+        """GET /login - Render the login page."""
+        logger.info('[API] GET /login')
+        return render_template('login.html', title='Login - Remote Directory')
+
     @bp.route('/', methods=['GET'])
     def ui_home():
         """GET / - Render the user management UI."""

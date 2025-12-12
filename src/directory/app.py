@@ -5,7 +5,7 @@ Supports SQLite-based persistence with relational entities.
 """
 import os
 import logging
-from flask import Flask, request, abort, jsonify
+from flask import Flask, request, abort, jsonify, render_template, redirect, url_for
 
 # Configure logging
 logging.basicConfig(
@@ -80,18 +80,29 @@ def check_bearer_token():
 @app.before_request
 def verify_auth():
     """Verify authorization for all requests."""
-    # Allow unauthenticated health checks, UI, and legacy endpoints
-    if request.path == '/' or request.path == '/ui' or request.path == '/healthz':
+    # Allow unauthenticated health checks, UI routes, login, static assets, and favicon
+    # UI routes are protected client-side via JavaScript checks
+    if request.path in ['/', '/login', '/healthz', '/ui', '/favicon.ico']:
         return
     
-    if any(request.path.startswith(p) for p in ['/static/', '/ui/']):
+    # Allow all UI routes without backend auth check (client-side auth will handle it)
+    ui_routes = ['/roles', '/groups', '/domains', '/audit', '/users/edit']
+    if any(request.path.startswith(route) for route in ui_routes):
+        return
+    
+    if any(request.path.startswith(p) for p in ['/static/', '/login', '/favicon']):
         return
     
     if request.path in ['/count', '/validate'] or request.path.startswith('/find/'):
         return
     
     if not check_bearer_token():
-        abort(401)
+        # For API requests, return 401
+        if request.path.startswith('/api/'):
+            abort(401)
+        # For UI requests, redirect to login
+        return redirect(url_for('ui.ui_login', redirectTo=request.full_path))
+
 
 
 # ============================================================================
@@ -145,21 +156,55 @@ app.register_blueprint(ui_bp)
 # Error Handlers
 # ============================================================================
 
+def is_html_request():
+    """Check if the request expects HTML response."""
+    return 'text/html' in request.headers.get('Accept', '')
+
 @app.errorhandler(400)
 def bad_request(error):
     """Handle 400 Bad Request errors."""
+    if is_html_request():
+        return render_template('error.html', 
+            error_code=400, 
+            error_title='Bad Request',
+            error_message='The request could not be understood by the server.',
+            error_details=str(error)), 400
     return jsonify({'error': 'Bad request'}), 400
 
 
 @app.errorhandler(401)
 def unauthorized(error):
     """Handle 401 Unauthorized errors."""
+    if is_html_request():
+        return render_template('error.html',
+            error_code=401,
+            error_title='Unauthorized',
+            error_message='You are not authorized to access this resource. Please log in.',
+            error_details='Invalid or missing authentication token'), 401
     return jsonify({'error': 'Unauthorized'}), 401
+
+
+@app.errorhandler(403)
+def forbidden(error):
+    """Handle 403 Forbidden errors."""
+    if is_html_request():
+        return render_template('error.html',
+            error_code=403,
+            error_title='Forbidden',
+            error_message='You do not have permission to access this resource.',
+            error_details='Your account does not have the required permissions'), 403
+    return jsonify({'error': 'Forbidden'}), 403
 
 
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 Not Found errors."""
+    if is_html_request():
+        return render_template('error.html',
+            error_code=404,
+            error_title='Page Not Found',
+            error_message='The page you are looking for does not exist.',
+            error_details=f'Path: {request.path}'), 404
     return jsonify({'error': 'Not found'}), 404
 
 
@@ -167,6 +212,12 @@ def not_found(error):
 def internal_error(error):
     """Handle 500 Internal Server Error."""
     logger.error(f'[ERROR] Internal server error: {str(error)}')
+    if is_html_request():
+        return render_template('error.html',
+            error_code=500,
+            error_title='Internal Server Error',
+            error_message='An unexpected error occurred. Please try again later.',
+            error_details='An internal server error has been logged and will be investigated'), 500
     return jsonify({'error': 'Internal server error'}), 500
 
 

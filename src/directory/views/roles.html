@@ -95,13 +95,19 @@
         }
       },
       async remove(id) {
-        if (confirm('Delete role?')) {
-          const r = await csrfFetch(`/api/roles/${id}`, { method: 'DELETE' });
-          if (r.ok) {
-            await this.load();
-          } else {
-            alert('Failed to delete role');
-          }
+        const role = this.roles.find(r => r.id === id);
+        const confirmed = await window.confirmModal.show(
+          'Delete Role',
+          `Are you sure you want to delete "${role?.name}"? This action cannot be undone.`,
+          'Delete'
+        );
+        if (!confirmed) return;
+
+        const r = await csrfFetch(`/api/roles/${id}`, { method: 'DELETE' });
+        if (r.ok) {
+          await this.load();
+        } else {
+          alert('Failed to delete role');
         }
       }
     }

@@ -96,13 +96,19 @@
         }
       },
       async remove(id) {
-        if (confirm('Delete group?')) {
-          const r = await csrfFetch(`/api/groups/${id}`, { method: 'DELETE' });
-          if (r.ok) {
-            await this.load();
-          } else {
-            alert('Failed to delete group');
-          }
+        const group = this.groups.find(g => g.id === id);
+        const confirmed = await window.confirmModal.show(
+          'Delete Group',
+          `Are you sure you want to delete "${group?.name}"? This action cannot be undone.`,
+          'Delete'
+        );
+        if (!confirmed) return;
+
+        const r = await csrfFetch(`/api/groups/${id}`, { method: 'DELETE' });
+        if (r.ok) {
+          await this.load();
+        } else {
+          alert('Failed to delete group');
         }
       }
     }

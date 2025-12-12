@@ -98,13 +98,19 @@
         }
       },
       async remove(id) {
-        if (confirm('Delete domain?')) {
-          const r = await csrfFetch(`/api/domains/${id}`, { method: 'DELETE' });
-          if (r.ok) {
-            await this.load();
-          } else {
-            alert('Failed to delete domain');
-          }
+        const domain = this.domains.find(d => d.id === id);
+        const confirmed = await window.confirmModal.show(
+          'Delete Domain',
+          `Are you sure you want to delete "${domain?.name}"? This action cannot be undone.`,
+          'Delete'
+        );
+        if (!confirmed) return;
+
+        const r = await csrfFetch(`/api/domains/${id}`, { method: 'DELETE' });
+        if (r.ok) {
+          await this.load();
+        } else {
+          alert('Failed to delete domain');
         }
       }
     }
