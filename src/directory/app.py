@@ -15,6 +15,7 @@ logging.basicConfig(
 logger = logging.getLogger('remote-directory')
 
 # Import database
+from database import close_db
 from db_init import init_database
 
 # Import blueprints
@@ -97,7 +98,7 @@ def verify_auth():
 @app.teardown_appcontext
 def close_connection(exception):
     """Close database connection on app context teardown."""
-    pass  # Connection is managed by the models layer
+    close_db(exception)
 
 # ============================================================================
 # Register Blueprints with Routes

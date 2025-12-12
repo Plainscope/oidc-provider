@@ -5,6 +5,7 @@ Provides functions to populate the database with sample data.
 import os
 import json
 from pathlib import Path
+from database import init_schema
 from models import (
     Domain, User, UserEmail, UserProperty, Role, UserRole
 )
@@ -142,6 +143,9 @@ def init_database():
     logger.info('[INIT] Starting database initialization')
     
     try:
+        # Initialize schema
+        init_schema()
+        
         # Initialize default domain
         init_default_domain()
         

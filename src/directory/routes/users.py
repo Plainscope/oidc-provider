@@ -51,6 +51,19 @@ def register_user_routes(bp):
             abort(400)
         
         try:
+            # Check all emails for uniqueness before creating user
+            emails_to_add = []
+            if 'email' in data:
+                if User.get_by_email(data['email']):
+                    return jsonify({'error': 'Email already in use'}), 409
+                emails_to_add.append((data['email'], True))  # is_primary=True
+            
+            for email in data.get('emails', []):
+                if email != data.get('email'):
+                    if User.get_by_email(email):
+                        return jsonify({'error': f'Email already in use: {email}'}), 409
+                    emails_to_add.append((email, False))  # is_primary=False
+            
             # Hash password
             hashed = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
@@ -63,17 +76,9 @@ def register_user_routes(bp):
                 display_name=data.get('display_name', '')
             )
             
-            if 'email' in data:
-                existing_user = User.get_by_email(data['email'])
-                if existing_user:
-                    return jsonify({'error': 'Email already in use'}), 409
-                UserEmail.add(user_id, data['email'], is_primary=True)
-            
-            for email in data.get('emails', []):
-                if email != data.get('email'):
-                    if User.get_by_email(email):
-                        return jsonify({'error': f'Email already in use: {email}'}), 409
-                    UserEmail.add(user_id, email, is_primary=False)
+            # Add all emails
+            for email, is_primary in emails_to_add:
+                UserEmail.add(user_id, email, is_primary=is_primary)
             
             for key, value in data.get('properties', {}).items():
                 UserProperty.set(user_id, key, value)
