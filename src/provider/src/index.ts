@@ -18,28 +18,28 @@ import useSqliteAdapter from './sqlite-adapter';
 const securityHeaders = (_req: Request, res: Response, next: NextFunction) => {
   // Prevent clickjacking attacks
   res.setHeader('X-Frame-Options', 'DENY');
-  
+
   // Prevent MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  
+
   // Enable XSS filter in browsers
   res.setHeader('X-XSS-Protection', '1; mode=block');
-  
+
   // Control referrer information
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
+
   // Content Security Policy
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
   );
-  
+
   // Permissions Policy (formerly Feature Policy)
   res.setHeader(
     'Permissions-Policy',
     'geolocation=(), microphone=(), camera=(), payment=()'
   );
-  
+
   // HSTS header for HTTPS (only in production with HTTPS)
   // Note: Start with shorter max-age in initial deployment and gradually increase
   // Default is 1 day (86400s), can be increased to 1 year (31536000s) after validation
@@ -47,7 +47,7 @@ const securityHeaders = (_req: Request, res: Response, next: NextFunction) => {
     const hstsMaxAge = process.env.HSTS_MAX_AGE || '86400'; // Default: 1 day
     res.setHeader('Strict-Transport-Security', `max-age=${hstsMaxAge}; includeSubDomains; preload`);
   }
-  
+
   next();
 };
 
@@ -70,14 +70,14 @@ console.log('[INIT] Starting OIDC Provider with environment:', {
  */
 const validateEnvironment = () => {
   const errors: string[] = [];
-  
+
   // Validate PORT
   const port = process.env.PORT || '8080';
   const portNum = parseInt(port, 10);
   if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
     errors.push('PORT must be a valid number between 1 and 65535');
   }
-  
+
   // Validate ISSUER
   const issuer = process.env.ISSUER || `http://localhost:${port}`;
   try {
@@ -85,12 +85,12 @@ const validateEnvironment = () => {
   } catch {
     errors.push('ISSUER must be a valid URL');
   }
-  
+
   // Warn about production without HTTPS
   if (process.env.NODE_ENV === 'production' && !issuer.startsWith('https://')) {
     console.warn('[SECURITY WARNING] Production deployment should use HTTPS. Current issuer:', issuer);
   }
-  
+
   // Validate cookie keys in production
   if (process.env.NODE_ENV === 'production') {
     if (process.env.COOKIES_KEYS) {
@@ -109,13 +109,13 @@ const validateEnvironment = () => {
       }
     }
   }
-  
+
   if (errors.length > 0) {
     console.error('[VALIDATION ERROR] Environment validation failed:');
     errors.forEach(error => console.error(`  - ${error}`));
     throw new Error('Environment validation failed. See errors above.');
   }
-  
+
   console.log('[VALIDATION] Environment validation passed');
 };
 
@@ -165,6 +165,21 @@ const provider = new Provider(ISSUER, {
   findAccount: (_ctx, id) => directory.find(id),
   renderError: async (ctx, out, _error) => {
     console.log('[CONFIG] Custom error renderer called:', { error: out.error, error_description: out.error_description });
+    // Redirect to login when account lookup fails (stale sessions)
+    if (_error && _error.message === 'ACCOUNT_NOT_FOUND' && ctx.path.startsWith('/auth')) {
+      try {
+        const clientCfg = Array.isArray(configuration.clients) && configuration.clients[0] ? configuration.clients[0] as any : {};
+        const clientId = process.env.CLIENT_ID || clientCfg.client_id;
+        const redirectUri = (process.env.REDIRECT_URIS || (clientCfg.redirect_uris && clientCfg.redirect_uris[0])) as string;
+        const scopes = (configuration.scopes && configuration.scopes.join(' ')) || 'openid profile email';
+        const loginUrl = `/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&prompt=login`;
+        ctx.status = 303;
+        ctx.redirect(loginUrl);
+        return;
+      } catch (e) {
+        console.warn('[CONFIG] Failed to construct login redirect, falling back to error page:', e);
+      }
+    }
 
     // Render using the Express app's render method
     ctx.type = 'html';

@@ -78,17 +78,24 @@ export class RemoteDirectory implements IDirectory {
    */
   async find(id: string): Promise<Account | undefined> {
     console.log(`[RemoteDirectory] Finding user by id: ${id}`);
-    const response = await fetch(`${this.baseUrl}/${this.findEndpoint}/${id}`, { headers: this.headers });
+    let response = await fetch(`${this.baseUrl}/${this.findEndpoint}/${id}`, { headers: this.headers });
+
+    // Fallback: if lookup by id fails and id looks like an email, try finding by email
+    if (!response.ok && id.includes('@')) {
+      console.warn(`[RemoteDirectory] User not found by id, retrying by email: ${id}`);
+      response = await fetch(`${this.baseUrl}/${this.findEndpoint}/${encodeURIComponent(id)}`, { headers: this.headers });
+    }
 
     if (!response.ok) {
-      console.error(`[RemoteDirectory] User not found: ${id}`);
-      return undefined;
+      console.error(`[RemoteDirectory] User not found after fallback: ${id}`);
+      // Signal upstream to trigger a re-login flow
+      throw new Error('ACCOUNT_NOT_FOUND');
     }
 
     console.log(`[RemoteDirectory] User found: ${id}`);
     const dirUser = await response.json();
     const user = this.mapUser(dirUser);
-    return new Profile(user.id, user);
+    return new Profile(user.id || user.email, user);
   }
 
 
@@ -114,6 +121,8 @@ export class RemoteDirectory implements IDirectory {
     const dirUser = data.user || data;
     const user = this.mapUser(dirUser, email);
 
-    return new Profile(user.id, user);
+    // Use stable accountId based on email to tolerate id churn
+    const accountId = user.email || user.id;
+    return new Profile(accountId, user);
   }
 }
