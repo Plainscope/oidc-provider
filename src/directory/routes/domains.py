@@ -39,7 +39,7 @@ def register_domain_routes(bp):
         
         try:
             # Uniqueness validation
-            existing = Domain.get_by_name(data['name']) if hasattr(Domain, 'get_by_name') else None
+            existing = Domain.get_by_name(data['name'])
             if existing:
                 return jsonify({'error': 'Domain name already exists'}), 409
 
