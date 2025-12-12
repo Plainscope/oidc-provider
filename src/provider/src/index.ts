@@ -165,21 +165,6 @@ const provider = new Provider(ISSUER, {
   findAccount: (_ctx, id) => directory.find(id),
   renderError: async (ctx, out, _error) => {
     console.log('[CONFIG] Custom error renderer called:', { error: out.error, error_description: out.error_description });
-    // Redirect to login when account lookup fails (stale sessions)
-    if (_error && _error.message === 'ACCOUNT_NOT_FOUND' && ctx.path.startsWith('/auth')) {
-      try {
-        const clientCfg = Array.isArray(configuration.clients) && configuration.clients[0] ? configuration.clients[0] as any : {};
-        const clientId = process.env.CLIENT_ID || clientCfg.client_id;
-        const redirectUri = (process.env.REDIRECT_URIS || (clientCfg.redirect_uris && clientCfg.redirect_uris[0])) as string;
-        const scopes = (configuration.scopes && configuration.scopes.join(' ')) || 'openid profile email';
-        const loginUrl = `/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&prompt=login`;
-        ctx.status = 303;
-        ctx.redirect(loginUrl);
-        return;
-      } catch (e) {
-        console.warn('[CONFIG] Failed to construct login redirect, falling back to error page:', e);
-      }
-    }
 
     // Render using the Express app's render method
     ctx.type = 'html';

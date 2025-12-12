@@ -88,8 +88,7 @@ export class RemoteDirectory implements IDirectory {
 
     if (!response.ok) {
       console.error(`[RemoteDirectory] User not found after fallback: ${id}`);
-      // Signal upstream to trigger a re-login flow
-      throw new Error('ACCOUNT_NOT_FOUND');
+      return undefined;
     }
 
     console.log(`[RemoteDirectory] User found: ${id}`);
