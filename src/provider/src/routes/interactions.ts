@@ -36,10 +36,17 @@ const sanitizeInput = (input: string): string => {
  * @returns true if email format is valid
  */
 const isValidEmail = (email: string): boolean => {
-  return validator.isEmail(email, {
+  const baseValid = validator.isEmail(email, {
     allow_utf8_local_part: false,
-    require_tld: isProduction
+    require_tld: isProduction,
   });
+
+  // In non-production, permit localhost-style emails for local testing
+  if (!baseValid && !isProduction) {
+    return email.toLowerCase().endsWith('@localhost');
+  }
+
+  return baseValid;
 };
 
 // Configurable timing attack prevention delay (ms)
