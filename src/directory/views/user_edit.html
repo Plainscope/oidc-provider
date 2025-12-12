@@ -35,12 +35,22 @@
     <div>
       <div class="flex justify-between items-center mb-2">
         <label class="block text-sm font-medium text-gray-700">Custom Properties</label>
-        <button @click="addProperty()" type="button" class="text-sm text-blue-600 hover:text-blue-700">+ Add Property</button>
+        <button @click="addProperty()" type="button" class="text-sm text-blue-600 hover:text-blue-700">+ Add
+          Property</button>
       </div>
       <div class="space-y-2">
         <template x-for="(prop, index) in properties" :key="index">
           <div class="flex gap-2">
-            <input x-model="prop.key" placeholder="Key" class="flex-1 border rounded px-3 py-2 text-sm" />
+            <select x-model="prop.key" @change="onPropertyKeyChange(index, $event.target.value)"
+              class="flex-1 border rounded px-2 py-1 text-sm">
+              <option value="">Select Key...</option>
+              <template x-for="stdKey in standardPropertyKeys" :key="stdKey.key">
+                <option :value="stdKey.key" x-text="stdKey.key + ' - ' + stdKey.description"></option>
+              </template>
+              <option value="__custom__">Custom Key...</option>
+            </select>
+            <input x-show="prop.key === '__custom__'" x-model="prop.customKey" placeholder="Custom Key"
+              class="flex-1 border rounded px-2 py-1 text-sm" />
             <input x-model="prop.value" placeholder="Value" class="flex-1 border rounded px-3 py-2 text-sm" />
             <button @click="removeProperty(index)" type="button" class="text-red-600 hover:text-red-700 px-2">×</button>
           </div>
@@ -66,8 +76,9 @@
     const safeFetch = window.csrfFetch || fetch.bind(window);
 
     return {
-      user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], properties: [], error: null,
+      user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], properties: [], standardPropertyKeys: [], error: null,
       async init() {
+        await this.loadPropertyKeys();
         try {
           const uRes = await safeFetch(`/api/users/${userId}`);
           if (!uRes.ok) {
@@ -79,10 +90,18 @@
           this.user = u;
           this.selectedRoles = (u.roles || []).map(r => r.id);
           this.selectedGroups = (u.groups || []).map(g => g.id);
-          
+
           // Load properties
           if (u.properties && Array.isArray(u.properties)) {
-            this.properties = u.properties.map(p => ({ key: p.key, value: p.value }));
+            this.properties = u.properties.map(p => {
+              // Check if it's a standard key
+              const isStandard = this.standardPropertyKeys.some(sk => sk.key === p.key);
+              return {
+                key: isStandard ? p.key : '__custom__',
+                customKey: isStandard ? '' : p.key,
+                value: p.value
+              };
+            });
           }
 
           const rolesRes = await safeFetch('/api/roles');
@@ -99,24 +118,43 @@
           console.error('Error loading user data:', err);
         }
       },
+      async loadPropertyKeys() {
+        try {
+          const resp = await safeFetch('/api/property-keys/standard');
+          if (resp.ok) {
+            this.standardPropertyKeys = await resp.json();
+          }
+        } catch (err) {
+          console.error('Error loading property keys:', err);
+        }
+      },
       addProperty() {
-        this.properties.push({ key: '', value: '' });
+        this.properties.push({ key: '', customKey: '', value: '' });
       },
       removeProperty(index) {
         this.properties.splice(index, 1);
+      },
+      onPropertyKeyChange(index, value) {
+        if (value !== '__custom__') {
+          this.properties[index].customKey = '';
+        }
       },
       toggleRole(id, on) { if (on) { if (!this.selectedRoles.includes(id)) this.selectedRoles.push(id); } else { this.selectedRoles = this.selectedRoles.filter(x => x !== id); } },
       toggleGroup(id, on) { if (on) { if (!this.selectedGroups.includes(id)) this.selectedGroups.push(id); } else { this.selectedGroups = this.selectedGroups.filter(x => x !== id); } },
       async save() {
         this.error = null;
         try {
-          const payload = { 
-            display_name: this.user.display_name, 
-            email: this.user.email, 
-            role_ids: this.selectedRoles, 
+          const payload = {
+            display_name: this.user.display_name,
+            email: this.user.email,
+            role_ids: this.selectedRoles,
             group_ids: this.selectedGroups,
-            properties: this.properties.filter(p => p.key.trim() !== '').reduce((acc, p) => {
-              acc[p.key.trim()] = p.value;
+            properties: this.properties.filter(p => {
+              const key = p.key === '__custom__' ? p.customKey : p.key;
+              return key && key.trim() !== '';
+            }).reduce((acc, p) => {
+              const key = p.key === '__custom__' ? p.customKey.trim() : p.key.trim();
+              acc[key] = p.value;
               return acc;
             }, {})
           };

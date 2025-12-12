@@ -19,9 +19,9 @@ from db_init import init_database
 
 # Import blueprints
 from routes import (
-    domains_bp, users_bp, roles_bp, groups_bp, audit_bp, legacy_bp, ui_bp,
+    domains_bp, users_bp, roles_bp, groups_bp, property_keys_bp, audit_bp, legacy_bp, ui_bp,
     register_domain_routes, register_user_routes, register_role_routes,
-    register_group_routes, register_audit_routes, register_legacy_routes,
+    register_group_routes, register_property_key_routes, register_audit_routes, register_legacy_routes,
     register_ui_routes
 )
 
@@ -53,6 +53,7 @@ try:
     csrf.exempt(users_bp)
     csrf.exempt(roles_bp)
     csrf.exempt(groups_bp)
+    csrf.exempt(property_keys_bp)
     csrf.exempt(audit_bp)
     csrf.exempt(legacy_bp)
 except Exception as e:
@@ -138,6 +139,10 @@ app.register_blueprint(roles_bp)
 # Register group routes
 register_group_routes(groups_bp)
 app.register_blueprint(groups_bp)
+
+# Register property key routes
+register_property_key_routes(property_keys_bp)
+app.register_blueprint(property_keys_bp)
 
 # Register audit routes
 register_audit_routes(audit_bp)

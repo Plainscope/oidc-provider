@@ -69,14 +69,25 @@
         <div>
           <div class="flex justify-between items-center mb-2">
             <label class="block text-sm font-medium text-gray-700">Custom Properties</label>
-            <button @click="addProperty()" type="button" class="text-sm text-blue-600 hover:text-blue-700">+ Add Property</button>
+            <button @click="addProperty()" type="button" class="text-sm text-blue-600 hover:text-blue-700">+ Add
+              Property</button>
           </div>
           <div class="space-y-2 max-h-40 overflow-y-auto">
             <template x-for="(prop, index) in newUserProperties" :key="index">
               <div class="flex gap-2">
-                <input x-model="prop.key" placeholder="Key" class="flex-1 border rounded px-2 py-1 text-sm" />
+                <select x-model="prop.key" @change="onPropertyKeyChange(index, $event.target.value)"
+                  class="flex-1 border rounded px-2 py-1 text-sm">
+                  <option value="">Select Key...</option>
+                  <template x-for="stdKey in standardPropertyKeys" :key="stdKey.key">
+                    <option :value="stdKey.key" x-text="stdKey.key + ' - ' + stdKey.description"></option>
+                  </template>
+                  <option value="__custom__">Custom Key...</option>
+                </select>
+                <input x-show="prop.key === '__custom__'" x-model="prop.customKey" placeholder="Custom Key"
+                  class="flex-1 border rounded px-2 py-1 text-sm" />
                 <input x-model="prop.value" placeholder="Value" class="flex-1 border rounded px-2 py-1 text-sm" />
-                <button @click="removeProperty(index)" type="button" class="text-red-600 hover:text-red-700 px-2">×</button>
+                <button @click="removeProperty(index)" type="button"
+                  class="text-red-600 hover:text-red-700 px-2">×</button>
               </div>
             </template>
           </div>
@@ -94,13 +105,25 @@
     return {
       users: [],
       domains: [],
+      standardPropertyKeys: [],
       showCreateUserForm: false,
       createError: null,
       newUser: { username: '', display_name: '', email: '', password: '', domain_id: '', is_active: true },
       newUserProperties: [],
       async init() {
         await this.loadDomains();
+        await this.loadPropertyKeys();
         await this.loadUsers();
+      },
+      async loadPropertyKeys() {
+        try {
+          const resp = await csrfFetch('/api/property-keys/standard');
+          if (resp.ok) {
+            this.standardPropertyKeys = await resp.json();
+          }
+        } catch (err) {
+          console.error('Error loading property keys:', err);
+        }
       },
       async loadDomains() {
         const resp = await csrfFetch('/api/domains');
@@ -125,10 +148,15 @@
         }
       },
       addProperty() {
-        this.newUserProperties.push({ key: '', value: '' });
+        this.newUserProperties.push({ key: '', customKey: '', value: '' });
       },
       removeProperty(index) {
         this.newUserProperties.splice(index, 1);
+      },
+      onPropertyKeyChange(index, value) {
+        if (value !== '__custom__') {
+          this.newUserProperties[index].customKey = '';
+        }
       },
       async createUser() {
         this.createError = null;
@@ -148,14 +176,18 @@
         }
 
         try {
-          const payload = { 
+          const payload = {
             ...this.newUser,
-            properties: this.newUserProperties.filter(p => p.key.trim() !== '').reduce((acc, p) => {
-              acc[p.key.trim()] = p.value;
+            properties: this.newUserProperties.filter(p => {
+              const key = p.key === '__custom__' ? p.customKey : p.key;
+              return key && key.trim() !== '';
+            }).reduce((acc, p) => {
+              const key = p.key === '__custom__' ? p.customKey.trim() : p.key.trim();
+              acc[key] = p.value;
               return acc;
             }, {})
           };
-          
+
           const r = await csrfFetch('/api/users', {
             method: 'POST',
             body: JSON.stringify(payload)
