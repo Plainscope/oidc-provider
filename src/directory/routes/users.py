@@ -78,9 +78,9 @@ def register_user_routes(bp):
             
             # Check all emails for uniqueness before creating user
             # This reduces the likelihood of constraint violations, but the
-            # database UNIQUE constraint provides the ultimate protection
+            # database UNIQUE constraint on user_emails.email provides ultimate protection
             for email, _ in emails_to_add:
-                if User.get_by_email(email):
+                if UserEmail.exists(email):
                     return jsonify({'error': f'Email already in use: {email}'}), 409
             
             # Hash password
@@ -116,21 +116,22 @@ def register_user_routes(bp):
             return jsonify(exclude_password(user)), 201
         except Exception as e:
             logger.error(f'[API] Error creating user: {str(e)}')
-            error_msg = str(e)
+            error_msg = str(e).lower()
             
             # If there was a database constraint violation after user creation,
-            # clean up the partially created user to maintain database consistency
-            if 'UNIQUE constraint failed' in error_msg and user_id:
+            # clean up the partially created user to maintain database consistency.
+            # User.delete() cascades to user_emails via ON DELETE CASCADE foreign key.
+            if 'unique constraint' in error_msg and user_id:
                 try:
                     User.delete(user_id)
                     logger.info(f'[API] Cleaned up partially created user: {user_id}')
                 except Exception as cleanup_error:
                     logger.error(f'[API] Failed to clean up user {user_id}: {str(cleanup_error)}')
                 
-                # Return appropriate error based on which constraint failed
-                if 'user_emails.email' in error_msg:
+                # Determine which field caused the constraint violation
+                if 'email' in error_msg:
                     return jsonify({'error': 'Email already in use'}), 409
-                elif 'users.username' in error_msg:
+                elif 'username' in error_msg:
                     return jsonify({'error': 'Username already exists'}), 409
                 else:
                     return jsonify({'error': 'Duplicate value detected'}), 409
