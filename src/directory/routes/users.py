@@ -162,11 +162,22 @@ def register_user_routes(bp):
                 User.update(user_id, **update_fields)
             
             if 'email' in data:
-                existing = User.get_by_email(data['email'])
-                if existing and str(existing['id']) != str(user_id):
-                    return jsonify({'error': 'Email already in use'}), 409
-                UserEmail.add(user_id, data['email'], is_primary=True)
-                changes['email'] = data['email']
+                email = data['email'].strip() if data['email'] else ''
+                if email:
+                    existing = User.get_by_email(email)
+                    # Check if email belongs to a different user
+                    if existing and str(existing['id']) != str(user_id):
+                        return jsonify({'error': 'Email already in use'}), 409
+                    
+                    # Check if user already has this email
+                    user_emails = UserEmail.get_by_user(user_id)
+                    email_exists_for_user = any(ue['email'] == email for ue in user_emails)
+                    
+                    # Only add if not already present
+                    if not email_exists_for_user:
+                        UserEmail.add(user_id, email, is_primary=True)
+                    
+                    changes['email'] = email
             
             for key, value in data.get('properties', {}).items():
                 UserProperty.set(user_id, key, value)
