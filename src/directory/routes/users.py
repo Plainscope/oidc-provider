@@ -52,11 +52,11 @@ def register_user_routes(bp):
         
         # Validate required fields
         username = data.get('username', '').strip() if data.get('username') else ''
-        password = data.get('password', '').strip() if data.get('password') else ''
+        password = data.get('password') if data.get('password') is not None else ''
         
         if not username:
             return jsonify({'error': 'Username is required'}), 400
-        if not password:
+        if password == '':
             return jsonify({'error': 'Password is required'}), 400
         
         # domain_id is optional - if not provided, will use a default
