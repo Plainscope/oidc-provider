@@ -3,6 +3,7 @@ import logging
 from flask import request, jsonify, abort
 import bcrypt
 from models import User, UserEmail, UserProperty, UserRole, UserGroup, AuditLog
+from database import get_db
 
 logger = logging.getLogger('remote-directory')
 
@@ -50,9 +51,11 @@ def register_user_routes(bp):
         if not data or not all(k in data for k in ['username', 'password', 'domain_id']):
             abort(400)
         
+        db = get_db()
+        user_id = None
+        
         try:
-            # Check all emails for uniqueness and duplicates before creating user
-            emails_to_add = []
+            # Prepare email data and check for duplicates in request
             primary_email = data.get('email')
             secondary_emails = data.get('emails', [])
 
@@ -64,19 +67,26 @@ def register_user_routes(bp):
             if len(all_emails) != len(set(all_emails)):
                 return jsonify({'error': 'Duplicate emails provided'}), 400
 
+            # Prepare emails to add
+            emails_to_add = []
             if primary_email:
-                if User.get_by_email(primary_email):
-                    return jsonify({'error': 'Email already in use'}), 409
                 emails_to_add.append((primary_email, True))  # is_primary=True
 
             for email in secondary_emails:
                 if email != primary_email:
-                    if User.get_by_email(email):
-                        return jsonify({'error': f'Email already in use: {email}'}), 409
                     emails_to_add.append((email, False))  # is_primary=False
+            
+            # Check all emails for uniqueness before creating user
+            # This reduces the likelihood of constraint violations, but the
+            # database UNIQUE constraint provides the ultimate protection
+            for email, _ in emails_to_add:
+                if User.get_by_email(email):
+                    return jsonify({'error': f'Email already in use: {email}'}), 409
+            
             # Hash password
             hashed = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
+            # Create user - this commits its own transaction
             user_id = User.create(
                 username=data['username'],
                 password=hashed,
@@ -86,7 +96,8 @@ def register_user_routes(bp):
                 display_name=data.get('display_name', '')
             )
             
-            # Add all emails
+            # Add all emails - protected by UNIQUE constraint on email column
+            # If any email add fails, we'll catch the exception and clean up the user
             for email, is_primary in emails_to_add:
                 UserEmail.add(user_id, email, is_primary=is_primary)
             
@@ -105,6 +116,25 @@ def register_user_routes(bp):
             return jsonify(exclude_password(user)), 201
         except Exception as e:
             logger.error(f'[API] Error creating user: {str(e)}')
+            error_msg = str(e)
+            
+            # If there was a database constraint violation after user creation,
+            # clean up the partially created user to maintain database consistency
+            if 'UNIQUE constraint failed' in error_msg and user_id:
+                try:
+                    User.delete(user_id)
+                    logger.info(f'[API] Cleaned up partially created user: {user_id}')
+                except Exception as cleanup_error:
+                    logger.error(f'[API] Failed to clean up user {user_id}: {str(cleanup_error)}')
+                
+                # Return appropriate error based on which constraint failed
+                if 'user_emails.email' in error_msg:
+                    return jsonify({'error': 'Email already in use'}), 409
+                elif 'users.username' in error_msg:
+                    return jsonify({'error': 'Username already exists'}), 409
+                else:
+                    return jsonify({'error': 'Duplicate value detected'}), 409
+            
             abort(500)
     
     @bp.route('/<user_id>', methods=['GET'])
@@ -139,8 +169,6 @@ def register_user_routes(bp):
                 if field in data:
                     if field == 'password':
                         update_fields[field] = bcrypt.hashpw(data[field].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                        # Do not log the actual password; redact it in the audit log
-                        changes[field] = '[REDACTED]'
                         # Do not log the actual password; redact it in the audit log
                         changes[field] = '[REDACTED]'
                     else:
