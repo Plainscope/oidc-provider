@@ -24,7 +24,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     expect(csrfToken).toBeTruthy();
 
     // Verify csrfFetch is available
-    const hasCsrfFetch = await page.evaluate(() => typeof window['csrfFetch'] === 'function');
+    const hasCsrfFetch = await page.evaluate(() => typeof (window as any)['csrfFetch'] === 'function');
     expect(hasCsrfFetch).toBe(true);
   });
 
@@ -424,3 +424,4 @@ test.describe('Directory CRUD Operations with Security', () => {
     await expect(page.locator('div.bg-red-50')).toBeVisible();
     await expect(page.locator('div.bg-red-50')).toContainText(/password is required/i);
   });
+});
