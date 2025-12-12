@@ -1,3 +1,4 @@
+/// <reference types="@playwright/test" />
 import { test, expect } from '@playwright/test';
 
 const BASE_URL = 'http://localhost:7080';

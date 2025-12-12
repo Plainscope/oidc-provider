@@ -197,6 +197,7 @@ if (clientsEnv) {
       grant_types: process.env.GRANT_TYPES ? process.env.GRANT_TYPES.split(',').map(g => g.trim()) as any : undefined,
       response_types: process.env.RESPONSE_TYPES ? process.env.RESPONSE_TYPES.split(',').map(r => r.trim()) as any : undefined,
       token_endpoint_auth_method: process.env.TOKEN_ENDPOINT_AUTH_METHOD as any,
+      id_token_signed_response_alg: 'RS256' as any, // Default signing algorithm
     };
     envOverrides.clients = [client];
     console.log('[CONFIG] Override clients from individual client env vars');

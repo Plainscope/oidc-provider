@@ -1,3 +1,4 @@
+/// <reference types="@playwright/test" />
 /**
  * Directory CRUD and Security Tests
  * Tests CSRF protection and uniqueness constraints in the remote directory UI

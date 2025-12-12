@@ -25,6 +25,36 @@ export class RemoteDirectory implements IDirectory {
     console.log(`[RemoteDirectory] Initialized with headers: ${JSON.stringify(headers)}`);
   }
 
+  /**
+   * Maps directory user object to OIDC User interface
+   */
+  private mapUser(dirUser: any, email?: string): User {
+    return {
+      id: dirUser.id,
+      email: dirUser.emails?.[0]?.email || dirUser.email || email || '',
+      password: dirUser.password || '',
+      email_verified: dirUser.properties?.email_verified || dirUser.email_verified || false,
+      name: dirUser.display_name || dirUser.name || `${dirUser.first_name || ''} ${dirUser.last_name || ''}`.trim(),
+      given_name: dirUser.first_name || dirUser.given_name,
+      family_name: dirUser.last_name || dirUser.family_name,
+      middle_name: dirUser.properties?.middle_name || dirUser.middle_name,
+      nickname: dirUser.properties?.nickname || dirUser.nickname,
+      picture: dirUser.properties?.picture || dirUser.picture,
+      profile: dirUser.properties?.profile || dirUser.profile,
+      website: dirUser.properties?.website || dirUser.website,
+      gender: dirUser.properties?.gender || dirUser.gender,
+      birthdate: dirUser.properties?.birthdate || dirUser.birthdate,
+      zoneinfo: dirUser.properties?.zoneinfo || dirUser.zoneinfo,
+      locale: dirUser.properties?.locale || dirUser.locale,
+      phone_number: dirUser.properties?.phone_number || dirUser.phone_number,
+      phone_number_verified: dirUser.properties?.phone_number_verified || dirUser.phone_number_verified || false,
+      address: dirUser.properties?.address || dirUser.address,
+      updated_at: dirUser.properties?.updated_at || dirUser.updated_at,
+      groups: dirUser.groups?.map((g: any) => g.name) || [],
+      roles: dirUser.roles?.map((r: any) => r.name) || [],
+    };
+  }
+
   /*
    * Returns the total number of users.
    */
@@ -55,7 +85,8 @@ export class RemoteDirectory implements IDirectory {
     }
 
     console.log(`[RemoteDirectory] User found: ${id}`);
-    var user = await response.json() as User;
+    const dirUser = await response.json();
+    const user = this.mapUser(dirUser);
     return new Profile(user.id, user);
   }
 
@@ -75,7 +106,13 @@ export class RemoteDirectory implements IDirectory {
     }
 
     console.log(`[RemoteDirectory] User validated: ${email}`);
-    var user = await response.json() as User;
+    const data = await response.json() as any;
+
+    // Directory API returns { user: {...}, valid: true }
+    // Extract the user object from the response
+    const dirUser = data.user || data;
+    const user = this.mapUser(dirUser, email);
+
     return new Profile(user.id, user);
   }
 }
