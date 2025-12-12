@@ -255,6 +255,12 @@ if (Object.keys(envOverrides).length > 0) {
   console.log('[CONFIG] Applied explicit environment variable overrides');
 }
 
+// If jwks.keys is provided but empty, remove jwks so oidc-provider can auto-generate keys
+if (configuration.jwks && Array.isArray(configuration.jwks.keys) && configuration.jwks.keys.length === 0) {
+  console.warn('[CONFIG] jwks.keys is empty; removing jwks to allow automatic key generation');
+  delete (configuration as any).jwks;
+}
+
 console.log('[CONFIG] Final merged configuration:', configuration);
 
 export { configuration };
