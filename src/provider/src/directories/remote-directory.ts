@@ -29,6 +29,7 @@ export class RemoteDirectory implements IDirectory {
    * Maps directory user object to OIDC User interface
    */
   private mapUser(dirUser: any, email?: string): User {
+    console.log(`[RemoteDirectory] Mapping user:`, JSON.stringify(dirUser, null, 2));
     return {
       id: dirUser.id,
       email: dirUser.emails?.[0]?.email || dirUser.email || email || '',

@@ -31,6 +31,7 @@ services:
     container_name: oidc-provider
     restart: unless-stopped
     environment:
+      NODE_ENV: development
       PORT: 8080
       ISSUER: http://provider:8080
       CLIENT_ID: ${PROVIDER_CLIENT_ID:-85125d57-a403-4fe2-84d8-62c6db9b6d73}

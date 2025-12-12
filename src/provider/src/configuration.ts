@@ -194,6 +194,7 @@ if (clientsEnv) {
       client_secret: process.env.CLIENT_SECRET,
       client_name: process.env.CLIENT_NAME,
       redirect_uris: process.env.REDIRECT_URIS ? process.env.REDIRECT_URIS.split(',').map(u => u.trim()) : undefined,
+      post_logout_redirect_uris: process.env.POST_LOGOUT_REDIRECT_URIS ? process.env.POST_LOGOUT_REDIRECT_URIS.split(',').map(u => u.trim()) : undefined,
       grant_types: process.env.GRANT_TYPES ? process.env.GRANT_TYPES.split(',').map(g => g.trim()) as any : undefined,
       response_types: process.env.RESPONSE_TYPES ? process.env.RESPONSE_TYPES.split(',').map(r => r.trim()) as any : undefined,
       token_endpoint_auth_method: process.env.TOKEN_ENDPOINT_AUTH_METHOD as any,

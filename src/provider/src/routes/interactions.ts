@@ -26,8 +26,8 @@ const sanitizeInput = (input: string): string => {
     throw new Error(`Input exceeds maximum length of ${MAX_INPUT_LENGTH} characters`);
   }
 
-  // Use validator.js for proper sanitization
-  return validator.escape(validator.trim(input));
+  // Trim whitespace; keep raw characters for validation (escaping handled in templates)
+  return validator.trim(input);
 };
 
 /**
@@ -40,12 +40,6 @@ const isValidEmail = (email: string): boolean => {
     allow_utf8_local_part: false,
     require_tld: isProduction,
   });
-
-  // In non-production, permit single-label domains (no TLD) via regex
-  if (!baseValid && !isProduction) {
-    const noTldEmail = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+$/i;
-    return noTldEmail.test(email);
-  }
 
   return baseValid;
 };
