@@ -45,6 +45,14 @@ class Role:
         return dict(row) if row else None
     
     @staticmethod
+    def get_by_name(name: str) -> Optional[Dict]:
+        """Get role by name."""
+        db = get_db()
+        cursor = db.execute('SELECT * FROM roles WHERE name = ?', (name,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    @staticmethod
     def list_all() -> List[Dict]:
         """List all roles."""
         db = get_db()

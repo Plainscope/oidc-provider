@@ -124,9 +124,11 @@ def register_user_routes(bp):
                 if field in data:
                     if field == 'password':
                         update_fields[field] = bcrypt.hashpw(data[field].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                        # Do not log the actual password; redact it in the audit log
+                        changes[field] = '[REDACTED]'
                     else:
                         update_fields[field] = data[field]
-                    changes[field] = data[field]
+                        changes[field] = data[field]
             
             if update_fields:
                 User.update(user_id, **update_fields)

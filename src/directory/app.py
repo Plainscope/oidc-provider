@@ -161,10 +161,11 @@ def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
 
+# Initialize application
+init_app()
+
+
 if __name__ == '__main__':
-    # Initialize application
-    init_app()
-    
     port = int(os.environ.get('PORT', 8080))
     logger.info(f'[SERVER] Starting Remote Directory on port {port}')
     app.run(host='0.0.0.0', port=port, debug=os.environ.get('DEBUG', 'false').lower() == 'true')

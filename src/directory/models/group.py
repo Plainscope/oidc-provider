@@ -45,6 +45,20 @@ class Group:
         return dict(row) if row else None
     
     @staticmethod
+    def get_by_name(name: str, domain_id: str = None) -> Optional[Dict]:
+        """Get group by name, optionally within a domain."""
+        db = get_db()
+        if domain_id:
+            cursor = db.execute(
+                'SELECT * FROM groups WHERE name = ? AND domain_id = ?',
+                (name, domain_id)
+            )
+        else:
+            cursor = db.execute('SELECT * FROM groups WHERE name = ?', (name,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    @staticmethod
     def list_by_domain(domain_id: str) -> List[Dict]:
         """List groups in a domain."""
         db = get_db()
