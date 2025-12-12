@@ -367,7 +367,10 @@ test.describe('Directory CRUD Operations with Security', () => {
     // Try to create group with empty name
     await page.click('button:has-text("Add Group")');
     await page.fill('input[placeholder="Name"]', '');
-    await page.fill('input[placeholder="Domain ID"]', domainId);
+    // Select domain from dropdown if present
+    if (await page.locator('select').count() > 0) {
+      await page.selectOption('select', domainId);
+    }
     await page.fill('input[placeholder="Description"]', 'Test group');
     await page.click('button:has-text("Create")', { force: true });
 
