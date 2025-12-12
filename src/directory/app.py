@@ -93,10 +93,6 @@ def verify_auth():
     if request.path in ['/', '/login', '/healthz', '/ui', '/favicon.ico']:
         return
     
-    # Allow all UI routes without backend auth check (client-side auth will handle it)
-    ui_routes = ['/roles', '/groups', '/domains', '/audit', '/users/edit']
-    if any(request.path.startswith(route) for route in ui_routes):
-        return
     
     if any(request.path.startswith(p) for p in ['/static/', '/login', '/favicon']):
         return
