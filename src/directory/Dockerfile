@@ -9,8 +9,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install curl for container health checks
 RUN apk add --no-cache curl
 
+# Create non-root user for security
+RUN addgroup -g 1001 -S python \
+  && adduser -S python -u 1001
+
 # Copy application code
 COPY . .
+
+# Create data directory with correct permissions
+RUN mkdir -p /data \
+  && chown -R python:python /app /data
+
+# Switch to non-root user
+USER python
 
 # Expose port
 EXPOSE 8080

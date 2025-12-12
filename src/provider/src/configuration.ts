@@ -1,4 +1,5 @@
 import { ClientMetadata, Configuration } from 'oidc-provider';
+import crypto from 'node:crypto';
 import path from "node:path";
 import fs from "node:fs";
 
@@ -195,9 +196,9 @@ if (clientsEnv) {
       client_name: process.env.CLIENT_NAME,
       redirect_uris: process.env.REDIRECT_URIS ? process.env.REDIRECT_URIS.split(',').map(u => u.trim()) : undefined,
       post_logout_redirect_uris: process.env.POST_LOGOUT_REDIRECT_URIS ? process.env.POST_LOGOUT_REDIRECT_URIS.split(',').map(u => u.trim()) : undefined,
-      grant_types: process.env.GRANT_TYPES ? process.env.GRANT_TYPES.split(',').map(g => g.trim()) as any : undefined,
-      response_types: process.env.RESPONSE_TYPES ? process.env.RESPONSE_TYPES.split(',').map(r => r.trim()) as any : undefined,
-      token_endpoint_auth_method: process.env.TOKEN_ENDPOINT_AUTH_METHOD as any,
+      grant_types: (process.env.GRANT_TYPES ? process.env.GRANT_TYPES.split(',').map(g => g.trim()) : ['authorization_code', 'refresh_token']) as any,
+      response_types: (process.env.RESPONSE_TYPES ? process.env.RESPONSE_TYPES.split(',').map(r => r.trim()) : ['code']) as any,
+      token_endpoint_auth_method: (process.env.TOKEN_ENDPOINT_AUTH_METHOD || 'client_secret_basic') as any,
     };
     envOverrides.clients = [client];
     console.log('[CONFIG] Override clients from individual client env vars');
@@ -263,5 +264,19 @@ if (configuration.jwks && Array.isArray(configuration.jwks.keys) && configuratio
 }
 
 console.log('[CONFIG] Final merged configuration:', configuration);
+
+// Ensure cookie signing keys are present; generate a dev-safe key if missing/empty
+try {
+  const hasCookies = configuration.cookies && typeof configuration.cookies === 'object';
+  const keys = hasCookies ? (configuration.cookies as any).keys : undefined;
+  const keysMissing = !Array.isArray(keys) || keys.length === 0 || keys.some(k => typeof k !== 'string' || k.length === 0);
+  if (keysMissing) {
+    const fallbackKey = process.env.COOKIES_DEFAULT_KEY || crypto.randomBytes(32).toString('hex');
+    configuration.cookies = { ...(configuration.cookies || {}), keys: [fallbackKey] } as any;
+    console.warn('[CONFIG] cookies.keys was missing/empty; generated a temporary signing key for development.');
+  }
+} catch (e) {
+  console.warn('[CONFIG] Failed to ensure cookies.keys; using in-memory default may affect sessions.', e);
+}
 
 export { configuration };
