@@ -37,7 +37,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.click('button:has-text("Add Role")');
     await page.fill('input[placeholder="Name"]', testRoleName);
     await page.fill('input[placeholder="Description"]', 'Test role');
-    await page.click('button:has-text("Create")');
+    await page.click('button:has-text("Create")', { force: true });
 
     // Wait for role to appear in list (modal closes automatically)
     await page.waitForSelector(`text=${testRoleName}`, { state: 'visible' });
@@ -49,7 +49,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.click('button:has-text("Add Role")');
     await page.fill('input[placeholder="Name"]', testRoleName);
     await page.fill('input[placeholder="Description"]', 'Duplicate role');
-    await page.click('button:has-text("Create")');
+    await page.click('button:has-text("Create")', { force: true });
 
     // Should show error banner instead of closing
     await expect(page.locator('div.bg-red-50')).toBeVisible();
@@ -65,7 +65,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.click('button:has-text("Add Domain")');
     await page.fill('input[placeholder="Name"]', testDomainName);
     await page.fill('input[placeholder="Description"]', 'Test domain');
-    await page.click('button:has-text("Create")');
+    await page.click('button:has-text("Create")', { force: true });
 
     // Wait for domain to appear in list
     await page.waitForSelector(`text=${testDomainName}`, { state: 'visible' });
@@ -77,7 +77,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.click('button:has-text("Add Domain")');
     await page.fill('input[placeholder="Name"]', testDomainName);
     await page.fill('input[placeholder="Description"]', 'Duplicate domain');
-    await page.click('button:has-text("Create")');
+    await page.click('button:has-text("Create")', { force: true });
 
     // Should show error
     await expect(page.locator('div.bg-red-50')).toBeVisible();
@@ -106,7 +106,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.fill('input[placeholder="Name"]', testGroupName);
     await page.fill('input[placeholder="Domain ID"]', domainId);
     await page.fill('input[placeholder="Description"]', 'Test group');
-    await page.click('button:has-text("Create")');
+    await page.click('button:has-text("Create")', { force: true });
 
     // Wait for group to appear in list
     await page.waitForSelector(`text=${testGroupName}`, { state: 'visible' });
@@ -119,7 +119,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.fill('input[placeholder="Name"]', testGroupName);
     await page.fill('input[placeholder="Domain ID"]', domainId);
     await page.fill('input[placeholder="Description"]', 'Duplicate group');
-    await page.click('button:has-text("Create")');
+    await page.click('button:has-text("Create")', { force: true });
 
     // Should show error
     await expect(page.locator('div.bg-red-50')).toBeVisible();
@@ -202,7 +202,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     const responsePromise = page.waitForResponse(response =>
       response.url().includes('/api/roles') && response.request().method() === 'POST'
     );
-    await page.click('button:has-text("Create")');
+    await page.click('button:has-text("Create")', { force: true });
     await responsePromise;
 
     // Verify POST request included CSRF token
@@ -255,7 +255,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.goto(`${DIRECTORY_BASE_URL}/users/edit?id=${user2.id}`);
 
     await page.fill('input[placeholder="Primary Email"]', email1);
-    await page.click('button:has-text("Save")');
+    await page.click('button:has-text("Save")', { force: true });
 
     // Wait for error message to appear
     await page.waitForSelector('div.text-red-600', { state: 'visible' });

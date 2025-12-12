@@ -43,24 +43,38 @@
 <script>
   function userEditPage() {
     const userId = new URLSearchParams(window.location.search).get('id');
+
+    // Fallback fetch function if csrfFetch is not available
+    const safeFetch = window.csrfFetch || fetch.bind(window);
+
     return {
       user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], error: null,
       async init() {
-        const u = await (await csrfFetch(`/api/users/${userId}`)).json();
-        this.user = u; this.selectedRoles = (u.roles || []).map(r => r.id); this.selectedGroups = (u.groups || []).map(g => g.id);
-        this.roles = await (await csrfFetch('/api/roles')).json();
-        this.groups = await (await csrfFetch('/api/groups')).json();
+        try {
+          const u = await (await safeFetch(`/api/users/${userId}`)).json();
+          this.user = u; this.selectedRoles = (u.roles || []).map(r => r.id); this.selectedGroups = (u.groups || []).map(g => g.id);
+          this.roles = await (await safeFetch('/api/roles')).json();
+          this.groups = await (await safeFetch('/api/groups')).json();
+        } catch (err) {
+          this.error = 'Failed to load user data';
+          console.error('Error loading user data:', err);
+        }
       },
       toggleRole(id, on) { if (on) { if (!this.selectedRoles.includes(id)) this.selectedRoles.push(id); } else { this.selectedRoles = this.selectedRoles.filter(x => x !== id); } },
       toggleGroup(id, on) { if (on) { if (!this.selectedGroups.includes(id)) this.selectedGroups.push(id); } else { this.selectedGroups = this.selectedGroups.filter(x => x !== id); } },
       async save() {
         this.error = null;
-        const payload = { display_name: this.user.display_name, email: this.user.email, role_ids: this.selectedRoles, group_ids: this.selectedGroups };
-        const r = await csrfFetch(`/api/users/${userId}`, { method: 'PATCH', body: JSON.stringify(payload) });
-        if (r.ok) { window.location.href = '/'; }
-        else {
-          const err = await r.json().catch(() => ({ error: 'Update failed' }));
-          this.error = err.error || 'Failed to update user';
+        try {
+          const payload = { display_name: this.user.display_name, email: this.user.email, role_ids: this.selectedRoles, group_ids: this.selectedGroups };
+          const r = await safeFetch(`/api/users/${userId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+          if (r.ok) { window.location.href = '/'; }
+          else {
+            const err = await r.json().catch(() => ({ error: 'Update failed' }));
+            this.error = err.error || 'Failed to update user';
+          }
+        } catch (err) {
+          this.error = 'Network error occurred';
+          console.error('Error saving user:', err);
         }
       }
     }

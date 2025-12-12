@@ -15,7 +15,6 @@ logging.basicConfig(
 logger = logging.getLogger('remote-directory')
 
 # Import database
-from database import close_db
 from db_init import init_database
 
 # Import blueprints
@@ -95,10 +94,9 @@ def verify_auth():
         abort(401)
 
 
-@app.teardown_appcontext
-def close_connection(exception):
-    """Close database connection on app context teardown."""
-    close_db(exception)
+# Note: Database connection is persistent and shared across requests.
+# SQLite with check_same_thread=False and serialized mode handles concurrent access.
+# For production with high write concurrency, consider using WAL mode or a client-server DB.
 
 # ============================================================================
 # Register Blueprints with Routes
