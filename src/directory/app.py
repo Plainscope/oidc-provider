@@ -94,9 +94,19 @@ def verify_auth():
         abort(401)
 
 
-# Note: Database connection is persistent and shared across requests.
-# SQLite with check_same_thread=False and serialized mode handles concurrent access.
-# For production with high write concurrency, consider using WAL mode or a client-server DB.
+# ============================================================================
+# Database Connection Management
+# ============================================================================
+# Each request gets its own database connection from Flask's g object.
+# This ensures thread safety and prevents race conditions.
+
+from database import close_db
+
+@app.teardown_appcontext
+def teardown_db(exception):
+    """Close per-request database connection."""
+    close_db(exception)
+
 
 # ============================================================================
 # Register Blueprints with Routes
