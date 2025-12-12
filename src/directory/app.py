@@ -239,5 +239,5 @@ init_app()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
-    logger.info(f'[SERVER] Starting Remote Directory on port {port}')
+    logger.info(f'[SERVER] Starting Simple Directory on port {port}')
     app.run(host='0.0.0.0', port=port, debug=os.environ.get('DEBUG', 'false').lower() == 'true')

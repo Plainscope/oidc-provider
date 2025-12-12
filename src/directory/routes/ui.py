@@ -20,19 +20,19 @@ def register_ui_routes(bp):
     def ui_login():
         """GET /login - Render the login page."""
         logger.info('[API] GET /login')
-        return render_template('login.html', title='Login - Remote Directory')
+        return render_template('login.html', title='Login - Simple Directory')
 
     @bp.route('/', methods=['GET'])
     def ui_home():
         """GET / - Render the user management UI."""
         logger.info('[API] GET /')
-        return render_template('index.html', title='Remote Directory', current_tab='users', auth_token=get_auth_token())
+        return render_template('index.html', title='Simple Directory', current_tab='users', auth_token=get_auth_token())
 
     @bp.route('/ui', methods=['GET'])
     def ui_dashboard():
         """GET /ui - Render the user management dashboard."""
         logger.info('[API] GET /ui')
-        return render_template('index.html', title='Remote Directory', current_tab='users', auth_token=get_auth_token())
+        return render_template('index.html', title='Simple Directory', current_tab='users', auth_token=get_auth_token())
 
     @bp.route('/roles', methods=['GET'])
     def ui_roles():
