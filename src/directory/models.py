@@ -285,6 +285,17 @@ class UserEmail:
         return [dict(row) for row in cursor.fetchall()]
     
     @staticmethod
+    def exists(email: str) -> bool:
+        """Check if an email exists (primary or secondary)."""
+        db = get_db()
+        cursor = db.execute(
+            'SELECT COUNT(*) FROM user_emails WHERE email = ?',
+            (email,)
+        )
+        count = cursor.fetchone()[0]
+        return count > 0
+    
+    @staticmethod
     def verify(email_id: str):
         """Mark email as verified."""
         db = get_db()
