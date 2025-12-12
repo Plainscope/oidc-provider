@@ -2,18 +2,9 @@
 import logging
 from flask import request, jsonify, abort
 from models import Role, AuditLog
+from utils.audit import get_audit_metadata
 
 logger = logging.getLogger('remote-directory')
-
-
-def get_audit_metadata():
-    """Get audit metadata from request."""
-    return {
-        'ip_address': request.remote_addr,
-        'user_agent': request.headers.get('User-Agent', '')
-    }
-
-
 def register_role_routes(bp):
     """Register role routes to blueprint."""
     
