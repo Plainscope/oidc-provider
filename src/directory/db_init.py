@@ -10,6 +10,7 @@ from models import (
     Domain, User, UserEmail, UserProperty, Role, UserRole
 )
 import logging
+import bcrypt
 
 logger = logging.getLogger('remote-directory')
 
@@ -92,13 +93,16 @@ def init_seed_data(users_file: str = None):
             
             # Create user
             password = user_data.get('password', 'ChangeMe123!')
+            # Hash password using bcrypt, consistent with API user creation
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
             first_name = user_data.get('given_name', '')
             last_name = user_data.get('family_name', '')
             display_name = user_data.get('name', f'{first_name} {last_name}'.strip())
             
             user_id = User.create(
                 username=username,
-                password=password,
+                password=hashed_password,
                 domain_id=domain_id,
                 first_name=first_name,
                 last_name=last_name,
