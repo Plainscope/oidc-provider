@@ -5,13 +5,13 @@
 import { test, expect } from '@playwright/test';
 
 const DIRECTORY_BASE_URL = process.env.DIRECTORY_URL || 'http://localhost:7080';
-const API_KEY = process.env.API_KEY || 'test-api-key';
+const BEARER_TOKEN = process.env.DIRECTORY_BEARER_TOKEN || 'sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth';
 
 test.describe('Directory CRUD Operations with Security', () => {
   test.beforeEach(async ({ page }) => {
-    // Set API key header for authorization
+    // Set Bearer token header for authorization
     await page.setExtraHTTPHeaders({
-      'X-API-Key': API_KEY
+      'Authorization': `Bearer ${BEARER_TOKEN}`
     });
   });
 
@@ -88,7 +88,7 @@ test.describe('Directory CRUD Operations with Security', () => {
 
     // First get a domain ID
     const domainsResponse = await page.request.get(`${DIRECTORY_BASE_URL}/api/domains`, {
-      headers: { 'X-API-Key': API_KEY }
+      headers: { 'Authorization': `Bearer ${BEARER_TOKEN}` }
     });
     const domains = await domainsResponse.json();
     const domainId = domains[0]?.id;
@@ -127,7 +127,7 @@ test.describe('Directory CRUD Operations with Security', () => {
   test('should enforce user email uniqueness', async ({ page }) => {
     // Get domain for test user
     const domainsResponse = await page.request.get(`${DIRECTORY_BASE_URL}/api/domains`, {
-      headers: { 'X-API-Key': API_KEY }
+      headers: { 'Authorization': `Bearer ${BEARER_TOKEN}` }
     });
     const domains = await domainsResponse.json();
     const domainId = domains[0]?.id;
@@ -142,7 +142,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     // Create first user via API
     const user1Response = await page.request.post(`${DIRECTORY_BASE_URL}/api/users`, {
       headers: {
-        'X-API-Key': API_KEY,
+        'Authorization': `Bearer ${BEARER_TOKEN}`,
         'Content-Type': 'application/json'
       },
       data: {
@@ -158,7 +158,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     // Try to create second user with same email
     const user2Response = await page.request.post(`${DIRECTORY_BASE_URL}/api/users`, {
       headers: {
-        'X-API-Key': API_KEY,
+        'Authorization': `Bearer ${BEARER_TOKEN}`,
         'Content-Type': 'application/json'
       },
       data: {
@@ -208,7 +208,7 @@ test.describe('Directory CRUD Operations with Security', () => {
   test('should show inline error on user edit for duplicate email', async ({ page }) => {
     // Create two users
     const domainsResponse = await page.request.get(`${DIRECTORY_BASE_URL}/api/domains`, {
-      headers: { 'X-API-Key': API_KEY }
+      headers: { 'Authorization': `Bearer ${BEARER_TOKEN}` }
     });
     const domains = await domainsResponse.json();
     const domainId = domains[0]?.id;
@@ -222,7 +222,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     const email2 = `user2-${Date.now()}@example.com`;
 
     const user1Res = await page.request.post(`${DIRECTORY_BASE_URL}/api/users`, {
-      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${BEARER_TOKEN}`, 'Content-Type': 'application/json' },
       data: {
         username: `user1-${Date.now()}`,
         password: 'Test123!',
@@ -234,7 +234,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     await user1Res.json();
 
     const user2Res = await page.request.post(`${DIRECTORY_BASE_URL}/api/users`, {
-      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${BEARER_TOKEN}`, 'Content-Type': 'application/json' },
       data: {
         username: `user2-${Date.now()}`,
         password: 'Test123!',

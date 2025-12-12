@@ -3,7 +3,7 @@
 {% block content %}
 <div x-data="userEditPage()" x-init="init()" class="space-y-4">
   <h2 class="text-xl font-semibold text-gray-900">Edit User</h2>
-  <div class="bg-white rounded-lg shadow p-6 space-y-4" x-data="{error:null}">
+  <div class="bg-white rounded-lg shadow p-6 space-y-4">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <input x-model="user.display_name" placeholder="Display Name" class="border rounded px-3 py-2" />
       <input x-model="user.email" placeholder="Primary Email" class="border rounded px-3 py-2" />
@@ -32,7 +32,7 @@
         </template>
       </div>
     </div>
-    <div x-show="error" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm" x-text="error">
+    <div x-show="error" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm" x-text="error">
     </div>
     <div class="flex justify-end gap-2">
       <a href="/" class="px-4 py-2 border rounded">Cancel</a>
@@ -44,7 +44,7 @@
   function userEditPage() {
     const userId = new URLSearchParams(window.location.search).get('id');
     return {
-      user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [],
+      user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], error: null,
       async init() {
         const u = await (await fetch(`/api/users/${userId}`)).json();
         this.user = u; this.selectedRoles = (u.roles || []).map(r => r.id); this.selectedGroups = (u.groups || []).map(g => g.id);
