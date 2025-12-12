@@ -18,16 +18,35 @@ class PropertyKey:
     
     # Predefined standard property keys
     STANDARD_KEYS = [
-        {'key': 'department', 'description': 'Department or team', 'category': 'organization'},
-        {'key': 'location', 'description': 'Office location or timezone', 'category': 'organization'},
-        {'key': 'title', 'description': 'Job title', 'category': 'organization'},
-        {'key': 'manager', 'description': 'Manager or supervisor', 'category': 'organization'},
-        {'key': 'phone', 'description': 'Phone number', 'category': 'contact'},
-        {'key': 'mobile', 'description': 'Mobile phone number', 'category': 'contact'},
-        {'key': 'employee_id', 'description': 'Employee ID', 'category': 'identity'},
-        {'key': 'cost_center', 'description': 'Cost center code', 'category': 'organization'},
-        {'key': 'start_date', 'description': 'Start date', 'category': 'employment'},
-        {'key': 'end_date', 'description': 'End date', 'category': 'employment'},
+        # Identity
+        {'key': 'first_name', 'description': 'First name', 'category': 'identity'},
+        {'key': 'last_name', 'description': 'Last name', 'category': 'identity'},
+        {'key': 'user_type', 'description': 'User type', 'category': 'identity'},
+        {'key': 'authorization_info', 'description': 'Authorization info', 'category': 'identity'},
+        # Job Information
+        {'key': 'job_title', 'description': 'Job title', 'category': 'job'},
+        {'key': 'company_name', 'description': 'Company name', 'category': 'job'},
+        {'key': 'department', 'description': 'Department', 'category': 'job'},
+        {'key': 'employee_id', 'description': 'Employee ID', 'category': 'job'},
+        {'key': 'employee_type', 'description': 'Employee type', 'category': 'job'},
+        {'key': 'employee_hire_date', 'description': 'Employee hire date', 'category': 'job'},
+        {'key': 'office_location', 'description': 'Office location', 'category': 'job'},
+        {'key': 'manager', 'description': 'Manager', 'category': 'job'},
+        # Contact Information
+        {'key': 'street_address', 'description': 'Street address', 'category': 'contact'},
+        {'key': 'city', 'description': 'City', 'category': 'contact'},
+        {'key': 'state_or_province', 'description': 'State or province', 'category': 'contact'},
+        {'key': 'zip_or_postal_code', 'description': 'ZIP or postal code', 'category': 'contact'},
+        {'key': 'country_or_region', 'description': 'Country or region', 'category': 'contact'},
+        {'key': 'business_phone', 'description': 'Business phone', 'category': 'contact'},
+        {'key': 'mobile_phone', 'description': 'Mobile phone', 'category': 'contact'},
+        {'key': 'email', 'description': 'Email', 'category': 'contact'},
+        {'key': 'fax_number', 'description': 'Fax number', 'category': 'contact'},
+        # Parental controls
+        {'key': 'age_group', 'description': 'Age group', 'category': 'parental'},
+        {'key': 'consent_provided_for_minor', 'description': 'Consent provided for minor', 'category': 'parental'},
+        # Settings
+        {'key': 'usage_location', 'description': 'Usage location', 'category': 'settings'},
     ]
     
     @staticmethod

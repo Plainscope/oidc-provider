@@ -33,7 +33,14 @@ def init_app():
     logger.info('[INIT] Initializing application')
     
     # Initialize database schema and seed data
-    init_database()
+    try:
+        # Ensure we have an application context when touching the DB
+        with app.app_context():
+            init_database()
+    except Exception as e:
+        logger.error(f'[INIT] Database initialization failed: {e}')
+        # Continue startup; runtime requests will create connections per-request
+        # This prevents container from crashing due to init-time context issues
     
     logger.info('[INIT] Application initialized successfully')
 

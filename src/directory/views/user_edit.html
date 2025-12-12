@@ -9,6 +9,18 @@
       <input x-model="user.email" placeholder="Primary Email" class="border rounded px-3 py-2" />
     </div>
     <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">Standard Properties</label>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <template x-for="stdKey in standardPropertyKeys" :key="stdKey.key">
+          <div>
+            <label class="block text-xs text-gray-600 mb-1" x-text="stdKey.description || stdKey.key"></label>
+            <input x-model="propertyValues[stdKey.key]" :placeholder="stdKey.key"
+              class="w-full border rounded px-3 py-2 text-sm" />
+          </div>
+        </template>
+      </div>
+    </div>
+    <div>
       <label class="block text-sm font-medium text-gray-700 mb-2">Roles</label>
       <div class="flex flex-wrap gap-2">
         <template x-for="role in roles" :key="role.id">
@@ -76,7 +88,7 @@
     const safeFetch = window.csrfFetch || fetch.bind(window);
 
     return {
-      user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], properties: [], standardPropertyKeys: [], error: null,
+      user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], properties: [], propertyValues: {}, standardPropertyKeys: [], error: null,
       async init() {
         await this.loadPropertyKeys();
         try {
@@ -91,17 +103,28 @@
           this.selectedRoles = (u.roles || []).map(r => r.id);
           this.selectedGroups = (u.groups || []).map(g => g.id);
 
-          // Load properties
-          if (u.properties && Array.isArray(u.properties)) {
-            this.properties = u.properties.map(p => {
-              // Check if it's a standard key
-              const isStandard = this.standardPropertyKeys.some(sk => sk.key === p.key);
-              return {
-                key: isStandard ? p.key : '__custom__',
-                customKey: isStandard ? '' : p.key,
-                value: p.value
-              };
-            });
+          // Normalize properties to propertyValues map and custom list
+          const props = u.properties;
+          const standardKeys = new Set(this.standardPropertyKeys.map(sk => sk.key));
+          this.propertyValues = {};
+          this.properties = [];
+
+          if (Array.isArray(props)) {
+            for (const p of props) {
+              if (standardKeys.has(p.key)) {
+                this.propertyValues[p.key] = p.value;
+              } else {
+                this.properties.push({ key: '__custom__', customKey: p.key, value: p.value });
+              }
+            }
+          } else if (props && typeof props === 'object') {
+            for (const [key, value] of Object.entries(props)) {
+              if (standardKeys.has(key)) {
+                this.propertyValues[key] = value;
+              } else {
+                this.properties.push({ key: '__custom__', customKey: key, value });
+              }
+            }
           }
 
           const rolesRes = await safeFetch('/api/roles');
@@ -149,14 +172,22 @@
             email: this.user.email,
             role_ids: this.selectedRoles,
             group_ids: this.selectedGroups,
-            properties: this.properties.filter(p => {
-              const key = p.key === '__custom__' ? p.customKey : p.key;
-              return key && key.trim() !== '';
-            }).reduce((acc, p) => {
-              const key = p.key === '__custom__' ? p.customKey.trim() : p.key.trim();
-              acc[key] = p.value;
+            properties: (() => {
+              const acc = {};
+              // Include standard properties
+              for (const key of Object.keys(this.propertyValues)) {
+                const val = this.propertyValues[key];
+                if (val !== undefined && val !== null && String(val).trim() !== '') {
+                  acc[key] = val;
+                }
+              }
+              // Include custom properties
+              for (const p of this.properties) {
+                const key = p.key === '__custom__' ? (p.customKey || '').trim() : (p.key || '').trim();
+                if (key) acc[key] = p.value;
+              }
               return acc;
-            }, {})
+            })()
           };
           const r = await safeFetch(`/api/users/${userId}`, { method: 'PATCH', body: JSON.stringify(payload) });
           if (r.ok) { window.location.href = '/'; }
