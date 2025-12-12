@@ -51,7 +51,6 @@ def register_user_routes(bp):
         if not data or not all(k in data for k in ['username', 'password', 'domain_id']):
             abort(400)
         
-        db = get_db()
         user_id = None
         
         try:
@@ -116,12 +115,13 @@ def register_user_routes(bp):
             return jsonify(exclude_password(user)), 201
         except Exception as e:
             logger.error(f'[API] Error creating user: {str(e)}')
-            error_msg = str(e).lower()
+            error_msg = str(e)
             
             # If there was a database constraint violation after user creation,
             # clean up the partially created user to maintain database consistency.
             # User.delete() cascades to user_emails via ON DELETE CASCADE foreign key.
-            if 'unique constraint' in error_msg and user_id:
+            # Note: Race conditions between email checks and additions are handled here.
+            if 'unique constraint' in error_msg.lower() and user_id:
                 try:
                     User.delete(user_id)
                     logger.info(f'[API] Cleaned up partially created user: {user_id}')
@@ -129,9 +129,9 @@ def register_user_routes(bp):
                     logger.error(f'[API] Failed to clean up user {user_id}: {str(cleanup_error)}')
                 
                 # Determine which field caused the constraint violation
-                if 'email' in error_msg:
+                if 'email' in error_msg.lower():
                     return jsonify({'error': 'Email already in use'}), 409
-                elif 'username' in error_msg:
+                elif 'username' in error_msg.lower():
                     return jsonify({'error': 'Username already exists'}), 409
                 else:
                     return jsonify({'error': 'Duplicate value detected'}), 409
