@@ -10,7 +10,6 @@ import sqlite3
 import os
 import argparse
 import tempfile
-from datetime import datetime
 
 
 def test_constraints(db_path: str = None):
