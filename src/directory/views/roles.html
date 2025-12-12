@@ -54,9 +54,9 @@
       error: null,
       form: { name: '', description: '' },
       async init() { await this.load(); },
-      async load() { 
+      async load() {
         try {
-          const r = await csrfFetch('/api/roles'); 
+          const r = await csrfFetch('/api/roles');
           if (r.ok) {
             this.roles = await r.json();
           }
@@ -68,10 +68,10 @@
         this.error = null;
         try {
           const r = await csrfFetch('/api/roles', { method: 'POST', body: JSON.stringify(this.form) });
-          if (r.ok) { 
-            this.showCreate = false; 
-            this.form = { name: '', description: '' }; 
-            await this.load(); 
+          if (r.ok) {
+            this.showCreate = false;
+            this.form = { name: '', description: '' };
+            await this.load();
           } else {
             const contentType = r.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
@@ -94,15 +94,15 @@
           console.error('Error creating role:', err);
         }
       },
-      async remove(id) { 
-        if (confirm('Delete role?')) { 
-          const r = await csrfFetch(`/api/roles/${id}`, { method: 'DELETE' }); 
-          if (r.ok) { 
-            await this.load(); 
-          } else { 
-            alert('Failed to delete role'); 
-          } 
-        } 
+      async remove(id) {
+        if (confirm('Delete role?')) {
+          const r = await csrfFetch(`/api/roles/${id}`, { method: 'DELETE' });
+          if (r.ok) {
+            await this.load();
+          } else {
+            alert('Failed to delete role');
+          }
+        }
       }
     }
   }
