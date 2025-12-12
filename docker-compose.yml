@@ -49,9 +49,6 @@ services:
       - "${PROVIDER_PORT:-9080}:8080"
     volumes:
       - provider-data:/data:rw
-    user: root
-    entrypoint:
-      ["sh", "-c", "chown -R nodejs:nodejs /data && exec node dist/index.js"]
     networks:
       - oidc-net
     depends_on:
