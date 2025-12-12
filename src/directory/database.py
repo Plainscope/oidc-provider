@@ -12,7 +12,13 @@ logger = logging.getLogger('remote-directory')
 
 
 class Database:
-    """SQLite database wrapper for user management."""
+    """SQLite database wrapper for user management.
+    
+    Note: Uses check_same_thread=False for SQLite connection to allow usage
+    across Flask request threads. This is safe for our read-heavy workload
+    with SQLite's default serialized threading mode. For production deployments
+    with high write concurrency, consider using WAL mode or a client-server database.
+    """
     
     def __init__(self, db_path: str = None):
         """Initialize database connection."""
@@ -213,9 +219,21 @@ def get_db() -> Database:
     return _db_instance
 
 
-def close_db():
+def close_db(e=None):
     """Close global database instance."""
     global _db_instance
     if _db_instance:
         _db_instance.close()
         _db_instance = None
+
+
+def init_schema():
+    """Initialize database schema (wrapper for compatibility).
+    
+    The schema is automatically initialized when the Database instance is created.
+    This function ensures the database is ready and can be called explicitly.
+    """
+    db = get_db()
+    # Schema is already initialized in Database.__init__
+    return db
+
