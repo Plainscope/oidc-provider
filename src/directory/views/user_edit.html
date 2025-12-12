@@ -32,6 +32,24 @@
         </template>
       </div>
     </div>
+    <div>
+      <div class="flex justify-between items-center mb-2">
+        <label class="block text-sm font-medium text-gray-700">Custom Properties</label>
+        <button @click="addProperty()" type="button" class="text-sm text-blue-600 hover:text-blue-700">+ Add Property</button>
+      </div>
+      <div class="space-y-2">
+        <template x-for="(prop, index) in properties" :key="index">
+          <div class="flex gap-2">
+            <input x-model="prop.key" placeholder="Key" class="flex-1 border rounded px-3 py-2 text-sm" />
+            <input x-model="prop.value" placeholder="Value" class="flex-1 border rounded px-3 py-2 text-sm" />
+            <button @click="removeProperty(index)" type="button" class="text-red-600 hover:text-red-700 px-2">×</button>
+          </div>
+        </template>
+        <template x-if="properties.length === 0">
+          <p class="text-sm text-gray-500 italic">No custom properties defined</p>
+        </template>
+      </div>
+    </div>
     <div x-show="error" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm" x-text="error">
     </div>
     <div class="flex justify-end gap-2">
@@ -48,7 +66,7 @@
     const safeFetch = window.csrfFetch || fetch.bind(window);
 
     return {
-      user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], error: null,
+      user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], properties: [], error: null,
       async init() {
         try {
           const uRes = await safeFetch(`/api/users/${userId}`);
@@ -61,6 +79,11 @@
           this.user = u;
           this.selectedRoles = (u.roles || []).map(r => r.id);
           this.selectedGroups = (u.groups || []).map(g => g.id);
+          
+          // Load properties
+          if (u.properties && Array.isArray(u.properties)) {
+            this.properties = u.properties.map(p => ({ key: p.key, value: p.value }));
+          }
 
           const rolesRes = await safeFetch('/api/roles');
           if (rolesRes.ok) {
@@ -76,12 +99,27 @@
           console.error('Error loading user data:', err);
         }
       },
+      addProperty() {
+        this.properties.push({ key: '', value: '' });
+      },
+      removeProperty(index) {
+        this.properties.splice(index, 1);
+      },
       toggleRole(id, on) { if (on) { if (!this.selectedRoles.includes(id)) this.selectedRoles.push(id); } else { this.selectedRoles = this.selectedRoles.filter(x => x !== id); } },
       toggleGroup(id, on) { if (on) { if (!this.selectedGroups.includes(id)) this.selectedGroups.push(id); } else { this.selectedGroups = this.selectedGroups.filter(x => x !== id); } },
       async save() {
         this.error = null;
         try {
-          const payload = { display_name: this.user.display_name, email: this.user.email, role_ids: this.selectedRoles, group_ids: this.selectedGroups };
+          const payload = { 
+            display_name: this.user.display_name, 
+            email: this.user.email, 
+            role_ids: this.selectedRoles, 
+            group_ids: this.selectedGroups,
+            properties: this.properties.filter(p => p.key.trim() !== '').reduce((acc, p) => {
+              acc[p.key.trim()] = p.value;
+              return acc;
+            }, {})
+          };
           const r = await safeFetch(`/api/users/${userId}`, { method: 'PATCH', body: JSON.stringify(payload) });
           if (r.ok) { window.location.href = '/'; }
           else {

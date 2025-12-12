@@ -105,6 +105,48 @@ def register_group_routes(bp):
             logger.error(f'[API] Error getting group users: {str(e)}')
             abort(500)
     
+    @bp.route('/<group_id>/users', methods=['PUT'])
+    def set_group_users(group_id):
+        """PUT /api/groups/<group_id>/users - Set all users in a group."""
+        logger.info(f'[API] PUT /api/groups/{group_id}/users')
+        
+        group = Group.get(group_id)
+        if not group:
+            abort(404)
+        
+        data = request.get_json()
+        if not data or 'user_ids' not in data:
+            return jsonify({'error': 'user_ids is required'}), 400
+        
+        user_ids = data['user_ids']
+        if not isinstance(user_ids, list):
+            return jsonify({'error': 'user_ids must be an array'}), 400
+        
+        try:
+            # Get current users in group
+            current_users = UserGroup.get_by_group(group_id)
+            current_user_ids = [u['id'] for u in current_users]
+            
+            # Remove users not in new list
+            for user_id in current_user_ids:
+                if user_id not in user_ids:
+                    UserGroup.remove(user_id, group_id)
+                    logger.info(f'[GROUP] Removed user {user_id} from group {group_id}')
+            
+            # Add users not in current list
+            for user_id in user_ids:
+                if user_id not in current_user_ids:
+                    UserGroup.add(user_id, group_id)
+                    logger.info(f'[GROUP] Added user {user_id} to group {group_id}')
+            
+            AuditLog.log('group', group_id, 'users_updated', 
+                        changes={'user_ids': user_ids}, **get_audit_metadata())
+            
+            return jsonify({'message': 'Group users updated'}), 200
+        except Exception as e:
+            logger.error(f'[API] Error setting group users: {str(e)}')
+            abort(500)
+    
     @bp.route('/<group_id>', methods=['DELETE'])
     def delete_group(group_id):
         """DELETE /api/groups/<group_id> - Delete a group."""

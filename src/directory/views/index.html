@@ -66,6 +66,21 @@
           <input type="checkbox" x-model="newUser.is_active" />
           <span>Active</span>
         </label>
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <label class="block text-sm font-medium text-gray-700">Custom Properties</label>
+            <button @click="addProperty()" type="button" class="text-sm text-blue-600 hover:text-blue-700">+ Add Property</button>
+          </div>
+          <div class="space-y-2 max-h-40 overflow-y-auto">
+            <template x-for="(prop, index) in newUserProperties" :key="index">
+              <div class="flex gap-2">
+                <input x-model="prop.key" placeholder="Key" class="flex-1 border rounded px-2 py-1 text-sm" />
+                <input x-model="prop.value" placeholder="Value" class="flex-1 border rounded px-2 py-1 text-sm" />
+                <button @click="removeProperty(index)" type="button" class="text-red-600 hover:text-red-700 px-2">×</button>
+              </div>
+            </template>
+          </div>
+        </div>
       </div>
       <div class="mt-4 flex justify-end gap-2">
         <button @click="showCreateUserForm=false; createError=null" class="px-4 py-2 border rounded">Cancel</button>
@@ -82,6 +97,7 @@
       showCreateUserForm: false,
       createError: null,
       newUser: { username: '', display_name: '', email: '', password: '', domain_id: '', is_active: true },
+      newUserProperties: [],
       async init() {
         await this.loadDomains();
         await this.loadUsers();
@@ -108,6 +124,12 @@
           this.users = [];
         }
       },
+      addProperty() {
+        this.newUserProperties.push({ key: '', value: '' });
+      },
+      removeProperty(index) {
+        this.newUserProperties.splice(index, 1);
+      },
       async createUser() {
         this.createError = null;
 
@@ -126,14 +148,23 @@
         }
 
         try {
+          const payload = { 
+            ...this.newUser,
+            properties: this.newUserProperties.filter(p => p.key.trim() !== '').reduce((acc, p) => {
+              acc[p.key.trim()] = p.value;
+              return acc;
+            }, {})
+          };
+          
           const r = await csrfFetch('/api/users', {
             method: 'POST',
-            body: JSON.stringify(this.newUser)
+            body: JSON.stringify(payload)
           });
 
           if (r.ok) {
             this.showCreateUserForm = false;
             this.newUser = { username: '', display_name: '', email: '', password: '', domain_id: '', is_active: true };
+            this.newUserProperties = [];
             // Reset to default domain if available
             const defaultDomain = this.domains.find(d => d.is_default);
             if (defaultDomain) {

@@ -22,6 +22,7 @@
             <td class="px-6 py-4 text-sm text-gray-900" x-text="role.name"></td>
             <td class="px-6 py-4 text-sm text-gray-600" x-text="role.description || '-'"></td>
             <td class="px-6 py-4 text-sm space-x-2">
+              <button @click="manageUsers(role)" class="text-blue-600 hover:text-blue-700">Manage Users</button>
               <button @click="remove(role.id)" class="text-red-600 hover:text-red-700">Delete</button>
             </td>
           </tr>
@@ -45,15 +46,63 @@
       </div>
     </div>
   </div>
+
+  <!-- Manage Users Modal -->
+  <div x-show="showManageUsers" class="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] flex flex-col">
+      <h3 class="text-lg font-semibold mb-4">Manage Users - <span x-text="selectedRole?.name"></span></h3>
+      <div x-show="manageError" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm" x-text="manageError"></div>
+      
+      <div class="flex-1 overflow-y-auto mb-4">
+        <div class="space-y-2">
+          <template x-for="user in allUsers" :key="user.id">
+            <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+              <input type="checkbox" 
+                     :checked="selectedUserIds.includes(user.id)"
+                     @change="toggleUser(user.id, $event.target.checked)"
+                     class="rounded" />
+              <div class="flex-1">
+                <div class="text-sm font-medium" x-text="user.username"></div>
+                <div class="text-xs text-gray-500" x-text="user.display_name || user.emails?.[0]?.email || ''"></div>
+              </div>
+            </label>
+          </template>
+        </div>
+      </div>
+      
+      <div class="flex justify-end gap-2 border-t pt-4">
+        <button @click="showManageUsers=false; manageError=null" class="px-4 py-2 border rounded">Cancel</button>
+        <button @click="saveRoleUsers()" class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+      </div>
+    </div>
+  </div>
 </div>
 <script>
   function rolesPage() {
     return {
       roles: [],
+      allUsers: [],
       showCreate: false,
+      showManageUsers: false,
       error: null,
+      manageError: null,
+      selectedRole: null,
+      selectedUserIds: [],
       form: { name: '', description: '' },
-      async init() { await this.load(); },
+      async init() { 
+        await this.load(); 
+        await this.loadUsers();
+      },
+      async loadUsers() {
+        try {
+          const r = await csrfFetch('/api/users');
+          if (r.ok) {
+            this.allUsers = await r.json();
+          }
+        } catch (err) {
+          console.error('Error loading users:', err);
+        }
+      },
       async load() {
         try {
           const r = await csrfFetch('/api/roles');
@@ -115,6 +164,66 @@
           await this.load();
         } else {
           alert('Failed to delete role');
+        }
+      },
+      async manageUsers(role) {
+        this.selectedRole = role;
+        this.manageError = null;
+        
+        // Load role members
+        try {
+          const r = await csrfFetch(`/api/roles/${role.id}/users`);
+          if (r.ok) {
+            const members = await r.json();
+            this.selectedUserIds = members.map(u => u.id);
+          } else {
+            this.selectedUserIds = [];
+          }
+        } catch (err) {
+          console.error('Error loading role members:', err);
+          this.selectedUserIds = [];
+        }
+        
+        this.showManageUsers = true;
+      },
+      toggleUser(userId, checked) {
+        if (checked) {
+          if (!this.selectedUserIds.includes(userId)) {
+            this.selectedUserIds.push(userId);
+          }
+        } else {
+          this.selectedUserIds = this.selectedUserIds.filter(id => id !== userId);
+        }
+      },
+      async saveRoleUsers() {
+        this.manageError = null;
+        
+        try {
+          const r = await csrfFetch(`/api/roles/${this.selectedRole.id}/users`, {
+            method: 'PUT',
+            body: JSON.stringify({ user_ids: this.selectedUserIds })
+          });
+          
+          if (r.ok) {
+            this.showManageUsers = false;
+            this.selectedRole = null;
+            this.selectedUserIds = [];
+          } else {
+            const contentType = r.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              try {
+                const err = await r.json();
+                this.manageError = err.error || `Error: ${r.status}`;
+              } catch (parseErr) {
+                this.manageError = `Server error (${r.status})`;
+              }
+            } else {
+              this.manageError = `Request failed (${r.status})`;
+            }
+          }
+        } catch (err) {
+          this.manageError = 'Network error occurred';
+          console.error('Error saving role users:', err);
         }
       }
     }

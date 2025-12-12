@@ -1,10 +1,17 @@
 """Role management routes."""
 import logging
 from flask import request, jsonify, abort
-from models import Role, AuditLog
+from models import Role, UserRole, AuditLog
 from utils.audit import get_audit_metadata
 
 logger = logging.getLogger('remote-directory')
+
+
+def exclude_password(user):
+    """Remove password field from user object for safe response."""
+    return {k: v for k, v in user.items() if k != 'password'}
+
+
 def register_role_routes(bp):
     """Register role routes to blueprint."""
     
@@ -58,6 +65,64 @@ def register_role_routes(bp):
             abort(404)
         
         return jsonify(role)
+    
+    @bp.route('/<role_id>/users', methods=['GET'])
+    def get_role_users(role_id):
+        """GET /api/roles/<role_id>/users - Get all users with a role."""
+        logger.info(f'[API] GET /api/roles/{role_id}/users')
+        
+        role = Role.get(role_id)
+        if not role:
+            abort(404)
+        
+        try:
+            users = UserRole.get_by_role(role_id)
+            return jsonify([exclude_password(u) for u in users])
+        except Exception as e:
+            logger.error(f'[API] Error getting role users: {str(e)}')
+            abort(500)
+    
+    @bp.route('/<role_id>/users', methods=['PUT'])
+    def set_role_users(role_id):
+        """PUT /api/roles/<role_id>/users - Set all users with a role."""
+        logger.info(f'[API] PUT /api/roles/{role_id}/users')
+        
+        role = Role.get(role_id)
+        if not role:
+            abort(404)
+        
+        data = request.get_json()
+        if not data or 'user_ids' not in data:
+            return jsonify({'error': 'user_ids is required'}), 400
+        
+        user_ids = data['user_ids']
+        if not isinstance(user_ids, list):
+            return jsonify({'error': 'user_ids must be an array'}), 400
+        
+        try:
+            # Get current users with role
+            current_users = UserRole.get_by_role(role_id)
+            current_user_ids = [u['id'] for u in current_users]
+            
+            # Remove users not in new list
+            for user_id in current_user_ids:
+                if user_id not in user_ids:
+                    UserRole.remove(user_id, role_id)
+                    logger.info(f'[ROLE] Removed role {role_id} from user {user_id}')
+            
+            # Add users not in current list
+            for user_id in user_ids:
+                if user_id not in current_user_ids:
+                    UserRole.add(user_id, role_id)
+                    logger.info(f'[ROLE] Added role {role_id} to user {user_id}')
+            
+            AuditLog.log('role', role_id, 'users_updated', 
+                        changes={'user_ids': user_ids}, **get_audit_metadata())
+            
+            return jsonify({'message': 'Role users updated'}), 200
+        except Exception as e:
+            logger.error(f'[API] Error setting role users: {str(e)}')
+            abort(500)
     
     @bp.route('/<role_id>', methods=['DELETE'])
     def delete_role(role_id):
