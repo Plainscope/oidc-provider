@@ -270,13 +270,18 @@ try {
   const hasCookies = configuration.cookies && typeof configuration.cookies === 'object';
   const keys = hasCookies ? (configuration.cookies as any).keys : undefined;
   const keysMissing = !Array.isArray(keys) || keys.length === 0 || keys.some(k => typeof k !== 'string' || k.length === 0);
-  if (keysMissing) {
+  if (keysMissing && process.env.NODE_ENV !== 'production') {
     const fallbackKey = process.env.COOKIES_DEFAULT_KEY || crypto.randomBytes(32).toString('hex');
     configuration.cookies = { ...(configuration.cookies || {}), keys: [fallbackKey] } as any;
     console.warn('[CONFIG] cookies.keys was missing/empty; generated a temporary signing key for development.');
   }
 } catch (e) {
-  console.warn('[CONFIG] Failed to ensure cookies.keys; using in-memory default may affect sessions.', e);
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('[CONFIG] Failed to ensure cookies.keys; using in-memory default may affect sessions.', e);
+  }
+  else {
+    throw new Error(`Critical error with cookies.keys in production: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }
 
 export { configuration };
