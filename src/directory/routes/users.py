@@ -53,13 +53,15 @@ def register_user_routes(bp):
         try:
             # Check all emails for uniqueness before creating user
             emails_to_add = []
-            if 'email' in data:
-                if User.get_by_email(data['email']):
+            primary_email = data.get('email')
+            
+            if primary_email:
+                if User.get_by_email(primary_email):
                     return jsonify({'error': 'Email already in use'}), 409
-                emails_to_add.append((data['email'], True))  # is_primary=True
+                emails_to_add.append((primary_email, True))  # is_primary=True
             
             for email in data.get('emails', []):
-                if email != data.get('email'):
+                if email != primary_email:
                     if User.get_by_email(email):
                         return jsonify({'error': f'Email already in use: {email}'}), 409
                     emails_to_add.append((email, False))  # is_primary=False

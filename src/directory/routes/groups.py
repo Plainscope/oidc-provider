@@ -51,7 +51,7 @@ def register_group_routes(bp):
         
         try:
             # Uniqueness validation - groups are globally unique
-            existing = Group.get_by_name(data['name']) if hasattr(Group, 'get_by_name') else None
+            existing = Group.get_by_name(data['name'])
             if existing:
                 return jsonify({'error': 'Group name already exists'}), 409
 
