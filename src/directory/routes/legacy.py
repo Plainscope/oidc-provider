@@ -62,11 +62,13 @@ def register_legacy_routes(bp):
                 return jsonify({'valid': False}), 200
             
             stored_password = user.get('password', '')
-            # Backward compatibility: plain match OR bcrypt check
-            valid = (stored_password == password) or (
-                stored_password.startswith('$2') and bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8'))
-            )
-            # If valid and stored is plain, rehash on first use
+            # Only allow bcrypt check; log warning if stored password is not hashed
+            if not stored_password.startswith('$2'):
+                logger.warning(f"[SECURITY] Plain text password detected for user {user.get('id', '<unknown>')}. Authentication denied. User must reset password.")
+                valid = False
+            else:
+                valid = bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8'))
+            # If valid and stored is plain, rehash on first use (this block is now unreachable, but kept for clarity)
             if valid and not stored_password.startswith('$2'):
                 new_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 try:
