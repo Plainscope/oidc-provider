@@ -136,10 +136,6 @@
           const r = await csrfFetch('/api/groups');
           if (r.ok) {
             this.groups = await r.json();
-          }// Reset to default domain if available
-          const defaultDomain = this.domains.find(d => d.is_default);
-          if (defaultDomain) {
-            this.form.domain_id = defaultDomain.id;
           }
 
         } catch (err) {
