@@ -8,9 +8,11 @@ services:
     environment:
       PORT: 8080
       USERS_FILE: /app/config/users.json
+      DATABASE_FILE: /data/directory.db
       BEARER_TOKEN: ${DIRECTORY_BEARER_TOKEN:-sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth}
     volumes:
       - ${DIRECTORY_USERS_FILE:-./docker/provider/users.json}:/app/config/users.json:ro
+      - directory-data:/data:rw
     ports:
       - "${DIRECTORY_PORT:-7080}:8080"
     networks:
@@ -42,7 +44,7 @@ services:
       DIRECTORY_BASE_URL: ${DIRECTORY_BASE_URL:-http://directory:8080}
       DIRECTORY_HEADERS: ${DIRECTORY_HEADERS:-{"Authorization":"Bearer sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth"}}
       FEATURES_DEV_INTERACTIONS: false
-      SQLITE_DB_PATH: /data/oidc.db
+      DATABASE_FILE: /data/oidc.db
     ports:
       - "${PROVIDER_PORT:-9080}:8080"
     volumes:
@@ -103,4 +105,6 @@ networks:
 
 volumes:
   provider-data:
+    driver: local
+  directory-data:
     driver: local

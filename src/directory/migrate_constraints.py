@@ -215,7 +215,7 @@ def main():
     )
     parser.add_argument(
         '--db-path',
-        default=os.environ.get('DB_PATH', '/app/data/users.db'),
+        default=os.environ.get('DATABASE_FILE', '/app/data/users.db'),
         help='Path to the database file (default: /app/data/users.db or DB_PATH env var)'
     )
     

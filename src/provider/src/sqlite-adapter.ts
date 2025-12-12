@@ -25,7 +25,7 @@ function initializeDatabase(): Database.Database {
     return db;
   }
 
-  const dbPath = process.env.SQLITE_DB_PATH || path.join(__dirname, '../../data/oidc.db');
+  const dbPath = process.env.DATABASE_FILE || path.join(__dirname, '../../data/oidc.db');
   const dbDir = path.dirname(dbPath);
 
   // Ensure database directory exists

@@ -123,7 +123,7 @@ services:
       POST_LOGOUT_REDIRECT_URIS: ${POST_LOGOUT_REDIRECT_URIS}
       COOKIES_KEYS: ${COOKIES_KEYS}
       FEATURES_DEV_INTERACTIONS: 'false'
-      SQLITE_DB_PATH: /data/oidc.db
+      DATABASE_FILE: /data/oidc.db
     volumes:
       - ./data/users.json:/app/dist/users.json:ro
       - ./data/config.json:/app/config.json:ro
@@ -240,7 +240,7 @@ services:
       POST_LOGOUT_REDIRECT_URIS: ${POST_LOGOUT_REDIRECT_URIS}
       COOKIES_KEYS: ${COOKIES_KEYS}
       FEATURES_DEV_INTERACTIONS: 'false'
-      SQLITE_DB_PATH: /data/oidc.db
+      DATABASE_FILE: /data/oidc.db
     volumes:
       - ./data/users.json:/app/dist/users.json:ro
       - provider-data:/data

@@ -22,7 +22,7 @@ Implemented all required Adapter interface methods:
 
 - SQLite database with WAL (Write-Ahead Logging) for concurrent access
 - Automatic database initialization and table creation
-- Configurable database path via `SQLITE_DB_PATH` environment variable
+- Configurable database path via `DATABASE_FILE` environment variable
 - Indexes on `model_name` and `expires_at` for query optimization
 - Comprehensive logging for debugging
 - JSON storage of OIDC provider payloads
@@ -39,7 +39,7 @@ Implemented all required Adapter interface methods:
 **Docker Compose (`docker-compose.yml`):**
 
 - Added named volume `provider-data:/data` for persistent SQLite database storage
-- Set `SQLITE_DB_PATH=/data/oidc.db` environment variable
+- Set `DATABASE_FILE=/data/oidc.db` environment variable
 - Volume persists across container restarts and updates
 
 ### 3. Dependencies
@@ -130,7 +130,7 @@ The adapter stores the following OIDC model types:
 To use the SQLite adapter, ensure these environment variables are set:
 
 ```bash
-SQLITE_DB_PATH=/data/oidc.db    # Path to SQLite database file
+DATABASE_FILE=/data/oidc.db    # Path to SQLite database file
 ```
 
 Or use the default path: `../../data/oidc.db` relative to the adapter file.

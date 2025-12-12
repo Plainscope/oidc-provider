@@ -23,7 +23,7 @@ class Database:
     def __init__(self, db_path: str = None):
         """Initialize database configuration (not connection)."""
         if db_path is None:
-            db_path = os.environ.get('DB_PATH', '/app/data/users.db')
+            db_path = os.environ.get('DATABASE_FILE', '/app/data/users.db')
         
         self.db_path = db_path
         self._ensure_db_dir()
