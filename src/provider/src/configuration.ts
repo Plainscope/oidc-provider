@@ -29,7 +29,7 @@ function mergeDeep(target: any, ...sources: any[]): any {
 
   // Create a new result object to avoid mutating the target
   let result: any;
-  
+
   if (isObject(target) && isObject(src)) {
     result = { ...target };
     for (const key of Object.keys(src)) {
@@ -101,7 +101,7 @@ function validateConfig(config: any): void {
     console.warn('[CONFIG] Invalid configuration: not an object');
     return;
   }
-  
+
   // Validate clients array if present
   if (config.clients !== undefined) {
     if (!Array.isArray(config.clients)) {
@@ -114,12 +114,12 @@ function validateConfig(config: any): void {
       });
     }
   }
-  
+
   // Validate scopes array if present
   if (config.scopes !== undefined && !Array.isArray(config.scopes)) {
     console.warn('[CONFIG] Invalid configuration: scopes must be an array');
   }
-  
+
   // Validate cookies object if present
   if (config.cookies !== undefined) {
     if (typeof config.cookies !== 'object') {
@@ -128,12 +128,12 @@ function validateConfig(config: any): void {
       console.warn('[CONFIG] Invalid configuration: cookies.keys must be an array');
     }
   }
-  
+
   // Validate claims object if present
   if (config.claims !== undefined && typeof config.claims !== 'object') {
     console.warn('[CONFIG] Invalid configuration: claims must be an object');
   }
-  
+
   // Validate features object if present
   if (config.features !== undefined && typeof config.features !== 'object') {
     console.warn('[CONFIG] Invalid configuration: features must be an object');
@@ -197,7 +197,6 @@ if (clientsEnv) {
       grant_types: process.env.GRANT_TYPES ? process.env.GRANT_TYPES.split(',').map(g => g.trim()) as any : undefined,
       response_types: process.env.RESPONSE_TYPES ? process.env.RESPONSE_TYPES.split(',').map(r => r.trim()) as any : undefined,
       token_endpoint_auth_method: process.env.TOKEN_ENDPOINT_AUTH_METHOD as any,
-      id_token_signed_response_alg: 'RS256' as any, // Default signing algorithm
     };
     envOverrides.clients = [client];
     console.log('[CONFIG] Override clients from individual client env vars');
