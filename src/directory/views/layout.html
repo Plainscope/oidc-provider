@@ -21,18 +21,13 @@
       headers.set('Content-Type', headers.get('Content-Type') || 'application/json');
       // Get Authorization header from page context or session
       let authToken = document.querySelector('meta[name="auth-token"]')?.getAttribute('content');
-      if (!authToken) {
-        const rawToken = sessionStorage.getItem('directoryAuthToken');
-        if (rawToken) {
-          authToken = rawToken.startsWith('Bearer ') ? rawToken : `Bearer ${rawToken}`;
-        }
+      if (authToken) {
+        headers.set('Authorization', `Bearer ${authToken}`);
       }
-      if (authToken) { headers.set('Authorization', authToken); }
       return fetch(url, { ...options, headers });
     }
     // Check if user is authenticated - script is at the end of body, so DOM is already loaded
-    const authToken = document.querySelector('meta[name="auth-token"]')?.getAttribute('content') ||
-      sessionStorage.getItem('directoryAuthToken');
+    const authToken = document.querySelector('meta[name="auth-token"]')?.getAttribute('content');
     const currentPath = window.location.pathname;
 
     // Don't check auth on login page or root
@@ -126,8 +121,6 @@
     function layoutData() {
       return {
         logout() {
-          sessionStorage.removeItem('directoryAuthToken');
-          localStorage.removeItem('directoryAuthToken');
           window.location.href = '/login';
         }
       };

@@ -40,8 +40,8 @@ def register_ui_routes(bp):
             session['token'] = token
             logger.info('[AUTH] POST /login - Session created successfully')
             
-            # Return token to client for API calls
-            return jsonify({'success': True, 'token': token}), 200
+            # Return success - token is now in server session
+            return jsonify({'success': True}), 200
 
     @bp.route('/logout', methods=['POST'])
     def ui_logout():
@@ -54,35 +54,42 @@ def register_ui_routes(bp):
     def ui_home():
         """GET / - Render the user management UI."""
         logger.info('[API] GET /')
-        return render_template('index.html', title='Simple Directory', current_tab='users')
+        token = session.get('token')
+        return render_template('index.html', title='Simple Directory', current_tab='users', auth_token=token)
 
     @bp.route('/ui', methods=['GET'])
     def ui_dashboard():
         """GET /ui - Render the user management dashboard."""
         logger.info('[API] GET /ui')
-        return render_template('index.html', title='Simple Directory', current_tab='users')
+        token = session.get('token')
+        return render_template('index.html', title='Simple Directory', current_tab='users', auth_token=token)
 
     @bp.route('/roles', methods=['GET'])
     def ui_roles():
         logger.info('[API] GET /roles')
-        return render_template('roles.html', title='Roles', current_tab='roles')
+        token = session.get('token')
+        return render_template('roles.html', title='Roles', current_tab='roles', auth_token=token)
 
     @bp.route('/groups', methods=['GET'])
     def ui_groups():
         logger.info('[API] GET /groups')
-        return render_template('groups.html', title='Groups', current_tab='groups')
+        token = session.get('token')
+        return render_template('groups.html', title='Groups', current_tab='groups', auth_token=token)
 
     @bp.route('/domains', methods=['GET'])
     def ui_domains():
         logger.info('[API] GET /domains')
-        return render_template('domains.html', title='Domains', current_tab='domains')
+        token = session.get('token')
+        return render_template('domains.html', title='Domains', current_tab='domains', auth_token=token)
 
     @bp.route('/audit', methods=['GET'])
     def ui_audit():
         logger.info('[API] GET /audit')
-        return render_template('audit.html', title='Audit', current_tab='audit')
+        token = session.get('token')
+        return render_template('audit.html', title='Audit', current_tab='audit', auth_token=token)
 
     @bp.route('/users/edit', methods=['GET'])
     def ui_user_edit():
         logger.info('[API] GET /users/edit')
-        return render_template('user_edit.html', title='Edit User', current_tab='users')
+        token = session.get('token')
+        return render_template('user_edit.html', title='Edit User', current_tab='users', auth_token=token)

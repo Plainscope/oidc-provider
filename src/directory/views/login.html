@@ -113,12 +113,8 @@
         }
 
         // Session created successfully, store token for API calls
-        const data = await response.json();
-        if (data.token) {
-          sessionStorage.setItem('directoryAuthToken', data.token);
-        }
-
-        // Redirect
+        // Session created successfully on server
+        // Redirect to dashboard
         const redirectTo = new URLSearchParams(window.location.search).get('redirectTo');
         window.location.href = redirectTo || '/';
       } catch (err) {
