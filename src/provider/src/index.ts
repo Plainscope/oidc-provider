@@ -179,7 +179,7 @@ const provider = new Provider(ISSUER, {
           throw new Error('Missing client configuration for login redirect');
         }
         
-        const scopes = (configuration.scopes && configuration.scopes.join(' ')) || 'openid profile email';
+        const scopes = (Array.isArray(configuration.scopes) && configuration.scopes.length > 0 ? configuration.scopes.join(' ') : null) || 'openid profile email';
         const loginUrl = `/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&prompt=login`;
         ctx.status = 303;
         ctx.redirect(loginUrl);
