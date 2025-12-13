@@ -5,6 +5,7 @@ Supports SQLite-based persistence with relational entities.
 """
 import os
 import logging
+from urllib.parse import quote
 from flask import Flask, request, abort, jsonify, render_template, redirect, url_for
 
 # Configure logging
@@ -104,7 +105,7 @@ def verify_auth():
         if request.path.startswith('/api/'):
             abort(401)
         # For UI requests, redirect to login
-        return redirect(url_for('ui.ui_login', redirectTo=request.full_path))
+        return redirect(url_for('ui.ui_login') + '?redirectTo=' + quote(request.full_path))
 
 
 

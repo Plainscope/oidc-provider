@@ -74,25 +74,24 @@
   </div>
 
   <script>
-    // Initialize
-    window.addEventListener('DOMContentLoaded', () => {
-      const form = document.getElementById('loginForm');
-      const tokenInput = document.getElementById('token');
-      const rememberCheckbox = document.getElementById('rememberToken');
-      const errorDiv = document.getElementById('errorMessage');
-      const errorText = document.getElementById('errorText');
-      const loginBtn = document.getElementById('loginBtn');
-      const spinner = document.getElementById('spinner');
-      const btnText = document.getElementById('btnText');
+    // Initialize - script is at the end of body, so DOM is already loaded
+    const form = document.getElementById('loginForm');
+    const tokenInput = document.getElementById('token');
+    const rememberCheckbox = document.getElementById('rememberToken');
+    const errorDiv = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    const loginBtn = document.getElementById('loginBtn');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btnText');
 
-      // Load saved token if exists
-      const savedToken = localStorage.getItem('directoryAuthToken');
-      if (savedToken) {
-        tokenInput.value = savedToken;
-        rememberCheckbox.checked = true;
-      }
+    // Load saved token if exists
+    const savedToken = localStorage.getItem('directoryAuthToken');
+    if (savedToken) {
+      tokenInput.value = savedToken;
+      rememberCheckbox.checked = true;
+    }
 
-      // Form submission
+    // Form submission
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         errorDiv.classList.add('hidden');
@@ -150,7 +149,6 @@
         errorText.textContent = message;
         errorDiv.classList.remove('hidden');
       }
-    });
   </script>
 </body>
 

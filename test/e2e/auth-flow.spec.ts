@@ -109,6 +109,10 @@ test.describe('OIDC Authorization Code Flow', () => {
   test('should include OIDC state parameter in authorization request', async ({ page }) => {
     let capturedUrl = '';
 
+    const authRequestPromise = page.waitForRequest(request => 
+      request.url().includes('/auth?')
+    );
+
     page.on('request', (request) => {
       const url = request.url();
       if (url.includes('/auth?')) {
@@ -119,7 +123,7 @@ test.describe('OIDC Authorization Code Flow', () => {
     await page.goto('/');
     await page.click('a.btn.primary:has-text("Sign in")');
 
-    await page.waitForTimeout(1000); // Wait for request
+    await authRequestPromise;
 
     // Verify state parameter is present
     if (capturedUrl) {
