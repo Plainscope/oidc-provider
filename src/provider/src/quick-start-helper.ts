@@ -177,7 +177,7 @@ export const validateProductionConfig = () => {
       console.log('');
     }
 
-    console.log('See documentation: https://github.com/Plainscope/oidc-provider/docs/guides/production-deployment.md');
+    console.log('See documentation: https://github.com/Plainscope/oidc-provider/tree/main/docs/guides/production-deployment.md');
     console.log('⚠️'.repeat(40) + '\n');
 
     if (errors.length > 0) {
