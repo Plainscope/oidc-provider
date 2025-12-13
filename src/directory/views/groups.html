@@ -12,6 +12,7 @@
       <thead class="bg-gray-100">
         <tr>
           <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Domain</th>
           <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Description</th>
           <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
         </tr>
@@ -20,8 +21,10 @@
         <template x-for="group in groups" :key="group.id">
           <tr>
             <td class="px-6 py-4 text-sm text-gray-900" x-text="group.name"></td>
+            <td class="px-6 py-4 text-sm text-gray-600" x-text="getDomainName(group.domain_id)"></td>
             <td class="px-6 py-4 text-sm text-gray-600" x-text="group.description || '-'"></td>
             <td class="px-6 py-4 text-sm space-x-2">
+              <button @click="manageUsers(group)" class="text-blue-600 hover:text-blue-700">Manage Users</button>
               <button @click="remove(group.id)" class="text-red-600 hover:text-red-700">Delete</button>
             </td>
           </tr>
@@ -36,8 +39,13 @@
       <div x-show="error" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm" x-text="error">
       </div>
       <div class="space-y-3">
-        <input x-model="form.name" placeholder="Name" class="w-full border rounded px-3 py-2" />
-        <input x-model="form.domain_id" placeholder="Domain ID" class="w-full border rounded px-3 py-2" />
+        <input x-model="form.name" placeholder="Name *" class="w-full border rounded px-3 py-2" />
+        <select x-model="form.domain_id" class="w-full border rounded px-3 py-2">
+          <option value="">Select Domain *</option>
+          <template x-for="domain in domains" :key="domain.id">
+            <option :value="domain.id" x-text="domain.name"></option>
+          </template>
+        </select>
         <input x-model="form.description" placeholder="Description" class="w-full border rounded px-3 py-2" />
       </div>
       <div class="mt-4 flex justify-end gap-2">
@@ -46,27 +54,107 @@
       </div>
     </div>
   </div>
+
+  <!-- Manage Users Modal -->
+  <div x-show="showManageUsers" class="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] flex flex-col">
+      <h3 class="text-lg font-semibold mb-4">Manage Users - <span x-text="selectedGroup?.name"></span></h3>
+      <div x-show="manageError" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm"
+        x-text="manageError"></div>
+
+      <div class="flex-1 overflow-y-auto mb-4">
+        <div class="space-y-2">
+          <template x-for="user in allUsers" :key="user.id">
+            <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+              <input type="checkbox" :checked="selectedUserIds.includes(user.id)"
+                @change="toggleUser(user.id, $event.target.checked)" class="rounded" />
+              <div class="flex-1">
+                <div class="text-sm font-medium" x-text="user.username"></div>
+                <div class="text-xs text-gray-500" x-text="user.display_name || user.emails?.[0]?.email || ''"></div>
+              </div>
+            </label>
+          </template>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 border-t pt-4">
+        <button @click="showManageUsers=false; manageError=null" class="px-4 py-2 border rounded">Cancel</button>
+        <button @click="saveGroupUsers()" class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+      </div>
+    </div>
+  </div>
 </div>
 <script>
   function groupsPage() {
     return {
       groups: [],
+      domains: [],
+      allUsers: [],
       showCreate: false,
+      showManageUsers: false,
       error: null,
+      manageError: null,
+      selectedGroup: null,
+      selectedUserIds: [],
       form: { name: '', domain_id: '', description: '' },
-      async init() { await this.load(); },
+      async init() {
+        await this.loadDomains();
+        await this.load();
+        await this.loadUsers();
+      },
+      async loadUsers() {
+        try {
+          const r = await csrfFetch('/api/users');
+          if (r.ok) {
+            this.allUsers = await r.json();
+          }
+        } catch (err) {
+          console.error('Error loading users:', err);
+        }
+      },
+      async loadDomains() {
+        try {
+          const r = await csrfFetch('/api/domains');
+          if (r.ok) {
+            this.domains = await r.json();
+            // Auto-select default domain if available
+            const defaultDomain = this.domains.find(d => d.is_default);
+            if (defaultDomain) {
+              this.form.domain_id = defaultDomain.id;
+            }
+          }
+        } catch (err) {
+          console.error('Error loading domains:', err);
+        }
+      },
+      getDomainName(domainId) {
+        const domain = this.domains.find(d => d.id === domainId);
+        return domain ? domain.name : domainId;
+      },
       async load() {
         try {
           const r = await csrfFetch('/api/groups');
           if (r.ok) {
             this.groups = await r.json();
           }
+
         } catch (err) {
           console.error('Error loading groups:', err);
         }
       },
       async create() {
         this.error = null;
+
+        // Validate required fields
+        if (!this.form.name || !this.form.name.trim()) {
+          this.error = 'Group name is required';
+          return;
+        }
+        if (!this.form.domain_id) {
+          this.error = 'Domain ID is required';
+          return;
+        }
+
         try {
           const r = await csrfFetch('/api/groups', { method: 'POST', body: JSON.stringify(this.form) });
           if (r.ok) {
@@ -96,13 +184,79 @@
         }
       },
       async remove(id) {
-        if (confirm('Delete group?')) {
-          const r = await csrfFetch(`/api/groups/${id}`, { method: 'DELETE' });
+        const group = this.groups.find(g => g.id === id);
+        const confirmed = await window.confirmModal.show(
+          'Delete Group',
+          `Are you sure you want to delete "${group?.name}"? This action cannot be undone.`,
+          'Delete'
+        );
+        if (!confirmed) return;
+
+        const r = await csrfFetch(`/api/groups/${id}`, { method: 'DELETE' });
+        if (r.ok) {
+          await this.load();
+        } else {
+          alert('Failed to delete group');
+        }
+      },
+      async manageUsers(group) {
+        this.selectedGroup = group;
+        this.manageError = null;
+
+        // Load group members
+        try {
+          const r = await csrfFetch(`/api/groups/${group.id}/users`);
           if (r.ok) {
-            await this.load();
+            const members = await r.json();
+            this.selectedUserIds = members.map(u => u.id);
           } else {
-            alert('Failed to delete group');
+            this.selectedUserIds = [];
           }
+        } catch (err) {
+          console.error('Error loading group members:', err);
+          this.selectedUserIds = [];
+        }
+
+        this.showManageUsers = true;
+      },
+      toggleUser(userId, checked) {
+        if (checked) {
+          if (!this.selectedUserIds.includes(userId)) {
+            this.selectedUserIds.push(userId);
+          }
+        } else {
+          this.selectedUserIds = this.selectedUserIds.filter(id => id !== userId);
+        }
+      },
+      async saveGroupUsers() {
+        this.manageError = null;
+
+        try {
+          const r = await csrfFetch(`/api/groups/${this.selectedGroup.id}/users`, {
+            method: 'PUT',
+            body: JSON.stringify({ user_ids: this.selectedUserIds })
+          });
+
+          if (r.ok) {
+            this.showManageUsers = false;
+            this.selectedGroup = null;
+            this.selectedUserIds = [];
+          } else {
+            const contentType = r.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              try {
+                const err = await r.json();
+                this.manageError = err.error || `Error: ${r.status}`;
+              } catch (parseErr) {
+                this.manageError = `Server error (${r.status})`;
+              }
+            } else {
+              this.manageError = `Request failed (${r.status})`;
+            }
+          }
+        } catch (err) {
+          this.manageError = 'Network error occurred';
+          console.error('Error saving group users:', err);
         }
       }
     }

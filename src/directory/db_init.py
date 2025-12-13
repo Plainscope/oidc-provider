@@ -14,6 +14,32 @@ import bcrypt
 
 logger = logging.getLogger('remote-directory')
 
+def format_address(address_dict):
+    """Format address dictionary into a single string."""
+    parts = []
+    if 'street_address' in address_dict:
+        parts.append(address_dict['street_address'])
+    if 'street' in address_dict:
+        parts.append(address_dict['street'])
+    if 'city' in address_dict:
+        parts.append(address_dict['city'])
+    if 'locality' in address_dict:
+        parts.append(address_dict['locality'])
+    if 'state' in address_dict:
+        parts.append(address_dict['state'])
+    if 'province' in address_dict:
+        parts.append(address_dict['province'])
+    if 'region' in address_dict:
+        parts.append(address_dict['region'])
+    if 'postal_code' in address_dict:
+        parts.append(address_dict['postal_code'])
+    if 'zip_code' in address_dict:
+        parts.append(address_dict['zip_code'])
+    if 'zipcode' in address_dict:
+        parts.append(address_dict['zipcode'])
+    if 'country' in address_dict:
+        parts.append(address_dict['country'])
+    return ', '.join(parts)
 
 def init_default_domain():
     """Create default domain if it doesn't exist."""
@@ -91,6 +117,14 @@ def init_seed_data(users_file: str = None):
                 logger.info(f'[INIT] User already exists: {email or username}')
                 continue
             
+            # If a specific id is provided in the seed, prefer it
+            provided_id = user_data.get('id')
+            if provided_id:
+                existing_by_id = User.get(provided_id, include_details=False)
+                if existing_by_id:
+                    logger.info(f'[INIT] User with id already exists: {provided_id}, skipping create')
+                    continue
+
             # Create user
             password = user_data.get('password', 'ChangeMe123!')
             # Hash password using bcrypt, consistent with API user creation
@@ -106,7 +140,8 @@ def init_seed_data(users_file: str = None):
                 domain_id=domain_id,
                 first_name=first_name,
                 last_name=last_name,
-                display_name=display_name
+                display_name=display_name,
+                id=provided_id
             )
             
             # Add emails
@@ -122,7 +157,14 @@ def init_seed_data(users_file: str = None):
             
             for prop_key in oidc_properties:
                 if prop_key in user_data:
-                    UserProperty.set(user_id, prop_key, user_data[prop_key])
+                    if prop_key == 'address' and isinstance(user_data[prop_key], dict):
+                        for addr_key, addr_value in user_data[prop_key].items():
+                            UserProperty.set(user_id, addr_key, addr_value)
+                        # store a formatted version of the address as well
+                        formatted = format_address(user_data[prop_key])
+                        UserProperty.set(user_id, prop_key, formatted)
+                    else:
+                        UserProperty.set(user_id, prop_key, user_data[prop_key])
             
             # Assign admin role to admin user
             if username == 'admin@localhost':

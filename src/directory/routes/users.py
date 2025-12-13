@@ -47,8 +47,20 @@ def register_user_routes(bp):
         logger.info('[API] POST /api/users')
         
         data = request.get_json()
-        if not data or not all(k in data for k in ['username', 'password', 'domain_id']):
-            abort(400)
+        if not data:
+            return jsonify({'error': 'Request body is required'}), 400
+        
+        # Validate required fields
+        username = data.get('username', '').strip() if data.get('username') else ''
+        password = data.get('password') if data.get('password') is not None else ''
+        
+        if not username:
+            return jsonify({'error': 'Username is required'}), 400
+        if password == '':
+            return jsonify({'error': 'Password is required'}), 400
+        
+        # domain_id is optional - if not provided, will use a default
+        # but username and password must be present
         
         try:
             # Check all emails for uniqueness and duplicates before creating user
@@ -150,11 +162,22 @@ def register_user_routes(bp):
                 User.update(user_id, **update_fields)
             
             if 'email' in data:
-                existing = User.get_by_email(data['email'])
-                if existing and str(existing['id']) != str(user_id):
-                    return jsonify({'error': 'Email already in use'}), 409
-                UserEmail.add(user_id, data['email'], is_primary=True)
-                changes['email'] = data['email']
+                email = data['email'].strip() if data['email'] else ''
+                if email:
+                    existing = User.get_by_email(email)
+                    # Check if email belongs to a different user
+                    if existing and str(existing['id']) != str(user_id):
+                        return jsonify({'error': 'Email already in use'}), 409
+                    
+                    # Check if user already has this email
+                    user_emails = UserEmail.get_by_user(user_id)
+                    email_exists_for_user = any(ue['email'] == email for ue in user_emails)
+                    
+                    # Only add if not already present
+                    if not email_exists_for_user:
+                        UserEmail.add(user_id, email, is_primary=True)
+                    
+                    changes['email'] = email
             
             for key, value in data.get('properties', {}).items():
                 UserProperty.set(user_id, key, value)

@@ -23,7 +23,7 @@ class Database:
     def __init__(self, db_path: str = None):
         """Initialize database configuration (not connection)."""
         if db_path is None:
-            db_path = os.environ.get('DB_PATH', '/app/data/users.db')
+            db_path = os.environ.get('DATABASE_FILE', '/app/data/users.db')
         
         self.db_path = db_path
         self._ensure_db_dir()
@@ -70,7 +70,7 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS domains (
                     id TEXT PRIMARY KEY,
-                    name TEXT UNIQUE NOT NULL,
+                    name TEXT UNIQUE NOT NULL CHECK(length(trim(name)) > 0),
                     description TEXT,
                     is_default BOOLEAN DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -82,8 +82,8 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS users (
                     id TEXT PRIMARY KEY,
-                    username TEXT UNIQUE NOT NULL,
-                    password TEXT NOT NULL,
+                    username TEXT UNIQUE NOT NULL CHECK(length(trim(username)) > 0),
+                    password TEXT NOT NULL CHECK(length(trim(password)) > 0),
                     first_name TEXT,
                     last_name TEXT,
                     display_name TEXT,
@@ -100,7 +100,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS user_emails (
                     id TEXT PRIMARY KEY,
                     user_id TEXT NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
+                    email TEXT UNIQUE NOT NULL CHECK(length(trim(email)) > 0),
                     is_primary BOOLEAN DEFAULT 0,
                     is_verified BOOLEAN DEFAULT 0,
                     verified_at TIMESTAMP,
@@ -127,7 +127,7 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS roles (
                     id TEXT PRIMARY KEY,
-                    name TEXT UNIQUE NOT NULL,
+                    name TEXT UNIQUE NOT NULL CHECK(length(trim(name)) > 0),
                     description TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -150,11 +150,12 @@ class Database:
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS groups (
                     id TEXT PRIMARY KEY,
-                    name TEXT UNIQUE NOT NULL,
+                    name TEXT NOT NULL CHECK(length(trim(name)) > 0),
                     description TEXT,
                     domain_id TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(name, domain_id),
                     FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE
                 )
             ''')

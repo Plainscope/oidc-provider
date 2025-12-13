@@ -1,4 +1,5 @@
 import { ClientMetadata, Configuration } from 'oidc-provider';
+import crypto from 'node:crypto';
 import path from "node:path";
 import fs from "node:fs";
 
@@ -29,7 +30,7 @@ function mergeDeep(target: any, ...sources: any[]): any {
 
   // Create a new result object to avoid mutating the target
   let result: any;
-  
+
   if (isObject(target) && isObject(src)) {
     result = { ...target };
     for (const key of Object.keys(src)) {
@@ -101,7 +102,7 @@ function validateConfig(config: any): void {
     console.warn('[CONFIG] Invalid configuration: not an object');
     return;
   }
-  
+
   // Validate clients array if present
   if (config.clients !== undefined) {
     if (!Array.isArray(config.clients)) {
@@ -114,12 +115,12 @@ function validateConfig(config: any): void {
       });
     }
   }
-  
+
   // Validate scopes array if present
   if (config.scopes !== undefined && !Array.isArray(config.scopes)) {
     console.warn('[CONFIG] Invalid configuration: scopes must be an array');
   }
-  
+
   // Validate cookies object if present
   if (config.cookies !== undefined) {
     if (typeof config.cookies !== 'object') {
@@ -128,12 +129,12 @@ function validateConfig(config: any): void {
       console.warn('[CONFIG] Invalid configuration: cookies.keys must be an array');
     }
   }
-  
+
   // Validate claims object if present
   if (config.claims !== undefined && typeof config.claims !== 'object') {
     console.warn('[CONFIG] Invalid configuration: claims must be an object');
   }
-  
+
   // Validate features object if present
   if (config.features !== undefined && typeof config.features !== 'object') {
     console.warn('[CONFIG] Invalid configuration: features must be an object');
@@ -194,9 +195,10 @@ if (clientsEnv) {
       client_secret: process.env.CLIENT_SECRET,
       client_name: process.env.CLIENT_NAME,
       redirect_uris: process.env.REDIRECT_URIS ? process.env.REDIRECT_URIS.split(',').map(u => u.trim()) : undefined,
-      grant_types: process.env.GRANT_TYPES ? process.env.GRANT_TYPES.split(',').map(g => g.trim()) as any : undefined,
-      response_types: process.env.RESPONSE_TYPES ? process.env.RESPONSE_TYPES.split(',').map(r => r.trim()) as any : undefined,
-      token_endpoint_auth_method: process.env.TOKEN_ENDPOINT_AUTH_METHOD as any,
+      post_logout_redirect_uris: process.env.POST_LOGOUT_REDIRECT_URIS ? process.env.POST_LOGOUT_REDIRECT_URIS.split(',').map(u => u.trim()) : undefined,
+      grant_types: (process.env.GRANT_TYPES ? process.env.GRANT_TYPES.split(',').map(g => g.trim()) : ['authorization_code', 'refresh_token']) as any,
+      response_types: (process.env.RESPONSE_TYPES ? process.env.RESPONSE_TYPES.split(',').map(r => r.trim()) : ['code']) as any,
+      token_endpoint_auth_method: (process.env.TOKEN_ENDPOINT_AUTH_METHOD || 'client_secret_basic') as any,
     };
     envOverrides.clients = [client];
     console.log('[CONFIG] Override clients from individual client env vars');
@@ -255,6 +257,31 @@ if (Object.keys(envOverrides).length > 0) {
   console.log('[CONFIG] Applied explicit environment variable overrides');
 }
 
+// If jwks.keys is provided but empty, remove jwks so oidc-provider can auto-generate keys
+if (configuration.jwks && Array.isArray(configuration.jwks.keys) && configuration.jwks.keys.length === 0) {
+  console.warn('[CONFIG] jwks.keys is empty; removing jwks to allow automatic key generation');
+  delete (configuration as any).jwks;
+}
+
 console.log('[CONFIG] Final merged configuration:', configuration);
+
+// Ensure cookie signing keys are present; generate a dev-safe key if missing/empty
+try {
+  const hasCookies = configuration.cookies && typeof configuration.cookies === 'object';
+  const keys = hasCookies ? (configuration.cookies as any).keys : undefined;
+  const keysMissing = !Array.isArray(keys) || keys.length === 0 || keys.some(k => typeof k !== 'string' || k.length === 0);
+  if (keysMissing && process.env.NODE_ENV !== 'production') {
+    const fallbackKey = process.env.COOKIES_DEFAULT_KEY || crypto.randomBytes(32).toString('hex');
+    configuration.cookies = { ...(configuration.cookies || {}), keys: [fallbackKey] } as any;
+    console.warn('[CONFIG] cookies.keys was missing/empty; generated a temporary signing key for development.');
+  }
+} catch (e) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('[CONFIG] Failed to ensure cookies.keys; using in-memory default may affect sessions.', e);
+  }
+  else {
+    throw new Error(`Critical error with cookies.keys in production: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
 
 export { configuration };

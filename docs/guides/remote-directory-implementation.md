@@ -4,6 +4,18 @@
 
 The Remote Directory Service has been significantly enhanced with SQLite-based persistence, comprehensive user management capabilities, and a professional web-based dashboard. This document summarizes the new features and how to use them.
 
+## Recent Updates
+
+### Database Constraints (December 2025)
+
+Added CHECK constraints to enforce data validation at the database level:
+
+- **Required Non-Empty Fields**: Domain names, role names, group names, usernames, passwords, and emails cannot be empty or whitespace-only
+- **Three-Layer Validation**: Front-end (Alpine.js), back-end (Flask), and database (SQLite CHECK constraints)
+- **Migration Script**: Provided for existing databases at `src/directory/migrate_constraints.py`
+
+See [Database Constraints Documentation](docs/configuration/database-constraints.md) for migration instructions.
+
 ## What Was Implemented
 
 ### 1. SQLite Database Layer (`database.py`)
@@ -184,6 +196,19 @@ Professional dashboard built with:
 - Clean, professional appearance
 
 ## Database Schema
+
+### Design Philosophy
+
+**Roles vs Groups:**
+
+- **Roles** are system-wide concepts (no domain_id required)
+  - Examples: "admin", "user", "guest"
+  - Apply across all domains
+  - Globally unique names
+- **Groups** are domain-scoped organizational units (domain_id required)
+  - Examples: "<Engineering@acme.com>", "<Sales@example.com>"
+  - Organize users within specific domains
+  - Same group name allowed across different domains via `UNIQUE(name, domain_id)`
 
 ### Tables Overview
 

@@ -37,20 +37,25 @@ def register_domain_routes(bp):
         if not data or 'name' not in data:
             abort(400)
         
+        # Validate name is not empty
+        name = data['name'].strip() if data['name'] else ''
+        if not name:
+            return jsonify({'error': 'Domain name is required'}), 400
+        
         try:
             # Uniqueness validation
-            existing = Domain.get_by_name(data['name'])
+            existing = Domain.get_by_name(name)
             if existing:
                 return jsonify({'error': 'Domain name already exists'}), 409
 
             domain_id = Domain.create(
-                name=data['name'],
+                name=name,
                 description=data.get('description', ''),
                 is_default=data.get('is_default', False)
             )
             domain = Domain.get(domain_id)
             AuditLog.log('domain', domain_id, 'created', 
-                         changes={'name': data['name']}, **get_audit_metadata())
+                         changes={'name': name}, **get_audit_metadata())
             return jsonify(domain), 201
         except Exception as e:
             logger.error(f'[API] Error creating domain: {str(e)}')

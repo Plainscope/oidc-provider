@@ -3,6 +3,7 @@ from models.domain import Domain
 from models.user import User
 from models.user_email import UserEmail
 from models.user_property import UserProperty
+from models.property_key import PropertyKey
 from models.role import Role
 from models.user_role import UserRole
 from models.group import Group
@@ -14,6 +15,7 @@ __all__ = [
     'User',
     'UserEmail',
     'UserProperty',
+    'PropertyKey',
     'Role',
     'UserRole',
     'Group',

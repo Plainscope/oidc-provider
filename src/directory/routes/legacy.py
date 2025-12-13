@@ -31,11 +31,14 @@ def register_legacy_routes(bp):
     
     @bp.route('/find/<user_id>', methods=['GET'])
     def find_user(user_id):
-        """GET /find/<user_id> - Find user by ID."""
+        """GET /find/<user_id> - Find user by ID or email."""
         logger.info(f'[API] GET /find/{user_id}')
         
         try:
             user = User.get(user_id)
+            # Fallback: if not found and looks like an email, try email lookup
+            if not user and '@' in user_id:
+                user = User.get_by_email(user_id)
             if not user:
                 return jsonify({'error': 'User not found'}), 404
             
@@ -77,8 +80,11 @@ def register_legacy_routes(bp):
                     logger.warning('[API] Failed to rehash password during migration')
             
             response = {'valid': valid}
-            if valid:
-                response['user'] = exclude_password(user)
+
+            if not valid:
+                return jsonify(response), 400
+
+            response['user'] = exclude_password(user)
             
             return jsonify(response)
         except Exception as e:

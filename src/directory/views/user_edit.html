@@ -9,6 +9,18 @@
       <input x-model="user.email" placeholder="Primary Email" class="border rounded px-3 py-2" />
     </div>
     <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">Standard Properties</label>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <template x-for="stdKey in standardPropertyKeys" :key="stdKey.key">
+          <div>
+            <label class="block text-xs text-gray-600 mb-1" x-text="stdKey.description || stdKey.key"></label>
+            <input x-model="propertyValues[stdKey.key]" :placeholder="stdKey.key"
+              class="w-full border rounded px-3 py-2 text-sm" />
+          </div>
+        </template>
+      </div>
+    </div>
+    <div>
       <label class="block text-sm font-medium text-gray-700 mb-2">Roles</label>
       <div class="flex flex-wrap gap-2">
         <template x-for="role in roles" :key="role.id">
@@ -32,6 +44,34 @@
         </template>
       </div>
     </div>
+    <div>
+      <div class="flex justify-between items-center mb-2">
+        <label class="block text-sm font-medium text-gray-700">Custom Properties</label>
+        <button @click="addProperty()" type="button" class="text-sm text-blue-600 hover:text-blue-700">+ Add
+          Property</button>
+      </div>
+      <div class="space-y-2">
+        <template x-for="(prop, index) in properties" :key="index">
+          <div class="flex gap-2">
+            <select x-model="prop.key" @change="onPropertyKeyChange(index, $event.target.value)"
+              class="flex-1 border rounded px-2 py-1 text-sm">
+              <option value="">Select Key...</option>
+              <template x-for="stdKey in standardPropertyKeys" :key="stdKey.key">
+                <option :value="stdKey.key" x-text="stdKey.key + ' - ' + stdKey.description"></option>
+              </template>
+              <option value="__custom__">Custom Key...</option>
+            </select>
+            <input x-show="prop.key === '__custom__'" x-model="prop.customKey" placeholder="Custom Key"
+              class="flex-1 border rounded px-2 py-1 text-sm" />
+            <input x-model="prop.value" placeholder="Value" class="flex-1 border rounded px-3 py-2 text-sm" />
+            <button @click="removeProperty(index)" type="button" class="text-red-600 hover:text-red-700 px-2">×</button>
+          </div>
+        </template>
+        <template x-if="properties.length === 0">
+          <p class="text-sm text-gray-500 italic">No custom properties defined</p>
+        </template>
+      </div>
+    </div>
     <div x-show="error" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm" x-text="error">
     </div>
     <div class="flex justify-end gap-2">
@@ -48,8 +88,9 @@
     const safeFetch = window.csrfFetch || fetch.bind(window);
 
     return {
-      user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], error: null,
+      user: {}, roles: [], groups: [], selectedRoles: [], selectedGroups: [], properties: [], propertyValues: {}, standardPropertyKeys: [], error: null,
       async init() {
+        await this.loadPropertyKeys();
         try {
           const uRes = await safeFetch(`/api/users/${userId}`);
           if (!uRes.ok) {
@@ -61,6 +102,30 @@
           this.user = u;
           this.selectedRoles = (u.roles || []).map(r => r.id);
           this.selectedGroups = (u.groups || []).map(g => g.id);
+
+          // Normalize properties to propertyValues map and custom list
+          const props = u.properties;
+          const standardKeys = new Set(this.standardPropertyKeys.map(sk => sk.key));
+          this.propertyValues = {};
+          this.properties = [];
+
+          if (Array.isArray(props)) {
+            for (const p of props) {
+              if (standardKeys.has(p.key)) {
+                this.propertyValues[p.key] = p.value;
+              } else {
+                this.properties.push({ key: '__custom__', customKey: p.key, value: p.value });
+              }
+            }
+          } else if (props && typeof props === 'object') {
+            for (const [key, value] of Object.entries(props)) {
+              if (standardKeys.has(key)) {
+                this.propertyValues[key] = value;
+              } else {
+                this.properties.push({ key: '__custom__', customKey: key, value });
+              }
+            }
+          }
 
           const rolesRes = await safeFetch('/api/roles');
           if (rolesRes.ok) {
@@ -76,12 +141,54 @@
           console.error('Error loading user data:', err);
         }
       },
+      async loadPropertyKeys() {
+        try {
+          const resp = await safeFetch('/api/property-keys/standard');
+          if (resp.ok) {
+            this.standardPropertyKeys = await resp.json();
+          }
+        } catch (err) {
+          console.error('Error loading property keys:', err);
+        }
+      },
+      addProperty() {
+        this.properties.push({ key: '', customKey: '', value: '' });
+      },
+      removeProperty(index) {
+        this.properties.splice(index, 1);
+      },
+      onPropertyKeyChange(index, value) {
+        if (value !== '__custom__') {
+          this.properties[index].customKey = '';
+        }
+      },
       toggleRole(id, on) { if (on) { if (!this.selectedRoles.includes(id)) this.selectedRoles.push(id); } else { this.selectedRoles = this.selectedRoles.filter(x => x !== id); } },
       toggleGroup(id, on) { if (on) { if (!this.selectedGroups.includes(id)) this.selectedGroups.push(id); } else { this.selectedGroups = this.selectedGroups.filter(x => x !== id); } },
       async save() {
         this.error = null;
         try {
-          const payload = { display_name: this.user.display_name, email: this.user.email, role_ids: this.selectedRoles, group_ids: this.selectedGroups };
+          const payload = {
+            display_name: this.user.display_name,
+            email: this.user.email,
+            role_ids: this.selectedRoles,
+            group_ids: this.selectedGroups,
+            properties: (() => {
+              const acc = {};
+              // Include standard properties
+              for (const key of Object.keys(this.propertyValues)) {
+                const val = this.propertyValues[key];
+                if (val !== undefined && val !== null && String(val).trim() !== '') {
+                  acc[key] = val;
+                }
+              }
+              // Include custom properties
+              for (const p of this.properties) {
+                const key = p.key === '__custom__' ? (p.customKey || '').trim() : (p.key || '').trim();
+                if (key) acc[key] = p.value;
+              }
+              return acc;
+            })()
+          };
           const r = await safeFetch(`/api/users/${userId}`, { method: 'PATCH', body: JSON.stringify(payload) });
           if (r.ok) { window.location.href = '/'; }
           else {

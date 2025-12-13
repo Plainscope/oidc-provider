@@ -17,6 +17,11 @@ class UserRole:
     """User role assignment model."""
     
     @staticmethod
+    def add(user_id: str, role_id: str):
+        """Add a role to a user (alias for assign for consistency)."""
+        UserRole.assign(user_id, role_id)
+    
+    @staticmethod
     def assign(user_id: str, role_id: str):
         """Assign a role to a user."""
         db = get_db()
@@ -45,6 +50,19 @@ class UserRole:
                WHERE ur.user_id = ?
                ORDER BY r.name''',
             (user_id,)
+        )
+        return [dict(row) for row in cursor.fetchall()]
+    
+    @staticmethod
+    def get_by_role(role_id: str) -> List[Dict]:
+        """Get all users with a role."""
+        db = get_db()
+        cursor = db.execute(
+            '''SELECT u.* FROM users u
+               JOIN user_roles ur ON u.id = ur.user_id
+               WHERE ur.role_id = ?
+               ORDER BY u.username''',
+            (role_id,)
         )
         return [dict(row) for row in cursor.fetchall()]
     

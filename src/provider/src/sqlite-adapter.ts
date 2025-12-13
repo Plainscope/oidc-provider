@@ -25,7 +25,7 @@ function initializeDatabase(): Database.Database {
     return db;
   }
 
-  const dbPath = process.env.SQLITE_DB_PATH || path.join(__dirname, '../../data/oidc.db');
+  const dbPath = process.env.DATABASE_FILE || path.join(__dirname, '../../data/oidc.db');
   const dbDir = path.dirname(dbPath);
 
   // Ensure database directory exists
@@ -34,16 +34,16 @@ function initializeDatabase(): Database.Database {
   }
 
   db = new Database(dbPath);
-  
+
   // Enable WAL mode for better concurrency
   db.pragma('journal_mode = WAL');
-  
+
   // Enable foreign keys
   db.pragma('foreign_keys = ON');
-  
+
   // Set reasonable timeout for busy database
   db.pragma('busy_timeout = 5000');
-  
+
   // Optimize for performance
   db.pragma('synchronous = NORMAL');
   db.pragma('cache_size = -64000'); // 64MB cache
@@ -63,7 +63,7 @@ function initializeDatabase(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_expires_at ON oidc_models(expires_at);
     CREATE INDEX IF NOT EXISTS idx_model_expires ON oidc_models(model_name, expires_at);
   `);
-  
+
   // Prepare common statements for reuse (UPSERT is handled separately for atomicity)
   statements.find = db.prepare(
     `SELECT payload, expires_at FROM oidc_models 
@@ -120,7 +120,7 @@ export class SqliteAdapter implements Adapter {
         if (!database) {
           throw new Error('Database not initialized');
         }
-        
+
         const expiresAt = expiresIn ? Math.floor(Date.now() / 1000) + expiresIn : null;
         const payloadStr = JSON.stringify(payload);
 
@@ -133,7 +133,7 @@ export class SqliteAdapter implements Adapter {
             expires_at = excluded.expires_at,
             updated_at = unixepoch()
         `);
-        
+
         upsertStmt.run(id, this.modelName, payloadStr, expiresAt);
 
         console.log(`[SqliteAdapter:${this.modelName}] Upserted: ${id}`);
@@ -159,7 +159,14 @@ export class SqliteAdapter implements Adapter {
   find(id: string): Promise<AdapterPayload | undefined | void> {
     return new Promise((resolve, reject) => {
       try {
-        initializeDatabase();
+        // Re-initialize statements if needed to avoid uninitialized statement errors
+        const database = initializeDatabase();
+        if (!statements.find) {
+          statements.find = database.prepare(
+            `SELECT payload, expires_at FROM oidc_models 
+             WHERE id = ? AND (expires_at IS NULL OR expires_at > ?)`
+          );
+        }
         const now = Math.floor(Date.now() / 1000);
 
         // Ensure statement is initialized

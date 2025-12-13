@@ -21,12 +21,14 @@ class User:
     """User model for user management."""
     
     @staticmethod
-    def create(username: str, password: str, domain_id: str, 
-               first_name: str = '', last_name: str = '', 
-               display_name: str = '') -> str:
-        """Create a new user."""
+    def create(username: str, password: str, domain_id: str,
+               first_name: str = '', last_name: str = '',
+               display_name: str = '', id: Optional[str] = None) -> str:
+        """Create a new user.
+        If id is provided, it will be used; otherwise a new id is generated.
+        """
         db = get_db()
-        user_id = generate_id()
+        user_id = id or generate_id()
         
         try:
             db.execute(

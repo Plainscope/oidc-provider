@@ -71,7 +71,7 @@ services:
       REDIRECT_URIS: http://localhost:8080/signin-oidc
       POST_LOGOUT_REDIRECT_URIS: http://localhost:8080/signout-callback-oidc
       FEATURES_DEV_INTERACTIONS: false
-      SQLITE_DB_PATH: /data/oidc.db
+      DATABASE_FILE: /data/oidc.db
     volumes:
       - ./users.json:/app/dist/users.json:ro
       - provider-data:/data
@@ -181,7 +181,7 @@ services:
       POST_LOGOUT_REDIRECT_URIS: https://app.example.com/logout
       PROXY: 'true'
       COOKIES_KEYS: ${COOKIES_KEYS}
-      SQLITE_DB_PATH: /data/oidc.db
+      DATABASE_FILE: /data/oidc.db
     volumes:
       - ./users.json:/app/dist/users.json:ro
       - ./config.json:/app/config.json:ro

@@ -11,7 +11,7 @@ The OIDC provider uses a SQLite adapter for persistent storage of sessions, toke
 Configure the SQLite database path using the environment variable:
 
 ```bash
-SQLITE_DB_PATH=/data/oidc.db
+DATABASE_FILE=/data/oidc.db
 ```
 
 The adapter automatically:

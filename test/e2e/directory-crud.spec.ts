@@ -1,3 +1,4 @@
+/// <reference types="@playwright/test" />
 /**
  * Directory CRUD and Security Tests
  * Tests CSRF protection and uniqueness constraints in the remote directory UI
@@ -24,7 +25,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     expect(csrfToken).toBeTruthy();
 
     // Verify csrfFetch is available
-    const hasCsrfFetch = await page.evaluate(() => typeof window['csrfFetch'] === 'function');
+    const hasCsrfFetch = await page.evaluate(() => typeof (window as any)['csrfFetch'] === 'function');
     expect(hasCsrfFetch).toBe(true);
   });
 
@@ -84,7 +85,7 @@ test.describe('Directory CRUD Operations with Security', () => {
     await expect(page.locator('div.bg-red-50')).toContainText(/already exists|duplicate/i);
   });
 
-  test('should enforce group name uniqueness globally', async ({ page }) => {
+  test('should enforce group name uniqueness within domain', async ({ page }) => {
     await page.goto(`${DIRECTORY_BASE_URL}/groups`);
 
     // First get a domain ID
@@ -103,8 +104,12 @@ test.describe('Directory CRUD Operations with Security', () => {
 
     // Create first group
     await page.click('button:has-text("Add Group")');
-    await page.fill('input[placeholder="Name"]', testGroupName);
-    await page.fill('input[placeholder="Domain ID"]', domainId);
+
+    // Wait for modal and domains to load
+    await page.waitForSelector('select', { state: 'visible' });
+
+    await page.fill('input[placeholder*="Name"]', testGroupName);
+    await page.selectOption('select', domainId);
     await page.fill('input[placeholder="Description"]', 'Test group');
     await page.click('button:has-text("Create")', { force: true });
 
@@ -114,16 +119,69 @@ test.describe('Directory CRUD Operations with Security', () => {
     // Verify group appears
     await expect(page.locator(`text=${testGroupName}`)).toBeVisible();
 
-    // Try duplicate (even with different domain, should fail globally)
+    // Try duplicate in the SAME domain (should fail)
     await page.click('button:has-text("Add Group")');
-    await page.fill('input[placeholder="Name"]', testGroupName);
-    await page.fill('input[placeholder="Domain ID"]', domainId);
+    await page.fill('input[placeholder*="Name"]', testGroupName);
+    await page.selectOption('select', domainId);
     await page.fill('input[placeholder="Description"]', 'Duplicate group');
     await page.click('button:has-text("Create")', { force: true });
 
     // Should show error
     await expect(page.locator('div.bg-red-50')).toBeVisible();
-    await expect(page.locator('div.bg-red-50')).toContainText(/already exists|duplicate/i);
+    await expect(page.locator('div.bg-red-50')).toContainText(/already exists.*domain/i);
+  });
+
+  test('should allow same group name in different domains', async ({ page }) => {
+    await page.goto(`${DIRECTORY_BASE_URL}/groups`);
+
+    // Get at least two domains
+    const domainsResponse = await page.request.get(`${DIRECTORY_BASE_URL}/api/domains`, {
+      headers: { 'Authorization': `Bearer ${BEARER_TOKEN}` }
+    });
+    const domains = await domainsResponse.json();
+
+    // Create second domain if needed
+    let domain1Id = domains[0]?.id;
+    let domain2Id = domains[1]?.id;
+
+    if (!domain1Id) {
+      test.skip();
+      return;
+    }
+
+    if (!domain2Id) {
+      // Create second domain
+      const createDomainRes = await page.request.post(`${DIRECTORY_BASE_URL}/api/domains`, {
+        headers: { 'Authorization': `Bearer ${BEARER_TOKEN}`, 'Content-Type': 'application/json' },
+        data: { name: `test-domain-${Date.now()}`, description: 'Test domain 2' }
+      });
+      const newDomain = await createDomainRes.json();
+      domain2Id = newDomain.id;
+    }
+
+    const testGroupName = `test-group-shared-${Date.now()}`;
+
+    // Create group in first domain
+    await page.click('button:has-text("Add Group")');
+    await page.waitForSelector('select', { state: 'visible' });
+    await page.fill('input[placeholder*="Name"]', testGroupName);
+    await page.selectOption('select', domain1Id);
+    await page.fill('input[placeholder="Description"]', 'Group in domain 1');
+    await page.click('button:has-text("Create")', { force: true });
+
+    // Wait for first group to appear
+    await page.waitForSelector(`text=${testGroupName}`, { state: 'visible' });
+
+    // Create group with SAME name in second domain (should succeed)
+    await page.click('button:has-text("Add Group")');
+    await page.fill('input[placeholder*="Name"]', testGroupName);
+    await page.selectOption('select', domain2Id);
+    await page.fill('input[placeholder="Description"]', 'Group in domain 2');
+    await page.click('button:has-text("Create")', { force: true });
+
+    // Should succeed - verify both groups exist
+    const groupRows = page.locator(`tr:has-text("${testGroupName}")`);
+    await expect(groupRows).toHaveCount(2, { timeout: 5000 });
   });
 
   test('should enforce user email uniqueness', async ({ page }) => {
@@ -261,5 +319,109 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.waitForSelector('div.text-red-600', { state: 'visible' });
     await expect(page.locator('div.text-red-600')).toBeVisible();
     await expect(page.locator('div.text-red-600')).toContainText(/email already in use/i);
+  });
+
+  test('should reject empty domain name', async ({ page }) => {
+    await page.goto(`${DIRECTORY_BASE_URL}/domains`);
+
+    // Try to create domain with empty name
+    await page.click('button:has-text("Add Domain")');
+    await page.fill('input[placeholder="Name"]', '   '); // whitespace only
+    await page.fill('input[placeholder="Description"]', 'Test domain');
+    await page.click('button:has-text("Create")', { force: true });
+
+    // Should show error message
+    await expect(page.locator('div.bg-red-50')).toBeVisible();
+    await expect(page.locator('div.bg-red-50')).toContainText(/name is required/i);
+  });
+
+  test('should reject empty role name', async ({ page }) => {
+    await page.goto(`${DIRECTORY_BASE_URL}/roles`);
+
+    // Try to create role with empty name
+    await page.click('button:has-text("Add Role")');
+    await page.fill('input[placeholder="Name"]', '');
+    await page.fill('input[placeholder="Description"]', 'Test role');
+    await page.click('button:has-text("Create")', { force: true });
+
+    // Should show error message
+    await expect(page.locator('div.bg-red-50')).toBeVisible();
+    await expect(page.locator('div.bg-red-50')).toContainText(/name is required/i);
+  });
+
+  test('should reject empty group name', async ({ page }) => {
+    await page.goto(`${DIRECTORY_BASE_URL}/groups`);
+
+    // Get a domain ID first
+    const domainsResponse = await page.request.get(`${DIRECTORY_BASE_URL}/api/domains`, {
+      headers: { 'Authorization': `Bearer ${BEARER_TOKEN}` }
+    });
+    const domains = await domainsResponse.json();
+    const domainId = domains[0]?.id;
+
+    if (!domainId) {
+      test.skip();
+      return;
+    }
+
+    // Try to create group with empty name
+    await page.click('button:has-text("Add Group")');
+    await page.fill('input[placeholder="Name"]', '');
+    // Select domain from dropdown if present
+    if (await page.locator('select').count() > 0) {
+      await page.selectOption('select', domainId);
+    }
+    await page.fill('input[placeholder="Description"]', 'Test group');
+    await page.click('button:has-text("Create")', { force: true });
+
+    // Should show error message
+    await expect(page.locator('div.bg-red-50')).toBeVisible();
+    await expect(page.locator('div.bg-red-50')).toContainText(/name is required/i);
+  });
+
+  test('should reject empty username', async ({ page }) => {
+    await page.goto(`${DIRECTORY_BASE_URL}/users`);
+
+    // Try to create user with empty username
+    await page.click('button:has-text("Add User")');
+    await page.fill('input[placeholder*="Username"]', '   '); // whitespace only
+    await page.fill('input[placeholder*="Password"]', 'Test123!');
+    await page.click('button:has-text("Create")', { force: true });
+
+    // Should show error message
+    await expect(page.locator('div.bg-red-50')).toBeVisible();
+    await expect(page.locator('div.bg-red-50')).toContainText(/username is required/i);
+  });
+
+  test('should reject empty password', async ({ page }) => {
+    await page.goto(`${DIRECTORY_BASE_URL}/users`);
+
+    // Get a domain ID first
+    const domainsResponse = await page.request.get(`${DIRECTORY_BASE_URL}/api/domains`, {
+      headers: { 'Authorization': `Bearer ${BEARER_TOKEN}` }
+    });
+    const domains = await domainsResponse.json();
+    const domainId = domains[0]?.id;
+
+    if (!domainId) {
+      test.skip();
+      return;
+    }
+
+    // Try to create user with empty password
+    await page.click('button:has-text("Add User")');
+    await page.fill('input[placeholder*="Username"]', `testuser-${Date.now()}`);
+    await page.fill('input[placeholder*="Password"]', '');
+
+    // Select domain if dropdown exists
+    if (await page.locator('select').count() > 0) {
+      await page.selectOption('select', domainId);
+    }
+
+    await page.click('button:has-text("Create")', { force: true });
+
+    // Should show error message
+    await expect(page.locator('div.bg-red-50')).toBeVisible();
+    await expect(page.locator('div.bg-red-50')).toContainText(/password is required/i);
   });
 });
