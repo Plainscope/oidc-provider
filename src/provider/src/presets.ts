@@ -142,6 +142,7 @@ export const PRESETS = {
       } as ClientMetadata,
     ],
     cookies: {
+      // WARNING: Test-only key. Generate secure key for production: openssl rand -hex 32
       keys: ['test-cookie-key-12345678901234567890123456789012'],
     },
     claims: {

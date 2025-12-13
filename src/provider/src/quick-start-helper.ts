@@ -29,6 +29,7 @@ export const displayQuickStartInfo = () => {
   console.log('\n🔐 Default Test Credentials:');
   console.log('   Email: admin@localhost');
   console.log('   Password: Rays-93-Accident');
+  console.log('   ⚠️  WARNING: Development-only credentials. Change in production!');
   
   console.log('\n⚙️  Quick Configuration:');
   console.log('   • Using auto-detected preset for easy setup');
