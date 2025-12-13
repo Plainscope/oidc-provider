@@ -137,8 +137,17 @@ export const validateProductionConfig = () => {
   }
 
   // Check cookie keys
-  if (!process.env.COOKIES_KEYS && !process.env.COOKIES_DEFAULT_KEY) {
+  if (!process.env.COOKIES_KEYS) {
     errors.push('Cookie keys must be explicitly configured in production (COOKIES_KEYS)');
+  } else {
+    try {
+      const parsed = JSON.parse(process.env.COOKIES_KEYS);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        errors.push('COOKIES_KEYS must be a non-empty JSON array of keys');
+      }
+    } catch (e) {
+      errors.push('COOKIES_KEYS is not valid JSON: ' + (e instanceof Error ? e.message : String(e)));
+    }
   }
 
   // Check client secrets
