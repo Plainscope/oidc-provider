@@ -6,7 +6,8 @@ Supports SQLite-based persistence with relational entities.
 import os
 import logging
 from urllib.parse import quote
-from flask import Flask, request, abort, jsonify, render_template, redirect, url_for
+from flask import Flask, request, abort, jsonify, render_template, redirect, url_for, session
+from flask_session import Session
 
 # Configure logging
 logging.basicConfig(
@@ -28,6 +29,15 @@ from routes import (
 
 app = Flask(__name__, template_folder='views')
 
+# Configure Flask-Session for server-side session management
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'true').lower() == 'true'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours
+Session(app)
+
 # Initialize database on startup
 def init_app():
     """Initialize application."""
@@ -47,6 +57,7 @@ def init_app():
 
 # Optional bearer token for API security
 BEARER_TOKEN = os.environ.get('BEARER_TOKEN')
+app.config['BEARER_TOKEN'] = BEARER_TOKEN
 if BEARER_TOKEN:
     logger.info('[INIT] Bearer token authentication enabled')
 
@@ -63,6 +74,7 @@ try:
     csrf.exempt(property_keys_bp)
     csrf.exempt(audit_bp)
     csrf.exempt(legacy_bp)
+    csrf.exempt(ui_bp)  # Exempt UI blueprint (login endpoint)
 except Exception as e:
     logger.warning(f'[INIT] CSRFProtect not configured: {e}')
 
@@ -88,23 +100,27 @@ def check_bearer_token():
 @app.before_request
 def verify_auth():
     """Verify authorization for all requests."""
-    # Allow unauthenticated health checks, UI routes, login, static assets, and favicon
-    # UI routes are protected client-side via JavaScript checks
-    if request.path in ['/', '/login', '/healthz', '/ui', '/favicon.ico']:
+    # Allow unauthenticated health checks and static assets
+    if request.path in ['/', '/login', '/healthz', '/favicon.ico']:
         return
     
-    
-    if any(request.path.startswith(p) for p in ['/static/', '/login', '/favicon']):
+    if any(request.path.startswith(p) for p in ['/static/', '/favicon']):
         return
     
+    # Public API endpoints that don't require authentication
     if request.path in ['/count', '/validate'] or request.path.startswith('/find/'):
         return
     
-    if not check_bearer_token():
-        # For API requests, return 401
-        if request.path.startswith('/api/'):
+    # API requests require bearer token
+    if request.path.startswith('/api/'):
+        if not check_bearer_token():
             abort(401)
-        # For UI requests, redirect to login
+        return
+    
+    # UI routes require valid session
+    # UI routes are those that serve HTML pages (not /api/)
+    if not session.get('authenticated'):
+        # Redirect to login with return URL
         return redirect(url_for('ui.ui_login') + '?redirectTo=' + quote(request.full_path))
 
 
