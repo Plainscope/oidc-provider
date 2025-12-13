@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Simple OIDC Provider - The modern replacement for qlik/simple-oidc-provider. Production-ready OAuth 2.0 and OpenID Connect server for local development and self-hosted scenarios.">
+    <meta name="keywords" content="OIDC, OAuth2, OpenID Connect, authentication, self-hosted, local development, qlik alternative">
+    <title>Simple OIDC Provider - Modern OAuth 2.0 for Local & Self-Hosted</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+
+        nav a:hover {
+            opacity: 0.8;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6rem 0 4rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .hero .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        .hero .problem-statement {
+            font-size: 1.2rem;
+            margin: 2rem auto;
+            max-width: 800px;
+            padding: 1.5rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Code Example */
+        .code-example {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem auto;
+            max-width: 600px;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 4rem 0;
+            background: #f8f9fa;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #2c3e50;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+
+        .feature-card .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        /* Comparison Section */
+        .comparison {
+            padding: 4rem 0;
+        }
+
+        .comparison h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #2c3e50;
+        }
+
+        .comparison-table {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            text-align: left;
+        }
+
+        .comparison-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .check {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .cross {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        /* Use Cases */
+        .use-cases {
+            padding: 4rem 0;
+            background: #f8f9fa;
+        }
+
+        .use-cases h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #2c3e50;
+        }
+
+        .use-case-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .use-case {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .use-case h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+        .use-case .scenario {
+            color: #666;
+            margin-bottom: 1rem;
+            font-style: italic;
+        }
+
+        .use-case .solution {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        /* Quick Start */
+        .quick-start {
+            padding: 4rem 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .quick-start h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .quick-start-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .step {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .step .number {
+            font-size: 3rem;
+            font-weight: bold;
+            opacity: 0.7;
+            margin-bottom: 1rem;
+        }
+
+        .step h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Footer */
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 3rem 0 1rem;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h3 {
+            margin-bottom: 1rem;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section a {
+            color: #ecf0f1;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-section a:hover {
+            color: #3498db;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #34495e;
+            padding-top: 1rem;
+            text-align: center;
+            color: #95a5a6;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero .subtitle {
+                font-size: 1.2rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .comparison-table {
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav class="container">
+            <div class="logo">🔐 Simple OIDC Provider</div>
+            <ul>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#comparison">Compare</a></li>
+                <li><a href="#use-cases">Use Cases</a></li>
+                <li><a href="#quick-start">Quick Start</a></li>
+                <li><a href="https://github.com/Plainscope/oidc-provider">GitHub</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Simple OIDC Provider</h1>
+            <p class="subtitle">The Modern OAuth 2.0 Server for Local Development & Self-Hosted Scenarios</p>
+            
+            <div class="problem-statement">
+                <strong>🎯 Problem:</strong> <code>qlik/simple-oidc-provider</code> is no longer maintained, leaving developers without a modern, reliable OIDC solution for local development and self-hosting.
+                <br><br>
+                <strong>✅ Solution:</strong> Simple OIDC Provider is the actively-maintained replacement with modern features, comprehensive documentation, and production-ready security.
+            </div>
+
+            <div class="cta-buttons">
+                <a href="#quick-start" class="btn btn-primary">Get Started in 60 Seconds</a>
+                <a href="https://github.com/Plainscope/oidc-provider" class="btn btn-secondary">View on GitHub</a>
+            </div>
+
+            <div class="code-example">
+                <div>$ docker run -p 8080:8080 plainscope/simple-oidc-provider</div>
+                <div style="color: #4ec9b0; margin-top: 0.5rem;"># That's it! OIDC provider running at http://localhost:8080</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2>🚀 Why Choose Simple OIDC Provider?</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="icon">⚡</div>
+                    <h3>Zero Configuration</h3>
+                    <p>Start with a single Docker command. Auto-detects your environment and applies sensible defaults. No complex setup required.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🔒</div>
+                    <h3>Production Ready</h3>
+                    <p>Secure by default with HTTPS support, token validation, CSRF protection, and comprehensive security headers. Ready for real deployments.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🎨</div>
+                    <h3>Smart Presets</h3>
+                    <p>Automatic configuration presets for local development, self-hosted production, and CI/CD testing. No manual tuning needed.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">👥</div>
+                    <h3>User Management UI</h3>
+                    <p>Built-in web interface for managing users, groups, roles, and domains. No command-line required.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">💾</div>
+                    <h3>Persistent Storage</h3>
+                    <p>SQLite-based persistence for tokens, sessions, and users. Data survives container restarts.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">📚</div>
+                    <h3>Comprehensive Docs</h3>
+                    <p>Extensive documentation with examples, troubleshooting guides, and migration paths from qlik/simple-oidc-provider.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🐳</div>
+                    <h3>Docker Native</h3>
+                    <p>Optimized Docker images (~180MB) with multi-stage builds. Kubernetes-ready with health checks.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">✅</div>
+                    <h3>Fully Compliant</h3>
+                    <p>Complete OAuth 2.0 (RFC 6749) and OpenID Connect 1.0 implementation. Supports all standard flows.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="icon">🔧</div>
+                    <h3>Active Maintenance</h3>
+                    <p>Regular updates, security patches, and new features. Community-driven development on GitHub.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section id="comparison" class="comparison">
+        <div class="container">
+            <h2>📊 How We Compare</h2>
+            
+            <div class="comparison-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Simple OIDC</th>
+                            <th>qlik/simple-oidc</th>
+                            <th>Keycloak</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Active Maintenance</strong></td>
+                            <td class="check">✅ Yes</td>
+                            <td class="cross">❌ Abandoned</td>
+                            <td class="check">✅ Yes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Docker Image Size</strong></td>
+                            <td class="check">✅ ~180MB</td>
+                            <td>⚠️ Larger</td>
+                            <td>❌ 500MB+</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Setup Time</strong></td>
+                            <td class="check">✅ 60 seconds</td>
+                            <td class="check">✅ 2 minutes</td>
+                            <td class="cross">❌ 15+ minutes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>User Management UI</strong></td>
+                            <td class="check">✅ Built-in</td>
+                            <td class="cross">❌ None</td>
+                            <td class="check">✅ Advanced</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Auto-Configuration</strong></td>
+                            <td class="check">✅ Smart Presets</td>
+                            <td class="cross">❌ Manual</td>
+                            <td class="cross">❌ Complex</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Persistent Storage</strong></td>
+                            <td class="check">✅ SQLite</td>
+                            <td class="cross">❌ Memory Only</td>
+                            <td class="check">✅ Database</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Documentation</strong></td>
+                            <td class="check">✅ Comprehensive</td>
+                            <td>⚠️ Limited</td>
+                            <td class="check">✅ Extensive</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Best For</strong></td>
+                            <td>🎯 Local Dev, Self-Hosted</td>
+                            <td>❌ (Unmaintained)</td>
+                            <td>🏢 Large Enterprises</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Use Cases Section -->
+    <section id="use-cases" class="use-cases">
+        <div class="container">
+            <h2>💼 Perfect For Your Scenario</h2>
+            <div class="use-case-grid">
+                <div class="use-case">
+                    <h3>🖥️ Local Development</h3>
+                    <p class="scenario"><strong>Scenario:</strong> You're building a web app and need to test OAuth login flows on your laptop.</p>
+                    <div class="solution">
+docker run -p 8080:8080 plainscope/simple-oidc-provider
+
+# Provider ready at http://localhost:8080
+# Test with: admin@localhost / Rays-93-Accident
+                    </div>
+                </div>
+
+                <div class="use-case">
+                    <h3>🏢 Self-Hosted Team</h3>
+                    <p class="scenario"><strong>Scenario:</strong> Small team needs authentication without paying for Auth0 or Okta.</p>
+                    <div class="solution">
+docker run -p 8080:8080 \
+  -e OIDC_PRESET=selfHosted \
+  -e ISSUER=https://auth.company.com \
+  -e CLIENT_ID=your-app \
+  -v ./data:/app/data \
+  plainscope/simple-oidc-provider
+                    </div>
+                </div>
+
+                <div class="use-case">
+                    <h3>🔄 CI/CD Pipeline</h3>
+                    <p class="scenario"><strong>Scenario:</strong> Your automated tests need a real OIDC provider.</p>
+                    <div class="solution">
+# GitHub Actions
+services:
+  oidc:
+    image: plainscope/simple-oidc-provider
+    env:
+      OIDC_PRESET: testing
+    ports:
+      - 8080:8080
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section id="quick-start" class="quick-start">
+        <div class="container">
+            <h2>⚡ Get Started in 60 Seconds</h2>
+            <div class="quick-start-steps">
+                <div class="step">
+                    <div class="number">1</div>
+                    <h3>Run Docker Command</h3>
+                    <p>One command starts everything</p>
+                    <div class="code-example" style="margin-top: 1rem;">
+docker run -p 8080:8080<br/>
+plainscope/simple-oidc-provider
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="number">2</div>
+                    <h3>Test Discovery</h3>
+                    <p>Verify it's running</p>
+                    <div class="code-example" style="margin-top: 1rem;">
+curl http://localhost:8080<br/>
+/.well-known/<br/>
+openid-configuration
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="number">3</div>
+                    <h3>Start Coding!</h3>
+                    <p>Integrate with your app</p>
+                    <div class="code-example" style="margin-top: 1rem;">
+CLIENT_ID=local-dev<br/>
+CLIENT_SECRET=<br/>
+local-dev-secret<br/>
+ISSUER=localhost:8080
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 3rem;">
+                <a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/guides/quickstart.md" class="btn btn-primary">
+                    View Full Quick Start Guide
+                </a>
+                <a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/guides/migration-from-qlik.md" class="btn btn-secondary">
+                    Migrate from qlik/simple-oidc-provider
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Documentation</h3>
+                    <ul>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/guides/quickstart.md">Quick Start</a></li>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/guides/installation.md">Installation</a></li>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/configuration/environment-variables.md">Configuration</a></li>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/guides/troubleshooting.md">Troubleshooting</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>Guides</h3>
+                    <ul>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/guides/migration-from-qlik.md">Migration from qlik</a></li>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/guides/docker-deployment.md">Docker Deployment</a></li>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/guides/production-deployment.md">Production Setup</a></li>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/guides/security.md">Security Guide</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>API Reference</h3>
+                    <ul>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/api/endpoints.md">Endpoints</a></li>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/api/oauth-flows.md">OAuth Flows</a></li>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/docs/api/token-endpoints.md">Token Management</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>Community</h3>
+                    <ul>
+                        <li><a href="https://github.com/Plainscope/oidc-provider">GitHub Repository</a></li>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/issues">Report Issues</a></li>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/discussions">Discussions</a></li>
+                        <li><a href="https://github.com/Plainscope/oidc-provider/blob/main/CONTRIBUTING.md">Contributing</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 Plainscope. Licensed under MIT License.</p>
+                <p>Simple OIDC Provider - The modern replacement for qlik/simple-oidc-provider</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
