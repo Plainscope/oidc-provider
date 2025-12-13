@@ -93,7 +93,7 @@ test.describe('Directory Service Authentication', () => {
     await page.waitForURL(`${BASE_URL}/`);
 
     // Wait for API call to complete
-    await page.waitForTimeout(1000);
+    await page.waitForRequest(request => request.url().includes('/api/users'));
 
     // Verify API calls include Bearer token
     const usersApiCall = apiCalls.find(call => call.url.includes('/api/users'));

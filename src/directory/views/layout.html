@@ -30,19 +30,17 @@
       if (authToken) { headers.set('Authorization', authToken); }
       return fetch(url, { ...options, headers });
     }
-    // Check if user is authenticated before loading the page
-    window.addEventListener('DOMContentLoaded', () => {
-      const authToken = document.querySelector('meta[name="auth-token"]')?.getAttribute('content') ||
-        sessionStorage.getItem('directoryAuthToken');
-      const currentPath = window.location.pathname;
+    // Check if user is authenticated - script is at the end of body, so DOM is already loaded
+    const authToken = document.querySelector('meta[name="auth-token"]')?.getAttribute('content') ||
+      sessionStorage.getItem('directoryAuthToken');
+    const currentPath = window.location.pathname;
 
-      // Don't check auth on login page or root
-      if (currentPath !== '/login' && !currentPath.startsWith('/error')) {
-        if (!authToken) {
-          window.location.href = '/login?redirectTo=' + encodeURIComponent(currentPath);
-        }
+    // Don't check auth on login page or root
+    if (currentPath !== '/login' && !currentPath.startsWith('/error')) {
+      if (!authToken) {
+        window.location.href = '/login?redirectTo=' + encodeURIComponent(currentPath);
       }
-    });
+    }
     // Handle unauthorized responses
     window.addEventListener('fetch', (e) => {
       if (e.response && e.response.status === 401) {

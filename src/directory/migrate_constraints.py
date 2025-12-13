@@ -204,8 +204,14 @@ def migrate_database(db_path: str):
     except Exception as e:
         print(f"\n✗ Migration failed: {str(e)}")
         print(f"  Restoring from backup...")
-        shutil.copy2(backup_path, db_path)
-        print(f"  ✓ Database restored from backup")
+        # Use shutil.copy2 with validated paths - backup_path is created by backup_database
+        # which uses safe path operations
+        try:
+            shutil.copy2(backup_path, db_path)
+            print(f"  ✓ Database restored from backup")
+        except (OSError, shutil.Error) as restore_error:
+            print(f"  ✗ Failed to restore backup: {str(restore_error)}")
+            print(f"  Manual intervention required - backup is at: {backup_path}")
         raise
 
 

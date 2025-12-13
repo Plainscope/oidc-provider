@@ -71,10 +71,7 @@ test.describe('SQLite Adapter Persistence', () => {
     await authenticatedPage.goBack();
     await authenticatedPage.waitForLoadState('networkidle');
 
-    // Wait a bit for the page to fully render
-    await authenticatedPage.waitForTimeout(500);
-
-    // Should still be authenticated
+    // Wait for sign out button to be visible instead of arbitrary timeout
     await expect(signOutButton).toBeVisible({ timeout: 10000 });
 
     // Session data persisted in database should still be valid

@@ -6,6 +6,7 @@ import { User } from "./user";
 import { IDirectory } from "./directory";
 import { Account } from "oidc-provider";
 import { Profile } from "./profile";
+import { AccountNotFoundError } from "./errors";
 
 export class RemoteDirectory implements IDirectory {
   private baseUrl: string;
@@ -88,7 +89,8 @@ export class RemoteDirectory implements IDirectory {
 
     if (!response.ok) {
       console.error(`[RemoteDirectory] User not found after fallback: ${id}`);
-      return undefined;
+      // Signal upstream to trigger a re-login flow
+      throw new AccountNotFoundError(id);
     }
 
     console.log(`[RemoteDirectory] User found: ${id}`);

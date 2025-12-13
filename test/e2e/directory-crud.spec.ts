@@ -180,9 +180,8 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.click('button:has-text("Create")', { force: true });
 
     // Should succeed - verify both groups exist
-    await page.waitForTimeout(1000);
     const groupRows = page.locator(`tr:has-text("${testGroupName}")`);
-    await expect(groupRows).toHaveCount(2);
+    await expect(groupRows).toHaveCount(2, { timeout: 5000 });
   });
 
   test('should enforce user email uniqueness', async ({ page }) => {
