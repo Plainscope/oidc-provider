@@ -155,6 +155,21 @@ export const validateProductionConfig = () => {
     errors.push('Default development client secret detected in production');
   }
 
+  // Check for test cookie keys
+  if (process.env.COOKIES_KEYS) {
+    try {
+      const parsed = JSON.parse(process.env.COOKIES_KEYS);
+      if (Array.isArray(parsed)) {
+        const testKey = 'test-cookie-key-12345678901234567890123456789012';
+        if (parsed.some(key => key === testKey)) {
+          errors.push('Test-only cookie key detected in production. Generate a secure key: openssl rand -hex 32');
+        }
+      }
+    } catch {
+      // Already handled above
+    }
+  }
+
   // Check preset
   if (process.env.OIDC_PRESET === 'local' || process.env.OIDC_PRESET === 'testing') {
     warnings.push(`Development preset "${process.env.OIDC_PRESET}" is being used in production`);

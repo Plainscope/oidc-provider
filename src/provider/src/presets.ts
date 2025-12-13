@@ -14,6 +14,32 @@ const generateSecureRandom = (bytes: number = 32): string => {
 };
 
 /**
+ * Deep merge helper that properly handles nested objects
+ * Ensures baseConfig values override presetConfig values at all levels
+ */
+const deepMerge = (target: any, source: any): any => {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) {
+    return source;
+  }
+  
+  const result = { ...target };
+  
+  for (const key in source) {
+    if (source.hasOwnProperty(key)) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        // Deep merge objects
+        result[key] = deepMerge(result[key] || {}, source[key]);
+      } else {
+        // For arrays and primitives, source takes precedence
+        result[key] = source[key];
+      }
+    }
+  }
+  
+  return result;
+};
+
+/**
  * Preset configurations for different deployment scenarios
  */
 export const PRESETS = {
@@ -142,9 +168,11 @@ export const PRESETS = {
       } as ClientMetadata,
     ],
     cookies: {
-      // WARNING: Test-only key. Generate secure key for production: openssl rand -hex 32
-      keys: ['test-cookie-key-12345678901234567890123456789012'],
-    },
+      // WARNING: Secure random key generated for testing/CI only.
+      // NEVER use this preset or generated key in production.
+      // For production, generate a secure key: openssl rand -hex 32
+      keys: [generateSecureRandom(32)],
+    } as any,
     claims: {
       openid: ['sub', 'sid'],
       email: ['email', 'email_verified'],
@@ -196,11 +224,6 @@ export const detectEnvironmentPreset = (): string => {
     return 'testing';
   }
 
-  // Check for Docker environment with minimal config
-  if (process.env.DOCKER === 'true' && !process.env.CLIENT_ID) {
-    return 'local';
-  }
-
   // Check if issuer is localhost
   const issuer = process.env.ISSUER || `http://localhost:${process.env.PORT || 8080}`;
   if (issuer.includes('localhost') || issuer.includes('127.0.0.1')) {
@@ -223,15 +246,7 @@ export const applyPreset = (
   
   const presetConfig = getPreset(preset);
   
-  // Merge preset with base config (base config takes precedence)
-  return {
-    ...presetConfig,
-    ...baseConfig,
-    // Special handling for nested objects
-    clients: baseConfig.clients || presetConfig.clients,
-    cookies: { ...presetConfig.cookies, ...baseConfig.cookies },
-    claims: { ...presetConfig.claims, ...baseConfig.claims },
-    features: { ...presetConfig.features, ...baseConfig.features },
-    ttl: { ...presetConfig.ttl, ...baseConfig.ttl },
-  };
+  // Deep merge preset with base config (base config takes precedence)
+  // This ensures nested properties are properly merged rather than replaced
+  return deepMerge(presetConfig, baseConfig);
 };
