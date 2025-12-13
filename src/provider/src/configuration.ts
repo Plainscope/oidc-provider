@@ -276,13 +276,12 @@ if (presetName) {
   configuration = applyPreset(configuration, presetName) as Configuration;
 } else if (applyAutoPreset) {
   const detectedPreset = detectEnvironmentPreset();
-  // Only auto-apply for local and testing presets to avoid unexpected production changes
-  if (detectedPreset === 'local' || detectedPreset === 'testing') {
+  if (detectedPreset) {
     console.log(`[CONFIG] Auto-applying detected preset: ${detectedPreset}`);
     console.log('[CONFIG] To disable auto-presets, set OIDC_AUTO_PRESET=false');
     configuration = applyPreset(configuration, detectedPreset) as Configuration;
   } else {
-    console.log(`[CONFIG] Detected preset "${detectedPreset}" but not auto-applying (set OIDC_PRESET to apply explicitly)`);
+    console.log('[CONFIG] No environment preset detected; proceeding without auto-application.');
   }
 }
 
