@@ -173,6 +173,12 @@ const provider = new Provider(ISSUER, {
         const clientCfg = Array.isArray(configuration.clients) && configuration.clients[0] ? configuration.clients[0] as any : {};
         const clientId = process.env.CLIENT_ID || clientCfg.client_id;
         const redirectUri = (process.env.REDIRECT_URIS || (clientCfg.redirect_uris && clientCfg.redirect_uris[0])) as string;
+        
+        // Ensure required parameters are present
+        if (!clientId || !redirectUri) {
+          throw new Error('Missing client configuration for login redirect');
+        }
+        
         const scopes = (configuration.scopes && configuration.scopes.join(' ')) || 'openid profile email';
         const loginUrl = `/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&prompt=login`;
         ctx.status = 303;

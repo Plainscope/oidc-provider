@@ -92,63 +92,63 @@
     }
 
     // Form submission
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        errorDiv.classList.add('hidden');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorDiv.classList.add('hidden');
 
-        const token = tokenInput.value.trim();
-        if (!token) {
-          showError('Please enter a token');
+      const token = tokenInput.value.trim();
+      if (!token) {
+        showError('Please enter a token');
+        return;
+      }
+
+      // Disable button and show spinner
+      loginBtn.disabled = true;
+      spinner.classList.remove('hidden');
+      btnText.textContent = 'Signing in...';
+
+      try {
+        // Test the token with a simple API call
+        const response = await fetch('/api/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.status === 401) {
+          showError('Invalid token. Please check and try again.');
           return;
         }
 
-        // Disable button and show spinner
-        loginBtn.disabled = true;
-        spinner.classList.remove('hidden');
-        btnText.textContent = 'Signing in...';
-
-        try {
-          // Test the token with a simple API call
-          const response = await fetch('/api/users', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (response.status === 401) {
-            showError('Invalid token. Please check and try again.');
-            return;
-          }
-
-          if (!response.ok) {
-            showError(`Error: ${response.statusText}`);
-            return;
-          }
-
-          // Token is valid
-          if (rememberCheckbox.checked) {
-            localStorage.setItem('directoryAuthToken', token);
-          } else {
-            localStorage.removeItem('directoryAuthToken');
-          }
-
-          // Store token in session and redirect
-          sessionStorage.setItem('directoryAuthToken', token);
-          window.location.href = '/';
-        } catch (err) {
-          showError('Network error. Please check your connection.');
-          console.error('Login error:', err);
-        } finally {
-          loginBtn.disabled = false;
-          spinner.classList.add('hidden');
-          btnText.textContent = 'Sign In';
+        if (!response.ok) {
+          showError(`Error: ${response.statusText}`);
+          return;
         }
-      });
 
-      function showError(message) {
-        errorText.textContent = message;
-        errorDiv.classList.remove('hidden');
+        // Token is valid
+        if (rememberCheckbox.checked) {
+          localStorage.setItem('directoryAuthToken', token);
+        } else {
+          localStorage.removeItem('directoryAuthToken');
+        }
+
+        // Store token in session and redirect
+        sessionStorage.setItem('directoryAuthToken', token);
+        window.location.href = '/';
+      } catch (err) {
+        showError('Network error. Please check your connection.');
+        console.error('Login error:', err);
+      } finally {
+        loginBtn.disabled = false;
+        spinner.classList.add('hidden');
+        btnText.textContent = 'Sign In';
       }
+    });
+
+    function showError(message) {
+      errorText.textContent = message;
+      errorDiv.classList.remove('hidden');
+    }
   </script>
 </body>
 
