@@ -4,7 +4,51 @@
 [![Docker Image](https://img.shields.io/badge/docker-plainscope%2Fsimple--oidc--provider-blue.svg)](https://hub.docker.com/r/plainscope/simple-oidc-provider)
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Plainscope%2Foidc--provider-blue.svg)](https://github.com/Plainscope/oidc-provider)
 
-A production-ready OAuth 2.0 (RFC 6749) Authorization Server with complete OpenID Connect (OIDC) support, built on [node-oidc-provider](https://github.com/panva/node-oidc-provider).
+> **The modern replacement for `qlik/simple-oidc-provider`** - A production-ready OAuth 2.0 Authorization Server with complete OpenID Connect support, specifically designed for **local development** and **self-hosted scenarios**.
+
+## 🎯 Problem Statement
+
+Many developers need a simple, reliable OIDC provider for:
+- **Local Development**: Testing OAuth flows without external dependencies
+- **Self-Hosted Deployments**: Small teams needing authentication without SaaS costs
+- **CI/CD Pipelines**: Automated testing of authentication flows
+- **Prototyping**: Rapid application development with real authentication
+
+The popular `qlik/simple-oidc-provider` is **no longer maintained**, leaving developers without a modern, actively-supported solution.
+
+**Simple OIDC Provider solves this problem** with:
+- ✅ Active maintenance and security updates
+- ✅ Production-ready with zero configuration
+- ✅ Docker-first design for easy deployment
+- ✅ Modern TypeScript implementation
+- ✅ Comprehensive documentation
+- ✅ Built-in user management UI
+
+## ⚡ Quick Start (60 Seconds)
+
+### One-Command Start
+
+```bash
+docker run -p 8080:8080 plainscope/simple-oidc-provider
+```
+
+That's it! Visit `http://localhost:8080` and you have a working OIDC provider.
+
+**Default credentials:**
+- Email: `admin@localhost`
+- Password: `Rays-93-Accident`
+
+**Discovery endpoint:** `http://localhost:8080/.well-known/openid-configuration`
+
+### Docker Compose (Recommended)
+
+```bash
+git clone https://github.com/Plainscope/oidc-provider.git
+cd oidc-provider
+docker-compose up
+```
+
+Access the provider at `http://localhost:8080`
 
 ## Features
 
@@ -49,6 +93,126 @@ A production-ready OAuth 2.0 (RFC 6749) Authorization Server with complete OpenI
 - Comprehensive error logging
 - RESTful API design
 - Well-documented endpoints
+- **Auto-configuration presets** for local/self-hosted/testing
+- **Quick start wizard** for first-time setup
+
+## 🚀 Why Choose Simple OIDC Provider?
+
+### vs. qlik/simple-oidc-provider (Unmaintained)
+
+| Feature | Simple OIDC Provider | qlik/simple-oidc-provider |
+|---------|---------------------|---------------------------|
+| Maintenance | ✅ Active | ❌ Discontinued |
+| Modern Stack | ✅ TypeScript, Latest Node | ❌ Outdated |
+| User Management UI | ✅ Full-featured | ❌ None |
+| Auto-configuration | ✅ Smart presets | ❌ Manual only |
+| SQLite Persistence | ✅ Built-in | ❌ Memory only |
+| Security Updates | ✅ Regular | ❌ None |
+| Docker Image Size | ✅ ~180MB | ⚠️ Larger |
+| Documentation | ✅ Comprehensive | ⚠️ Limited |
+
+### vs. Keycloak
+
+- ✅ **Lightweight**: 180MB vs 500MB+
+- ✅ **Simple**: Zero configuration start vs complex setup
+- ✅ **Fast**: Starts in seconds vs minutes
+- ❌ **Limited**: Basic features vs enterprise features
+- ✅ **Perfect for**: Local dev, small teams, testing
+- ❌ **Not for**: Large enterprises needing LDAP/AD, complex SSO
+
+### vs. Auth0/Okta (SaaS)
+
+- ✅ **Self-hosted**: Your infrastructure, your data
+- ✅ **Free**: No per-user costs
+- ✅ **Offline**: Works without internet
+- ✅ **Private**: Data never leaves your network
+- ❌ **Limited**: Basic features vs enterprise SaaS
+- ✅ **Perfect for**: Development, testing, small deployments
+
+## 📦 Migration from qlik/simple-oidc-provider
+
+Migrating is straightforward:
+
+### 1. Update Docker Image
+
+```diff
+- image: qlik/simple-oidc-provider
++ image: plainscope/simple-oidc-provider
+```
+
+### 2. Environment Variables (Compatible)
+
+All environment variables work the same way:
+
+```bash
+CLIENT_ID=your-client-id
+CLIENT_SECRET=your-secret
+REDIRECT_URIS=http://localhost:3000/callback
+```
+
+### 3. New Features Available
+
+```bash
+# Optional: Use auto-configuration presets
+OIDC_PRESET=local  # or selfHosted, testing
+
+# Optional: Enable user management UI
+DIRECTORY_TYPE=remote
+DIRECTORY_BASE_URL=http://directory:5000
+```
+
+### 4. That's It!
+
+No code changes needed. Your existing OAuth flows continue working.
+
+## 🎨 Configuration Presets
+
+Simple OIDC Provider includes smart presets that auto-configure based on your environment:
+
+### Local Development Preset
+
+```bash
+# Auto-detected when ISSUER contains localhost
+docker run -p 8080:8080 -e OIDC_PRESET=local plainscope/simple-oidc-provider
+```
+
+**Features:**
+- Pre-configured localhost redirects
+- Relaxed security for convenience
+- Development interactions enabled
+- Extended debug logging
+
+### Self-Hosted Preset
+
+```bash
+# For small teams and production self-hosting
+docker run -p 8080:8080 \
+  -e OIDC_PRESET=selfHosted \
+  -e ISSUER=https://auth.yourcompany.com \
+  -e CLIENT_ID=your-app \
+  -e CLIENT_SECRET=$(openssl rand -hex 32) \
+  -e REDIRECT_URIS=https://app.yourcompany.com/callback \
+  plainscope/simple-oidc-provider
+```
+
+**Features:**
+- Production-ready security
+- Balanced token lifetimes
+- Multiple OAuth flows
+- Audit logging ready
+
+### Testing/CI Preset
+
+```bash
+# For automated testing and CI/CD
+docker run -p 8080:8080 -e OIDC_PRESET=testing plainscope/simple-oidc-provider
+```
+
+**Features:**
+- Short token lifetimes
+- Predictable test credentials
+- Fast startup
+- Minimal logging
 
 ## Quick Start
 
