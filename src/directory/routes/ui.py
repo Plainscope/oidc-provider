@@ -104,8 +104,17 @@ def register_ui_routes(bp):
             )
         except Exception as e:
             logger.error(f'Error getting dashboard stats: {e}')
-            # Fallback to basic page if stats fail
-            return render_template('index.html', title='Simple Directory', current_tab='users', auth_token=token)
+            # Render dashboard with error message if stats fail
+            return render_template(
+                'dashboard.html',
+                title='Dashboard - Simple Directory',
+                current_tab='dashboard',
+                auth_token=token,
+                stats=None,
+                recent_activity=None,
+                environment='Development' if current_app.config.get('ENV') == 'development' else 'Production',
+                error_message='An error occurred while loading dashboard statistics. Please try again later.'
+            )
 
     @bp.route('/ui', methods=['GET'])
     def ui_dashboard():
