@@ -54,6 +54,8 @@
         </div>
         <div class="flex items-center gap-4">
           <a href="/"
+            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'dashboard' else 'text-gray-600' }}">Dashboard</a>
+          <a href="/users"
             class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'users' else 'text-gray-600' }}">Users</a>
           <a href="/roles"
             class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'roles' else 'text-gray-600' }}">Roles</a>

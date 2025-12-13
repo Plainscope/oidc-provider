@@ -2,9 +2,11 @@ import { ClientMetadata, Configuration } from 'oidc-provider';
 import crypto from 'node:crypto';
 import path from "node:path";
 import fs from "node:fs";
+import { applyPreset, detectEnvironmentPreset } from './presets';
 
 // Log configuration loading
 console.log('[CONFIG] Loading OIDC configuration...');
+console.log('[CONFIG] Environment preset detection:', detectEnvironmentPreset());
 
 // File path to the config.json file (can be overridden)
 const configFilePath = process.env.CONFIG_FILE || path.join(__dirname, 'config.json');
@@ -264,6 +266,25 @@ if (configuration.jwks && Array.isArray(configuration.jwks.keys) && configuratio
 }
 
 console.log('[CONFIG] Final merged configuration:', configuration);
+
+// Apply preset if enabled (but only if OIDC_PRESET is explicitly set or in development mode)
+const presetName = process.env.OIDC_PRESET;
+const applyAutoPreset = process.env.OIDC_AUTO_PRESET !== 'false'; // Default to true
+
+if (presetName) {
+  console.log(`[CONFIG] Applying explicit preset: ${presetName}`);
+  configuration = applyPreset(configuration, presetName) as Configuration;
+} else if (applyAutoPreset) {
+  const detectedPreset = detectEnvironmentPreset();
+  // Only auto-apply for local and testing presets to avoid unexpected production changes
+  if (detectedPreset === 'local' || detectedPreset === 'testing') {
+    console.log(`[CONFIG] Auto-applying detected preset: ${detectedPreset}`);
+    console.log('[CONFIG] To disable auto-presets, set OIDC_AUTO_PRESET=false');
+    configuration = applyPreset(configuration, detectedPreset) as Configuration;
+  } else {
+    console.log(`[CONFIG] Detected preset "${detectedPreset}" but not auto-applying (set OIDC_PRESET to apply explicitly)`);
+  }
+}
 
 // Ensure cookie signing keys are present; generate a dev-safe key if missing/empty
 try {
