@@ -1,0 +1,158 @@
+{% extends 'layout.html' %}
+{% set current_tab = 'dashboard' %}
+{% block content %}
+<div class="space-y-6">
+    <!-- Header Section -->
+    <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+        <h1 class="text-3xl font-bold mb-2">🏠 User Directory Dashboard</h1>
+        <p class="text-blue-100">Simple OIDC Provider - User Management Interface</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-gradient-to-br from-purple-500 to-purple-700 text-white rounded-lg p-6 shadow-lg">
+            <div class="text-4xl font-bold mb-2">{{ stats.total_users }}</div>
+            <div class="text-purple-100">Total Users</div>
+        </div>
+        <div class="bg-gradient-to-br from-pink-500 to-red-500 text-white rounded-lg p-6 shadow-lg">
+            <div class="text-4xl font-bold mb-2">{{ stats.total_domains }}</div>
+            <div class="text-pink-100">Domains</div>
+        </div>
+        <div class="bg-gradient-to-br from-cyan-500 to-blue-500 text-white rounded-lg p-6 shadow-lg">
+            <div class="text-4xl font-bold mb-2">{{ stats.total_groups }}</div>
+            <div class="text-cyan-100">Groups</div>
+        </div>
+        <div class="bg-gradient-to-br from-green-500 to-teal-500 text-white rounded-lg p-6 shadow-lg">
+            <div class="text-4xl font-bold mb-2">{{ stats.total_roles }}</div>
+            <div class="text-green-100">Roles</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">🚀 Quick Actions</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <a href="{{ url_for('ui.users') }}" class="flex flex-col items-center justify-center p-4 border-2 border-blue-500 rounded-lg hover:bg-blue-50 transition-colors">
+                <span class="text-2xl mb-2">👥</span>
+                <span class="text-sm font-medium text-blue-600">Manage Users</span>
+            </a>
+            <a href="{{ url_for('ui.ui_domains') }}" class="flex flex-col items-center justify-center p-4 border-2 border-purple-500 rounded-lg hover:bg-purple-50 transition-colors">
+                <span class="text-2xl mb-2">🌐</span>
+                <span class="text-sm font-medium text-purple-600">Manage Domains</span>
+            </a>
+            <a href="{{ url_for('ui.ui_groups') }}" class="flex flex-col items-center justify-center p-4 border-2 border-red-500 rounded-lg hover:bg-red-50 transition-colors">
+                <span class="text-2xl mb-2">👨‍👩‍👧‍👦</span>
+                <span class="text-sm font-medium text-red-600">Manage Groups</span>
+            </a>
+            <a href="{{ url_for('ui.ui_roles') }}" class="flex flex-col items-center justify-center p-4 border-2 border-teal-500 rounded-lg hover:bg-teal-50 transition-colors">
+                <span class="text-2xl mb-2">🎭</span>
+                <span class="text-sm font-medium text-teal-600">Manage Roles</span>
+            </a>
+            <a href="{{ url_for('ui.ui_audit') }}" class="flex flex-col items-center justify-center p-4 border-2 border-yellow-500 rounded-lg hover:bg-yellow-50 transition-colors">
+                <span class="text-2xl mb-2">📋</span>
+                <span class="text-sm font-medium text-yellow-600">Audit Logs</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Getting Started Guide -->
+    <div class="bg-gray-50 rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">📚 Getting Started</h2>
+        <div class="bg-white rounded-lg p-4 mb-4">
+            <h3 class="text-lg font-semibold text-blue-600 mb-2">Welcome to Simple OIDC Provider!</h3>
+            <p class="text-gray-700 leading-relaxed">
+                This is a production-ready OAuth 2.0 Authorization Server with complete OpenID Connect support,
+                designed specifically for <strong>local development</strong> and <strong>self-hosted scenarios</strong>.
+                It replaces the unmaintained <code class="bg-gray-100 px-2 py-1 rounded text-sm">qlik/simple-oidc-provider</code>.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-2">🔐 OIDC Endpoints</h4>
+                <ul class="text-sm text-gray-600 space-y-1">
+                    <li><code class="bg-gray-100 px-2 py-1 rounded text-xs">/.well-known/openid-configuration</code></li>
+                    <li><code class="bg-gray-100 px-2 py-1 rounded text-xs">/auth</code> - Authorization</li>
+                    <li><code class="bg-gray-100 px-2 py-1 rounded text-xs">/token</code> - Token endpoint</li>
+                    <li><code class="bg-gray-100 px-2 py-1 rounded text-xs">/me</code> - UserInfo</li>
+                </ul>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-2">📖 Documentation</h4>
+                <ul class="text-sm space-y-1">
+                    <li><a href="https://github.com/Plainscope/oidc-provider" target="_blank" class="text-blue-600 hover:underline">GitHub Repository</a></li>
+                    <li><a href="https://github.com/Plainscope/oidc-provider/tree/main/docs" target="_blank" class="text-blue-600 hover:underline">Full Documentation</a></li>
+                    <li><a href="https://github.com/Plainscope/oidc-provider/tree/main/docs/guides" target="_blank" class="text-blue-600 hover:underline">Setup Guides</a></li>
+                </ul>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-2">💡 Key Features</h4>
+                <ul class="text-sm text-gray-600 space-y-1">
+                    <li>✅ OAuth 2.0 & OIDC compliant</li>
+                    <li>✅ Docker-ready deployment</li>
+                    <li>✅ SQLite persistence</li>
+                    <li>✅ User-friendly UI</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    {% if recent_activity and recent_activity|length > 0 %}
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">📊 Recent Activity</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entity Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entity ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for activity in recent_activity %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ activity.action }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.entity_type }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono" title="{{ activity.entity_id }}">
+                                {{ activity.entity_id[:8] }}...
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ activity.created_at }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- System Information -->
+    <div class="bg-gray-800 text-white rounded-lg p-6">
+        <h3 class="text-lg font-semibold mb-4">ℹ️ System Information</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+                <div class="text-gray-400 text-sm">Version</div>
+                <div class="font-semibold">{{ version }}</div>
+            </div>
+            <div>
+                <div class="text-gray-400 text-sm">Environment</div>
+                <div class="font-semibold">{{ environment }}</div>
+            </div>
+            <div>
+                <div class="text-gray-400 text-sm">Database</div>
+                <div class="font-semibold">SQLite</div>
+            </div>
+            <div>
+                <div class="text-gray-400 text-sm">Status</div>
+                <div class="font-semibold text-green-400">● Active</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
