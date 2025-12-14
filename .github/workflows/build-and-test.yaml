@@ -75,6 +75,14 @@ jobs:
             done
           '
 
+      - name: Install test dependencies
+        run: npm install
+        working-directory: ./test
+
+      - name: Install Playwright browsers
+        run: npm run playwright:install
+        working-directory: ./test
+
       - name: Run tests
         run: npm run test:e2e
         working-directory: ./test
