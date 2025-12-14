@@ -5,13 +5,27 @@ const BASE_URL = 'http://localhost:7080';
 const BEARER_TOKEN = 'sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth';
 const INVALID_TOKEN = 'sk-invalid-token-12345';
 
+async function login(page, redirectTo: string = '/') {
+  const redirectPath = redirectTo.startsWith('/') ? redirectTo : `/${redirectTo}`;
+  await page.goto(`${BASE_URL}/login${redirectPath !== '/' ? `?redirectTo=${encodeURIComponent(redirectPath)}` : ''}`);
+
+  await page.fill('input#token', BEARER_TOKEN);
+  await Promise.all([
+    page.waitForURL(url => url.toString().startsWith(`${BASE_URL}${redirectPath}`)),
+    page.click('button:has-text("Sign In")')
+  ]);
+
+  // Verify the auth token meta is available for subsequent API calls
+  await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN);
+}
+
 test.describe('Directory Service Authentication', () => {
   test('should redirect to login when not authenticated', async ({ page }) => {
     await page.goto(`${BASE_URL}/`);
 
     // Should be redirected to login page
     await expect(page).toHaveURL(/\/login/);
-    await expect(page.locator('h1')).toContainText('Remote Directory');
+    await expect(page.locator('h1')).toContainText('Simple Directory');
   });
 
   test('should show login form with required fields', async ({ page }) => {
@@ -34,44 +48,39 @@ test.describe('Directory Service Authentication', () => {
   });
 
   test('should successfully login with valid bearer token', async ({ page }) => {
-    await page.goto(`${BASE_URL}/login`);
-
-    // Enter valid token
-    await page.fill('input[type="password"]', BEARER_TOKEN);
-    await page.click('button:has-text("Sign In")');
+    await login(page);
 
     // Should redirect to home page (users view) after successful login
-    await page.waitForURL(`${BASE_URL}/`, { timeout: 5000 });
     await expect(page).toHaveURL(`${BASE_URL}/`);
 
-    // Verify token stored in sessionStorage
-    const token = await page.evaluate(() => sessionStorage.getItem('directoryAuthToken'));
-    expect(token).toBe(BEARER_TOKEN);
+    // Verify token is exposed for API calls via meta tag
+    await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN);
   });
 
   test('should persist authentication across page navigation', async ({ page }) => {
-    // Login first
-    await page.goto(`${BASE_URL}/login`);
-    await page.fill('input[type="password"]', BEARER_TOKEN);
-    await page.click('button:has-text("Sign In")');
-    await page.waitForURL(`${BASE_URL}/`);
+    await login(page);
 
     // Navigate to different pages
-    await page.click('a[href="/roles"]');
-    await expect(page).toHaveURL(`${BASE_URL}/roles`);
+    await Promise.all([
+      page.waitForURL(`${BASE_URL}/roles`),
+      page.click('a[href="/roles"]', { force: true })
+    ]);
     await expect(page.locator('h2').first()).toContainText('Roles');
 
-    await page.click('a[href="/groups"]');
-    await expect(page).toHaveURL(`${BASE_URL}/groups`);
+    await Promise.all([
+      page.waitForURL(`${BASE_URL}/groups`),
+      page.click('a[href="/groups"]', { force: true })
+    ]);
     await expect(page.locator('h2').first()).toContainText('Groups');
 
-    await page.click('a[href="/domains"]');
-    await expect(page).toHaveURL(`${BASE_URL}/domains`);
+    await Promise.all([
+      page.waitForURL(`${BASE_URL}/domains`),
+      page.click('a[href="/domains"]', { force: true })
+    ]);
     await expect(page.locator('h2').first()).toContainText('Domains');
 
-    // Token should still be in sessionStorage
-    const token = await page.evaluate(() => sessionStorage.getItem('directoryAuthToken'));
-    expect(token).toBe(BEARER_TOKEN);
+    // Token should still be available for API calls
+    await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN);
   });
 
   test('should make authenticated API calls with Bearer token', async ({ page }) => {
@@ -87,10 +96,10 @@ test.describe('Directory Service Authentication', () => {
     });
 
     // Login
-    await page.goto(`${BASE_URL}/login`);
-    await page.fill('input[type="password"]', BEARER_TOKEN);
-    await page.click('button:has-text("Sign In")');
-    await page.waitForURL(`${BASE_URL}/`);
+    await login(page);
+
+    // Navigate to a page that triggers API calls
+    await page.goto(`${BASE_URL}/users`);
 
     // Wait for API call to complete
     await page.waitForRequest(request => request.url().includes('/api/users'));
@@ -102,36 +111,25 @@ test.describe('Directory Service Authentication', () => {
   });
 
   test('should logout and clear authentication', async ({ page }) => {
-    // Login first
-    await page.goto(`${BASE_URL}/login`);
-    await page.fill('input[type="password"]', BEARER_TOKEN);
-    await page.click('button:has-text("Sign In")');
-    await page.waitForURL(`${BASE_URL}/`);
+    await login(page);
 
-    // Verify token exists
-    let token = await page.evaluate(() => sessionStorage.getItem('directoryAuthToken'));
-    expect(token).toBe(BEARER_TOKEN);
+    // Logout via the header link
+    await page.locator('a[title="Sign out"]').click({ force: true });
 
-    // Logout (click the logout button - it's an SVG icon button)
-    await page.locator('button[title="Sign out"]').click();
-
-    // Should redirect to login page
+    // Should redirect to login page and no auth token meta present
     await expect(page).toHaveURL(`${BASE_URL}/login`);
+    await expect(page.locator('meta[name="auth-token"]')).toHaveCount(0);
 
-    // Token should be cleared from sessionStorage
-    token = await page.evaluate(() => sessionStorage.getItem('directoryAuthToken'));
-    expect(token).toBeNull();
+    // Accessing dashboard again should bounce back to login
+    await page.goto(`${BASE_URL}/`);
+    await expect(page).toHaveURL(/\/login/);
   });
 
   test('should redirect to login when accessing protected page after logout', async ({ page }) => {
-    // Login
-    await page.goto(`${BASE_URL}/login`);
-    await page.fill('input[type="password"]', BEARER_TOKEN);
-    await page.click('button:has-text("Sign In")');
-    await page.waitForURL(`${BASE_URL}/`);
+    await login(page);
 
     // Logout
-    await page.locator('button[title="Sign out"]').click();
+    await page.locator('a[title="Sign out"]').click({ force: true });
     await expect(page).toHaveURL(`${BASE_URL}/login`);
 
     // Try to access protected page directly
@@ -152,28 +150,24 @@ test.describe('Directory Service Authentication', () => {
     await page.fill('input[type="password"]', BEARER_TOKEN);
     await page.click('button:has-text("Sign In")');
 
-    // Should redirect (currently goes to home, not preserved URL)
-    // Note: Redirect preservation appears not implemented yet
-    await expect(page).toHaveURL(`${BASE_URL}/`);
+    // Should redirect to the originally requested page
+    await expect(page).toHaveURL(/\/domains/);
   });
 
   test('should handle API 401 responses by redirecting to login', async ({ page }) => {
-    // Login with valid token
-    await page.goto(`${BASE_URL}/login`);
-    await page.fill('input[type="password"]', BEARER_TOKEN);
-    await page.click('button:has-text("Sign In")');
-    await page.waitForURL(`${BASE_URL}/`);
+    await login(page, '/users');
 
-    // Manually corrupt the token in sessionStorage
+    // Corrupt the in-page auth token so subsequent API calls get a 401
     await page.evaluate(() => {
-      sessionStorage.setItem('directoryAuthToken', 'sk-corrupted-token');
+      const meta = document.querySelector('meta[name="auth-token"]');
+      if (meta) meta.setAttribute('content', 'sk-invalid-token');
     });
 
-    // Reload the page - should trigger API call with corrupted token
-    await page.reload();
-
-    // Should redirect to login due to 401 response
-    await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
+    // Trigger an API call that will fail and should redirect to login
+    await Promise.all([
+      page.waitForURL(/\/login/, { timeout: 5000 }),
+      page.evaluate(() => window.csrfFetch('/api/users'))
+    ]);
   });
 
   test('should not allow access to API endpoints without authentication', async ({ request }) => {

@@ -8,12 +8,27 @@ import { test, expect } from '@playwright/test';
 const DIRECTORY_BASE_URL = process.env.DIRECTORY_URL || 'http://localhost:7080';
 const BEARER_TOKEN = process.env.DIRECTORY_BEARER_TOKEN || 'sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth';
 
+async function login(page) {
+  await page.goto(`${DIRECTORY_BASE_URL}/login`);
+
+  await page.fill('input#token', BEARER_TOKEN);
+  await Promise.all([
+    page.waitForURL(url => url.toString().startsWith(`${DIRECTORY_BASE_URL}/`)),
+    page.click('button:has-text("Sign In")')
+  ]);
+
+  await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN);
+}
+
 test.describe('Directory CRUD Operations with Security', () => {
   test.beforeEach(async ({ page }) => {
     // Set Bearer token header for authorization
     await page.setExtraHTTPHeaders({
       'Authorization': `Bearer ${BEARER_TOKEN}`
     });
+
+    // Establish an authenticated UI session for protected pages
+    await login(page);
   });
 
   test('should load roles page with CSRF token', async ({ page }) => {
@@ -53,8 +68,9 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.click('button:has-text("Create")', { force: true });
 
     // Should show error banner instead of closing
-    await expect(page.locator('div.bg-red-50')).toBeVisible();
-    await expect(page.locator('div.bg-red-50')).toContainText(/already exists|duplicate/i);
+    const roleError = page.locator('div.bg-red-50').first();
+    await expect(roleError).toBeVisible();
+    await expect(roleError).toContainText(/already exists|duplicate/i);
   });
 
   test('should enforce domain name uniqueness', async ({ page }) => {
@@ -127,8 +143,9 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.click('button:has-text("Create")', { force: true });
 
     // Should show error
-    await expect(page.locator('div.bg-red-50')).toBeVisible();
-    await expect(page.locator('div.bg-red-50')).toContainText(/already exists.*domain/i);
+    const groupError = page.locator('div.bg-red-50').first();
+    await expect(groupError).toBeVisible();
+    await expect(groupError).toContainText(/already exists.*domain/i);
   });
 
   test('should allow same group name in different domains', async ({ page }) => {
@@ -345,8 +362,9 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.click('button:has-text("Create")', { force: true });
 
     // Should show error message
-    await expect(page.locator('div.bg-red-50')).toBeVisible();
-    await expect(page.locator('div.bg-red-50')).toContainText(/name is required/i);
+    const roleRequiredError = page.locator('div.bg-red-50').first();
+    await expect(roleRequiredError).toBeVisible();
+    await expect(roleRequiredError).toContainText(/name is required/i);
   });
 
   test('should reject empty group name', async ({ page }) => {
@@ -366,7 +384,7 @@ test.describe('Directory CRUD Operations with Security', () => {
 
     // Try to create group with empty name
     await page.click('button:has-text("Add Group")');
-    await page.fill('input[placeholder="Name"]', '');
+    await page.fill('input[placeholder*="Name"]', '');
     // Select domain from dropdown if present
     if (await page.locator('select').count() > 0) {
       await page.selectOption('select', domainId);
@@ -375,8 +393,9 @@ test.describe('Directory CRUD Operations with Security', () => {
     await page.click('button:has-text("Create")', { force: true });
 
     // Should show error message
-    await expect(page.locator('div.bg-red-50')).toBeVisible();
-    await expect(page.locator('div.bg-red-50')).toContainText(/name is required/i);
+    const groupRequiredError = page.locator('div.bg-red-50').first();
+    await expect(groupRequiredError).toBeVisible();
+    await expect(groupRequiredError).toContainText(/name is required/i);
   });
 
   test('should reject empty username', async ({ page }) => {

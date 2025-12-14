@@ -43,10 +43,10 @@ def register_ui_routes(bp):
             # Return success - token is now in server session
             return jsonify({'success': True}), 200
 
-    @bp.route('/logout', methods=['POST'])
+    @bp.route('/logout', methods=['POST', 'GET'])
     def ui_logout():
-        """Logout endpoint - clears session."""
-        logger.info('[AUTH] POST /logout')
+        """Logout endpoint - clears session and redirects to login."""
+        logger.info('[AUTH] /logout')
         session.clear()
         return redirect(url_for('ui.ui_login')), 302
 
