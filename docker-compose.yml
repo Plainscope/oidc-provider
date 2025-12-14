@@ -10,6 +10,7 @@ services:
       USERS_FILE: /app/config/users.json
       DATABASE_FILE: /data/directory.db
       BEARER_TOKEN: ${DIRECTORY_BEARER_TOKEN:-sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth}
+      SESSION_COOKIE_SECURE: false
     volumes:
       - ${DIRECTORY_USERS_FILE:-./docker/provider/users.json}:/app/config/users.json:ro
       - directory-data:/data:rw
