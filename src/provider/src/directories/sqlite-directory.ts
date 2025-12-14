@@ -80,7 +80,7 @@ export class SqliteDirectory implements IDirectory {
   private dbPath: string;
 
   constructor(dbPath?: string) {
-    this.dbPath = dbPath || process.env.DIRECTORY_DATABASE_FILE || path.join(__dirname, '../../data/users.db');
+    this.dbPath = dbPath || process.env.DIRECTORY_DATABASE_FILE || path.join(process.cwd(), 'data/users.db');
     
     // Ensure database directory exists
     const dbDir = path.dirname(this.dbPath);
@@ -274,9 +274,9 @@ export class SqliteDirectory implements IDirectory {
           valid = false;
         }
       } else {
-        // For plain text passwords (legacy support, not recommended)
-        console.warn(`[SqliteDirectory] Plain text password detected for user ${sqliteUser.id}. Consider migrating to bcrypt.`);
-        valid = password === storedPassword;
+        // Reject plain text passwords for security
+        console.error(`[SqliteDirectory] Plain text password detected for user ${sqliteUser.id}. Authentication denied. User must use bcrypt-hashed password.`);
+        valid = false;
       }
 
       if (!valid) {
