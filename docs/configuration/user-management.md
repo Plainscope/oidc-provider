@@ -4,21 +4,27 @@ Guide for managing user authentication and profiles in the OIDC provider.
 
 ## User Storage Options
 
-The OIDC provider supports two approaches for user management:
+The OIDC provider supports three approaches for user management:
 
-### 1. Local Storage (Default)
+### 1. JSON File Storage (Local - Default)
 
 Users are loaded from a JSON file at startup. This is suitable for development, testing, and small deployments.
 
-See [below](#local-user-database) for configuration details.
+See [JSON File Storage](#json-file-storage) below for configuration details.
 
-### 2. Remote Directory (Enterprise)
+### 2. SQLite Database (Local)
+
+Users are stored in a local SQLite database file. This provides relational data model with support for multiple emails, roles, groups, domains, and audit logging. Ideal for self-hosted scenarios where you want structured data without external dependencies.
+
+See [SQLite Database Storage](#sqlite-database-storage) below for configuration details.
+
+### 3. Remote Directory (Enterprise)
 
 Users are managed by an external HTTP service. This is ideal for enterprise integration with existing identity systems, Active Directory, LDAP, or other user management platforms.
 
 **See [Remote Directory Configuration](remote-directory.md)** for detailed setup instructions.
 
-## Local User Database
+## JSON File Storage
 
 Located at `/app/dist/users.json` (inside container).
 
@@ -38,6 +44,136 @@ services:
     volumes:
       - ./users.json:/app/dist/users.json:ro
 ```
+
+## SQLite Database Storage
+
+Use a local SQLite database for structured user storage with support for multiple emails, roles, groups, domains, and audit logging.
+
+### Configuration
+
+Set the directory type to `sqlite`:
+
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -e DIRECTORY_TYPE=sqlite \
+  -e DIRECTORY_DATABASE_FILE=/app/data/users.db \
+  -v ./data:/app/data \
+  plainscope/simple-oidc-provider
+```
+
+Or in Docker Compose:
+
+```yaml
+services:
+  oidc-provider:
+    environment:
+      DIRECTORY_TYPE: sqlite
+      DIRECTORY_DATABASE_FILE: /app/data/users.db
+    volumes:
+      - ./data:/app/data
+```
+
+### Environment Variables
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `DIRECTORY_TYPE` | String | `local` | Set to `sqlite` to use SQLite database |
+| `DIRECTORY_DATABASE_FILE` | String | `/app/data/users.db` | Path to SQLite database file |
+
+### Database Schema
+
+The SQLite directory uses the same schema as the remote directory service:
+
+- **users** - User accounts with username, password, domain
+- **user_emails** - Multiple email addresses per user (with primary flag)
+- **user_properties** - Flexible key-value store for custom attributes
+- **roles** - Global roles
+- **groups** - Domain-scoped groups
+- **user_roles** - User-to-role assignments
+- **user_groups** - User-to-group assignments
+- **domains** - Multi-tenancy support
+- **audit_logs** - Change tracking for compliance
+
+### Features
+
+✅ **Relational Data Model**: Proper foreign keys and constraints  
+✅ **Multiple Emails**: Support for multiple email addresses per user  
+✅ **Roles & Groups**: Fine-grained access control  
+✅ **Custom Properties**: Store additional user attributes  
+✅ **Audit Logging**: Track all changes for compliance  
+✅ **Password Security**: Bcrypt password hashing  
+✅ **Performance**: SQLite's B-tree indexing for fast lookups  
+✅ **Zero External Dependencies**: No separate database server required  
+
+### Using with Remote Directory Database
+
+The SQLite directory is compatible with the database created by the remote directory service. You can:
+
+1. **Start with Remote Directory** for the management UI
+2. **Share the Database** with the provider using SQLite directory
+3. **Run Both Together** in the same container or separate containers
+
+Example with shared database:
+
+```yaml
+services:
+  oidc-provider:
+    environment:
+      DIRECTORY_TYPE: sqlite
+      DIRECTORY_DATABASE_FILE: /app/data/users.db
+    volumes:
+      - user-data:/app/data
+  
+  remote-directory:
+    environment:
+      DATABASE_FILE: /app/data/users.db
+    volumes:
+      - user-data:/app/data
+
+volumes:
+  user-data:
+```
+
+### Initializing the Database
+
+The SQLite directory will use an existing database if available. To create and populate a database:
+
+1. **Use the Remote Directory Service** (recommended):
+   ```bash
+   docker run -d \
+     -p 7080:5000 \
+     -e DATABASE_FILE=/app/data/users.db \
+     -e BEARER_TOKEN=your-secret-token \
+     -v ./data:/app/data \
+     plainscope/simple-oidc-provider-directory
+   ```
+   
+   Access the web UI at `http://localhost:7080` to manage users.
+
+2. **Or use the database initialization script** (if available in your setup).
+
+### Migration from JSON to SQLite
+
+To migrate from JSON file storage to SQLite:
+
+1. Start the remote directory service with your database path
+2. Use the API or web UI to import users from your JSON file
+3. Configure the provider to use `DIRECTORY_TYPE=sqlite`
+4. Point to the same database file
+
+### Advantages over JSON File
+
+| Feature | JSON File | SQLite Database |
+|---------|-----------|-----------------|
+| Multiple emails per user | ❌ | ✅ |
+| Roles and groups | Limited | ✅ Full support |
+| Custom properties | Limited | ✅ Unlimited |
+| Concurrent access | ⚠️ Read-only | ✅ Safe concurrent access |
+| Change tracking | ❌ | ✅ Audit logs |
+| Query performance | O(n) | O(log n) with indexes |
+| Management UI | ❌ | ✅ Via remote directory |
+| Data integrity | ❌ | ✅ Foreign keys & constraints |
 
 ## User Data Structure
 
