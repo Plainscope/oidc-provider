@@ -43,26 +43,90 @@ def register_ui_routes(bp):
             # Return success - token is now in server session
             return jsonify({'success': True}), 200
 
-    @bp.route('/logout', methods=['POST'])
+    @bp.route('/logout', methods=['POST', 'GET'])
     def ui_logout():
-        """Logout endpoint - clears session."""
-        logger.info('[AUTH] POST /logout')
+        """Logout endpoint - clears session and redirects to login."""
+        logger.info('[AUTH] /logout')
         session.clear()
         return redirect(url_for('ui.ui_login')), 302
 
     @bp.route('/', methods=['GET'])
     def ui_home():
-        """GET / - Render the user management UI."""
+        """GET / - Render the user management dashboard with stats."""
         logger.info('[API] GET /')
         token = session.get('token')
-        return render_template('index.html', title='Simple Directory', current_tab='users', auth_token=token)
+        
+        # Get statistics for dashboard
+        from database import get_db
+        db = get_db()
+        
+        try:
+            # Count users
+            cursor = db.execute('SELECT COUNT(*) as count FROM users')
+            total_users = cursor.fetchone()['count']
+            
+            # Count domains
+            cursor = db.execute('SELECT COUNT(*) as count FROM domains')
+            total_domains = cursor.fetchone()['count']
+            
+            # Count groups
+            cursor = db.execute('SELECT COUNT(*) as count FROM groups')
+            total_groups = cursor.fetchone()['count']
+            
+            # Count roles
+            cursor = db.execute('SELECT COUNT(*) as count FROM roles')
+            total_roles = cursor.fetchone()['count']
+            
+            # Get recent activity
+            cursor = db.execute('''
+                SELECT entity_type, entity_id, action, created_at
+                FROM audit_logs
+                ORDER BY created_at DESC
+                LIMIT 5
+            ''')
+            recent_activity = [dict(row) for row in cursor.fetchall()]
+            
+            stats = {
+                'total_users': total_users,
+                'total_domains': total_domains,
+                'total_groups': total_groups,
+                'total_roles': total_roles
+            }
+            
+            return render_template(
+                'dashboard.html',
+                title='Dashboard - Simple Directory',
+                current_tab='dashboard',
+                auth_token=token,
+                stats=stats,
+                recent_activity=recent_activity,
+                environment='Development' if current_app.config.get('ENV') == 'development' else 'Production'
+            )
+        except Exception as e:
+            logger.error(f'Error getting dashboard stats: {e}')
+            # Render dashboard with error message if stats fail
+            return render_template(
+                'dashboard.html',
+                title='Dashboard - Simple Directory',
+                current_tab='dashboard',
+                auth_token=token,
+                stats=None,
+                recent_activity=None,
+                environment='Development' if current_app.config.get('ENV') == 'development' else 'Production',
+                error_message='An error occurred while loading dashboard statistics. Please try again later.'
+            )
 
     @bp.route('/ui', methods=['GET'])
     def ui_dashboard():
-        """GET /ui - Render the user management dashboard."""
-        logger.info('[API] GET /ui')
+        """GET /ui - Alias for dashboard."""
+        return ui_home()
+
+    @bp.route('/users', methods=['GET'])
+    def users():
+        """GET /users - Render the users page."""
+        logger.info('[API] GET /users')
         token = session.get('token')
-        return render_template('index.html', title='Simple Directory', current_tab='users', auth_token=token)
+        return render_template('index.html', title='Users', current_tab='users', auth_token=token)
 
     @bp.route('/roles', methods=['GET'])
     def ui_roles():

@@ -11,6 +11,7 @@ import useDirectory, { IDirectory } from './directories/directory';
 import useInteractions from './routes/interactions';
 import useSqliteAdapter from './sqlite-adapter';
 import { AccountNotFoundError } from './directories/errors';
+import { displayQuickStartInfo, validateProductionConfig } from './quick-start-helper';
 
 /**
  * Security headers middleware
@@ -122,6 +123,9 @@ const validateEnvironment = () => {
 
 // Validate environment before proceeding
 validateEnvironment();
+
+// Validate production configuration
+validateProductionConfig();
 
 const PORT = process.env.PORT || 8080;
 const ISSUER = process.env.ISSUER || `http://localhost:${PORT}`;
@@ -262,6 +266,9 @@ const server = app.listen(PORT, () => {
     .then(count => console.log(`[SERVER] Number of users: ${count}`))
     .catch(err => console.error('[SERVER] Failed to count users:', err instanceof Error ? err.message : err));
   console.log(`[SERVER] Proxy mode is ${provider.proxy ? 'enabled' : 'disabled'}`);
+  
+  // Display quick start information for local development
+  displayQuickStartInfo();
 });
 
 // Graceful shutdown

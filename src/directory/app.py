@@ -100,8 +100,8 @@ def check_bearer_token():
 @app.before_request
 def verify_auth():
     """Verify authorization for all requests."""
-    # Allow unauthenticated health checks and static assets
-    if request.path in ['/', '/login', '/healthz', '/favicon.ico']:
+    # Allow unauthenticated health checks, logout, and static assets
+    if request.path in ['/', '/login', '/logout', '/healthz', '/favicon.ico']:
         return
     
     if any(request.path.startswith(p) for p in ['/static/', '/favicon']):
