@@ -3,13 +3,18 @@
  * Main server entry point. Sets up Express, OIDC Provider, and all routes.
  */
 import express, { Express, Request, Response, NextFunction } from 'express';
+import cookieParser from 'cookie-parser';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Provider } from 'oidc-provider';
 import { configuration } from './configuration';
 import useDirectory, { IDirectory } from './directories/directory';
+import { SqliteDirectory } from './directories/sqlite-directory';
+import { initializeSqliteDirectory } from './directories/sqlite-seeder';
 import useInteractions from './routes/interactions';
+import { registerManagementRoutes } from './routes/management';
 import useSqliteAdapter from './sqlite-adapter';
+import Database from 'better-sqlite3';
 import { AccountNotFoundError } from './directories/errors';
 import { displayQuickStartInfo, validateProductionConfig } from './quick-start-helper';
 
@@ -156,6 +161,27 @@ const DIRECTORY_CONFIG = process.env.DIRECTORY_CONFIG ? JSON.parse(process.env.D
 const directory: IDirectory = useDirectory(DIRECTORY_TYPE as 'local' | 'remote' | 'sqlite', DIRECTORY_CONFIG);
 console.log(`[INIT] Using directory type: ${DIRECTORY_TYPE}`);
 
+// Initialize SQLite directory if needed
+if (DIRECTORY_TYPE === 'sqlite') {
+  const dbPath = DIRECTORY_CONFIG.dbPath || process.env.DIRECTORY_DATABASE_FILE || path.join(process.cwd(), 'data/users.db');
+  const usersFile = process.env.DIRECTORY_USERS_FILE;
+  
+  console.log(`[INIT] Initializing SQLite directory at: ${dbPath}`);
+  
+  // Check if database needs seeding
+  if (!fs.existsSync(dbPath) || fs.statSync(dbPath).size === 0) {
+    console.log('[INIT] Database does not exist or is empty, will seed with initial data');
+    (async () => {
+      try {
+        await initializeSqliteDirectory(dbPath, usersFile);
+        console.log('[INIT] SQLite directory initialized successfully');
+      } catch (error) {
+        console.error('[INIT] Failed to initialize SQLite directory:', error);
+      }
+    })();
+  }
+}
+
 /**
  * Main entry point for OIDC Provider server.
  * Sets up Express, view engine, static files, and OIDC routes.
@@ -226,6 +252,10 @@ provider.use(async (ctx, next) => {
 app.use(express.static('./public'));
 console.log('[INIT] Serving static files from ./public');
 
+// Cookie parser for management UI sessions
+app.use(cookieParser());
+console.log('[INIT] Cookie parser enabled');
+
 // Apply security headers to all routes
 app.use(securityHeaders);
 console.log('[INIT] Security headers middleware enabled');
@@ -238,6 +268,16 @@ console.log('[INIT] URL-encoded body parser enabled');
 app.get('/healthz', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+// Register management UI routes for SQLite directory
+if (DIRECTORY_TYPE === 'sqlite' && directory instanceof SqliteDirectory) {
+  const dbPath = DIRECTORY_CONFIG.dbPath || process.env.DIRECTORY_DATABASE_FILE || path.join(process.cwd(), 'data/users.db');
+  const managementDb = new Database(dbPath);
+  managementDb.pragma('foreign_keys = ON');
+  
+  registerManagementRoutes(app, directory, managementDb);
+  console.log('[INIT] Management UI routes registered at /mgmt');
+}
 
 // Register OIDC interaction routes
 useInteractions(app, provider, directory);

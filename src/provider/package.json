@@ -12,6 +12,7 @@
   "dependencies": {
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^11.8.1",
+    "cookie-parser": "^1.4.6",
     "express": "^5.2.1",
     "oidc-provider": "^9.5.2",
     "pug": "^3.0.3",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/cookie-parser": "^1.4.7",
     "@types/node": "^20.19.26",
     "@types/oidc-provider": "^9.5.0",
     "@types/validator": "^13.11.0",

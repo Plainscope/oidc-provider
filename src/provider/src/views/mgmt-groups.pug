@@ -1,0 +1,53 @@
+extends mgmt-layout
+
+block content
+  style.
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    thead {
+      background: #f7fafc;
+    }
+    th {
+      text-align: left;
+      padding: 1rem;
+      font-weight: 600;
+      color: #4a5568;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    tr:hover {
+      background: #f7fafc;
+    }
+    h1 {
+      color: #2d3748;
+      margin-bottom: 1.5rem;
+    }
+  
+  .card
+    h1 Groups
+    
+    if groups && groups.length > 0
+      table
+        thead
+          tr
+            th Name
+            th Domain
+            th Description
+            th Users
+            th Created
+        tbody
+          each group in groups
+            tr
+              td= group.name
+              td= group.domain_name
+              td= group.description || 'N/A'
+              td= group.user_count || 0
+              td= new Date(group.created_at).toLocaleDateString()
+    else
+      p No groups found.

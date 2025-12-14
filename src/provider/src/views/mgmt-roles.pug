@@ -1,0 +1,51 @@
+extends mgmt-layout
+
+block content
+  style.
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    thead {
+      background: #f7fafc;
+    }
+    th {
+      text-align: left;
+      padding: 1rem;
+      font-weight: 600;
+      color: #4a5568;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    tr:hover {
+      background: #f7fafc;
+    }
+    h1 {
+      color: #2d3748;
+      margin-bottom: 1.5rem;
+    }
+  
+  .card
+    h1 Roles
+    
+    if roles && roles.length > 0
+      table
+        thead
+          tr
+            th Name
+            th Description
+            th Users
+            th Created
+        tbody
+          each role in roles
+            tr
+              td= role.name
+              td= role.description || 'N/A'
+              td= role.user_count || 0
+              td= new Date(role.created_at).toLocaleDateString()
+    else
+      p No roles found.

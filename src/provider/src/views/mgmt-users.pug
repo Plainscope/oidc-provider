@@ -1,0 +1,84 @@
+extends mgmt-layout
+
+block content
+  style.
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    thead {
+      background: #f7fafc;
+    }
+    th {
+      text-align: left;
+      padding: 1rem;
+      font-weight: 600;
+      color: #4a5568;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    tr:hover {
+      background: #f7fafc;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-active {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+    .badge-inactive {
+      background: #fed7d7;
+      color: #c53030;
+    }
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      color: #2d3748;
+      margin: 0;
+    }
+  
+  .card
+    .header-actions
+      h1 Users
+      //- Future: add create user button
+      //- a.btn.btn-primary(href="/mgmt/users/new") + Add User
+    
+    if users && users.length > 0
+      table
+        thead
+          tr
+            th Username
+            th Name
+            th Email
+            th Status
+            th Created
+            th Actions
+        tbody
+          each user in users
+            tr
+              td= user.username
+              td= user.display_name || (user.first_name + ' ' + user.last_name).trim()
+              td= user.email
+              td
+                if user.is_active
+                  span.badge.badge-active Active
+                else
+                  span.badge.badge-inactive Inactive
+              td= new Date(user.created_at).toLocaleDateString()
+              td
+                a.btn.btn-secondary(href=`/mgmt/users/${user.id}`, style="padding: 0.5rem 1rem; font-size: 0.875rem;") View
+    else
+      p No users found.

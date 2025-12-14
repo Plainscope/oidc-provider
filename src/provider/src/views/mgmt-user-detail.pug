@@ -1,0 +1,161 @@
+extends mgmt-layout
+
+block content
+  style.
+    .user-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      color: #2d3748;
+      margin: 0;
+    }
+    .section {
+      margin-bottom: 2rem;
+    }
+    .section h2 {
+      color: #4a5568;
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+    .info-item {
+      padding: 1rem;
+      background: #f7fafc;
+      border-radius: 8px;
+    }
+    .info-label {
+      font-size: 0.75rem;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+    .info-value {
+      color: #2d3748;
+      font-weight: 500;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .badge-role {
+      background: #bee3f8;
+      color: #2c5282;
+    }
+    .badge-group {
+      background: #fbd38d;
+      color: #744210;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.75rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    th {
+      background: #f7fafc;
+      font-weight: 600;
+      color: #4a5568;
+    }
+  
+  .card
+    .user-header
+      div
+        h1= user.username
+        p(style="color: #718096; margin-top: 0.5rem;")= user.display_name
+      a.btn.btn-secondary(href="/mgmt/users") ← Back to Users
+    
+    .section
+      h2 Basic Information
+      .info-grid
+        .info-item
+          .info-label User ID
+          .info-value= user.id
+        .info-item
+          .info-label Username
+          .info-value= user.username
+        .info-item
+          .info-label First Name
+          .info-value= user.first_name || 'N/A'
+        .info-item
+          .info-label Last Name
+          .info-value= user.last_name || 'N/A'
+        .info-item
+          .info-label Display Name
+          .info-value= user.display_name || 'N/A'
+        .info-item
+          .info-label Domain
+          .info-value= user.domain_name
+        .info-item
+          .info-label Status
+          .info-value= user.is_active ? 'Active' : 'Inactive'
+        .info-item
+          .info-label Created At
+          .info-value= new Date(user.created_at).toLocaleString()
+    
+    .section
+      h2 Email Addresses
+      if emails && emails.length > 0
+        table
+          thead
+            tr
+              th Email
+              th Primary
+              th Verified
+          tbody
+            each email in emails
+              tr
+                td= email.email
+                td= email.is_primary ? 'Yes' : 'No'
+                td= email.is_verified ? 'Yes' : 'No'
+      else
+        p No email addresses found.
+    
+    .section
+      h2 Roles
+      if roles && roles.length > 0
+        div
+          each role in roles
+            span.badge.badge-role= role.name
+      else
+        p No roles assigned.
+    
+    .section
+      h2 Groups
+      if groups && groups.length > 0
+        div
+          each group in groups
+            span.badge.badge-group= group.name
+      else
+        p No groups assigned.
+    
+    if properties && properties.length > 0
+      .section
+        h2 Properties
+        table
+          thead
+            tr
+              th Key
+              th Value
+          tbody
+            each prop in properties
+              tr
+                td= prop.key
+                td= prop.value
