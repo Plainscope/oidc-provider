@@ -97,6 +97,20 @@ jobs:
         run: npm run test:e2e
         working-directory: ./test
 
+      - name: Publish Playwright JUnit summary
+        if: always()
+        uses: mikepenz/action-junit-report@v3
+        with:
+          report_paths: ./test/playwright-report/results.xml
+          check_name: Playwright Tests
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-html-report
+          path: ./test/playwright-report/html
+
       - name: Tear down services
         if: always()
         run: docker compose down -v
@@ -112,8 +126,3 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           path: build-and-test-logs.txt
-
-      - name: Publish Test Summary Results
-        run: npx github-actions-ctrf ctrf-report.json
-        working-directory: ./test
-        if: always()

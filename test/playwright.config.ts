@@ -22,7 +22,8 @@ export default defineConfig({
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['list'], // You can combine multiple reporters
-    ['playwright-ctrf-json-reporter', {}]
+    ['junit', { outputFile: 'playwright-report/results.xml' }],
+    ['html', { outputFolder: 'playwright-report/html', open: 'never' }],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
