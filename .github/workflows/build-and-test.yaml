@@ -1,0 +1,101 @@
+name: "Build And Test"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - src/**/*
+      - test/**/*
+  pull_request:
+    branches:
+      - main
+    paths:
+      - src/**/*
+      - test/**/*
+
+permissions:
+  checks: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  build-and-test:
+    name: "Build And Test"
+    runs-on: ubuntu-latest
+
+    services:
+      docker:
+        image: docker:20.10.16
+        options: --privileged
+        ports:
+          - 2375:2375
+        env:
+          DOCKER_TLS_CERTDIR: ""
+        volumes:
+          - /var/lib/docker
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /var/lib/docker
+          key: ${{ runner.os }}-docker-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+
+      - name: Build and run services
+        run: |
+          docker compose up -d --build
+        env:
+          DIRECTORY_BEARER_TOKEN: ${{ secrets.DIRECTORY_BEARER_TOKEN }}
+          PROVIDER_CLIENT_ID: ${{ secrets.PROVIDER_CLIENT_ID }}
+          PROVIDER_CLIENT_SECRET: ${{ secrets.PROVIDER_CLIENT_SECRET }}
+
+      - name: Wait for services to be healthy
+        run: |
+          # Wait for services to be healthy
+          docker compose exec -T provider sh -c '
+            until curl -f http://localhost:8080/healthz; do
+              echo "Waiting for provider service to be healthy..."
+              sleep 5
+            done
+          '
+          docker compose exec -T directory sh -c '
+            until curl -f http://localhost:8080/healthz; do
+              echo "Waiting for directory service to be healthy..."
+              sleep 5
+            done
+          '
+
+      - name: Run tests
+        run: npm run test:e2e
+        working-directory: ./test
+
+      - name: Tear down services
+        if: always()
+        run: docker compose down -v
+
+      - name: Generate logs on failure
+        if: failure()
+        run: |
+          docker compose logs > build-and-test-logs.txt
+        continue-on-error: true
+
+      - name: Upload logs artifact
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          path: build-and-test-logs.txt
+
+      - name: Publish Test Summary Results
+        run: npx github-actions-ctrf ctrf-report.json
+        working-directory: ./test
+        if: always()
