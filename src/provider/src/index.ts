@@ -64,6 +64,7 @@ console.log('[INIT] Starting OIDC Provider with environment:', {
   DIRECTORY_CONFIG: process.env.DIRECTORY_CONFIG ? '<set>' : undefined,
   DIRECTORY_USERS: process.env.DIRECTORY_USERS ? '<set>' : undefined,
   DIRECTORY_USERS_FILE: process.env.DIRECTORY_USERS_FILE,
+  DIRECTORY_DATABASE_FILE: process.env.DIRECTORY_DATABASE_FILE,
 });
 
 /**
@@ -145,13 +146,14 @@ const resolveDirectoryJson = (): string => {
 
 const DIRECTORY_CONFIG = process.env.DIRECTORY_CONFIG ? JSON.parse(process.env.DIRECTORY_CONFIG) : {
   json: DIRECTORY_TYPE === 'local' ? resolveDirectoryJson() : undefined,
+  dbPath: DIRECTORY_TYPE === 'sqlite' ? process.env.DIRECTORY_DATABASE_FILE : undefined,
   baseUrl: process.env.DIRECTORY_BASE_URL,
   headers: process.env.DIRECTORY_HEADERS ? JSON.parse(process.env.DIRECTORY_HEADERS) : undefined,
   countEndpoint: process.env.DIRECTORY_COUNT_ENDPOINT,
   findEndpoint: process.env.DIRECTORY_FIND_ENDPOINT,
   validateEndpoint: process.env.DIRECTORY_VALIDATE_ENDPOINT,
 };
-const directory: IDirectory = useDirectory(DIRECTORY_TYPE as 'local' | 'remote', DIRECTORY_CONFIG);
+const directory: IDirectory = useDirectory(DIRECTORY_TYPE as 'local' | 'remote' | 'sqlite', DIRECTORY_CONFIG);
 console.log(`[INIT] Using directory type: ${DIRECTORY_TYPE}`);
 
 /**
