@@ -194,7 +194,7 @@ block content
       if roles && roles.length > 0
         div#roles-list
           each role in roles
-            span.badge.badge-role.badge-removable(data-role-id=role.id)
+            span.badge.badge-role.badge-removable(data-role-id=role.id, data-role-name=role.name)
               = role.name
               button.badge-remove-btn(type="button", title="Remove role") ✕
       else
@@ -215,7 +215,7 @@ block content
       if groups && groups.length > 0
         div#groups-list
           each group in groups
-            span.badge.badge-group.badge-removable(data-group-id=group.id)
+            span.badge.badge-group.badge-removable(data-group-id=group.id, data-group-name=group.name)
               = group.name
               button.badge-remove-btn(type="button", title="Remove group") ✕
       else
@@ -274,8 +274,9 @@ block content
       // Remove role functionality
       document.querySelectorAll('#roles-list .badge-remove-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const roleId = btn.parentElement.dataset.roleId;
-          const roleName = btn.parentElement.textContent.trim().replace('✕', '').trim();
+          const badge = btn.parentElement;
+          const roleId = badge.dataset.roleId;
+          const roleName = badge.dataset.roleName;
           
           showConfirm(`Remove role "${roleName}" from this user?`, async () => {
             try {
@@ -319,8 +320,9 @@ block content
       // Remove group functionality
       document.querySelectorAll('#groups-list .badge-remove-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const groupId = btn.parentElement.dataset.groupId;
-          const groupName = btn.parentElement.textContent.trim().replace('✕', '').trim();
+          const badge = btn.parentElement;
+          const groupId = badge.dataset.groupId;
+          const groupName = badge.dataset.groupName;
           
           showConfirm(`Remove group "${groupName}" from this user?`, async () => {
             try {
