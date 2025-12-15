@@ -1,30 +1,31 @@
 /**
- * Unit tests for SqliteDirectory
+ * Unit tests for SqliteDirectory using compiled provider code
  */
-import { test, describe } from 'node:test';
-import assert from 'node:assert';
-import { SqliteDirectory } from '../../src/provider/src/directories/sqlite-directory';
-import Database from 'better-sqlite3';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as bcrypt from 'bcrypt';
+const { describe, it } = require('node:test');
+const assert = require('node:assert');
+const path = require('node:path');
+const os = require('node:os');
+const fs = require('node:fs');
+const Database = require('better-sqlite3');
+const bcrypt = require('bcrypt');
 
-import * as os from 'os';
+const providerDist = path.resolve(__dirname, '../../src/provider/dist');
+const { SqliteDirectory } = require(path.join(providerDist, 'directories/sqlite-directory'));
 
 const TEST_DB_PATH = path.join(os.tmpdir(), 'test-sqlite-directory.db');
 
 describe('SqliteDirectory', () => {
-  
-  test('should create database and tables on initialization', async () => {
+
+  it('should create database and tables on initialization', async () => {
     // Clean up any existing test database
     if (fs.existsSync(TEST_DB_PATH)) {
       fs.unlinkSync(TEST_DB_PATH);
     }
-    
+
     // Create a minimal database schema for testing
     const db = new Database(TEST_DB_PATH);
     db.pragma('foreign_keys = ON');
-    
+
     // Create tables
     db.exec(`
       CREATE TABLE domains (
@@ -110,74 +111,74 @@ describe('SqliteDirectory', () => {
         FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
       );
     `);
-    
+
     // Insert test data
     const domainId = '00000000-0000-0000-0000-000000000001';
     const userId = '8276bb5b-d0b7-41e9-a805-77b62a2865f4';
     const emailId = '00000000-0000-0000-0000-000000000002';
     const roleId = '00000000-0000-0000-0000-000000000003';
     const groupId = '00000000-0000-0000-0000-000000000004';
-    
+
     // Hash the test password
-    const hashedPassword = await bcrypt.hash('Rays-93-Accident', 10);
-    
+    const hashedPassword = bcrypt.hashSync('Rays-93-Accident', 10);
+
     db.prepare('INSERT INTO domains (id, name, description, is_default) VALUES (?, ?, ?, ?)').run(
       domainId, 'localhost', 'Default domain', 1
     );
-    
+
     db.prepare('INSERT INTO users (id, username, password, first_name, last_name, display_name, domain_id, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
       userId, 'admin', hashedPassword, 'Admin', 'User', 'Admin User', domainId, 1
     );
-    
+
     db.prepare('INSERT INTO user_emails (id, user_id, email, is_primary, is_verified) VALUES (?, ?, ?, ?, ?)').run(
       emailId, userId, 'admin@localhost', 1, 1
     );
-    
+
     db.prepare('INSERT INTO roles (id, name, description) VALUES (?, ?, ?)').run(
       roleId, 'admin', 'Administrator role'
     );
-    
+
     db.prepare('INSERT INTO user_roles (id, user_id, role_id) VALUES (?, ?, ?)').run(
       '00000000-0000-0000-0000-000000000005', userId, roleId
     );
-    
+
     db.prepare('INSERT INTO groups (id, name, description, domain_id) VALUES (?, ?, ?, ?)').run(
       groupId, 'admins', 'Administrators group', domainId
     );
-    
+
     db.prepare('INSERT INTO user_groups (id, user_id, group_id) VALUES (?, ?, ?)').run(
       '00000000-0000-0000-0000-000000000006', userId, groupId
     );
-    
+
     db.close();
-    
+
     // Now test the SqliteDirectory
     const directory = new SqliteDirectory(TEST_DB_PATH);
-    
+
     // Test count
     const count = await directory.count();
     assert.strictEqual(count, 1, 'Should have 1 user');
-    
+
     // Test find by ID
     const user = await directory.find(userId);
     assert.ok(user, 'Should find user by ID');
-    
+
     // Test find by email
     const userByEmail = await directory.find('admin@localhost');
     assert.ok(userByEmail, 'Should find user by email');
-    
+
     // Test validate with correct password
     const validUser = await directory.validate('admin@localhost', 'Rays-93-Accident');
     assert.ok(validUser, 'Should validate correct credentials');
-    
+
     // Test validate with incorrect password
     const invalidUser = await directory.validate('admin@localhost', 'wrong-password');
     assert.strictEqual(invalidUser, undefined, 'Should reject incorrect credentials');
-    
+
     // Test user not found
     const notFound = await directory.find('non-existent-id');
     assert.strictEqual(notFound, undefined, 'Should return undefined for non-existent user');
-    
+
     // Clean up
     directory.close();
   });
