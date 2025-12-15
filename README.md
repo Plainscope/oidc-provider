@@ -248,30 +248,38 @@ docker run -d \
 
 Complete documentation is available in the [`docs/`](./docs) directory:
 
-### Getting Started
-- **[Getting Started](./docs/guides/quickstart.md)** - Quick start guide
+### 🚀 Getting Started
+- **[Getting Started Guide](./docs/guides/getting-started.md)** ⭐ NEW - Complete guide with users.json schema and API contract
+- **[Quick Start](./docs/guides/quickstart.md)** - 60-second setup guide
 - **[Installation Guide](./docs/guides/installation.md)** - Detailed setup instructions
+- **[Directory Comparison](./docs/guides/directory-comparison.md)** - Choose the right directory type
 - **[Docker Deployment](./docs/guides/docker-deployment.md)** - Docker and Docker Compose
 - **[Development Guide](./docs/guides/development.md)** - Building and extending
 
-### Production Deployment
+### 📋 Production Deployment
 - **[Production Deployment](./docs/guides/production-deployment.md)** - Production best practices
 - **[Security Guide](./docs/guides/security.md)** - Security considerations and hardening
 - **[Performance Tuning](./docs/guides/performance-tuning.md)** - Optimization and scaling
 - **[Troubleshooting](./docs/guides/troubleshooting.md)** - Solutions to common issues
 
-### Configuration
+### ⚙️ Configuration
 - **[Environment Variables](./docs/configuration/environment-variables.md)** - All configuration options
 - **[Client Configuration](./docs/configuration/client-configuration.md)** - Register OAuth clients
 - **[User Management](./docs/configuration/user-management.md)** - Manage users and authentication
+- **[SQLite Directory](./docs/guides/sqlite-directory.md)** - SQLite directory setup
+- **[Management UI](./docs/guides/management-ui.md)** ⭐ NEW - Built-in admin interface
 - **[SQLite Adapter](./docs/configuration/sqlite-adapter.md)** - SQLite database adapter for persistent storage
 
-### API Reference
+### 🔌 Integration
+- **[Remote Directory API](./docs/guides/getting-started.md#remote-directory-api-contract)** ⭐ NEW - API contract for external directories
+- **[Remote Directory Implementation](./docs/guides/remote-directory-implementation.md)** - Build your own directory service
+
+### 📚 API Reference
 - **[API Endpoints](./docs/api/endpoints.md)** - OpenID Connect endpoints
 - **[OAuth Flows](./docs/api/oauth-flows.md)** - Supported authentication flows
 - **[Token Management](./docs/api/token-endpoints.md)** - Token handling and validation
 
-### Testing
+### 🧪 Testing
 - **[Testing Quick Start](./docs/testing/quick-start.md)** - Get running in 4 commands
 - **[Complete Testing Guide](./docs/testing/complete-guide.md)** - Full overview and features
 - **[Testing Reference](./docs/testing/reference.md)** - Comprehensive reference
