@@ -22,7 +22,7 @@
     "@types/bcrypt": "^5.0.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cookie-parser": "^1.4.7",
-    "@types/node": "^20.19.26",
+    "@types/node": "^20.19.27",
     "@types/oidc-provider": "^9.5.0",
     "@types/validator": "^13.11.0",
     "typescript": "^5.3.3"
