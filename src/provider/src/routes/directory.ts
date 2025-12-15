@@ -353,7 +353,7 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
       const roles = db.prepare(`
         SELECT r.*, COUNT(ur.user_id) as user_count
         FROM roles r
-        LEFT JOIN user_roles ur ON r.id = ur.id
+        LEFT JOIN user_roles ur ON ur.role_id = r.id
         GROUP BY r.id
         ORDER BY r.created_at DESC
       `).all();
