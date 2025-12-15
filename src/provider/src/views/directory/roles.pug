@@ -2,6 +2,16 @@ extends layout
 
 block content
   style.
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      color: #2d3748;
+      margin: 0;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -24,13 +34,27 @@ block content
     tr:hover {
       background: #f7fafc;
     }
-    h1 {
-      color: #2d3748;
-      margin-bottom: 1.5rem;
+    .action-buttons {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .btn-sm {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+    }
+    .btn-danger {
+      background: #fc8181;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #f56565;
     }
   
   .card
-    h1 Roles
+    .header-actions
+      h1 Roles
+      a.btn.btn-primary(href="/directory/roles/new") Create Role
     
     if roles && roles.length > 0
       table
@@ -49,7 +73,34 @@ block content
               td= role.user_count || 0
               td= new Date(role.created_at).toLocaleDateString()
               td
-                a.btn.btn-secondary(href=`/directory/roles/${role.id}`, style="padding: 0.5rem 1rem; font-size: 0.875rem;") View
+                .action-buttons
+                  a.btn.btn-secondary.btn-sm(href=`/directory/roles/${role.id}`) View
+                  a.btn.btn-secondary.btn-sm(href=`/directory/roles/${role.id}/edit`) Edit
+                  button.btn.btn-danger.btn-sm(
+                    type="button",
+                    onclick=`deleteRole('${role.id}', '${role.name}')`
+                  ) Delete
     else
       p No roles found.
+      p
+        a.btn.btn-primary(href="/directory/roles/new") Create your first role
+  
+  script.
+    async function deleteRole(roleId, roleName) {
+      if (!confirm(`Are you sure you want to delete the role "${roleName}"?\n\nThis will remove all user assignments for this role.`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/directory/roles/${roleId}/delete`, { method: 'POST' });
+        if (response.ok) {
+          location.reload();
+        } else {
+          const data = await response.json();
+          alert('Error: ' + (data.error || 'Failed to delete role'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
 

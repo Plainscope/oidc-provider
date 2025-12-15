@@ -6,6 +6,7 @@ import { Express, Request, Response, NextFunction } from 'express';
 import { SqliteDirectory } from '../directories/sqlite-directory';
 import Database from 'better-sqlite3';
 import validator from 'validator';
+import crypto from 'crypto';
 
 // Simple in-memory session store for management UI
 const sessions = new Map<string, { username: string; loginTime: number }>();
@@ -211,7 +212,7 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         WHERE ug.user_id = ?
       `).all(req.params.id);
       const properties = db.prepare('SELECT * FROM user_properties WHERE user_id = ?').all(req.params.id);
-      
+
       // Get all available roles and groups for assignment
       const availableRoles = db.prepare(`
         SELECT r.* FROM roles r
@@ -219,7 +220,7 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
           SELECT role_id FROM user_roles WHERE user_id = ?
         )
       `).all(req.params.id);
-      
+
       const availableGroups = db.prepare(`
         SELECT g.* FROM groups g
         WHERE g.id NOT IN (
@@ -376,6 +377,165 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
     }
   });
 
+  // New role form
+  app.get('/directory/roles/new', requireAuth, (req, res) => {
+    res.render('directory/role-form', {
+      title: 'Create Role',
+      role: null,
+      session: sessions.get(req.cookies?.['mgmt_session'])
+    });
+  });
+
+  // Create role
+  app.post('/directory/roles', requireAuth, (req, res): void => {
+    try {
+      const name = sanitize(req.body.name);
+      const description = sanitize(req.body.description || '');
+
+      if (!name) {
+        res.status(400).render('directory/role-form', {
+          title: 'Create Role',
+          role: null,
+          error: 'Role name is required',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      // Check if role name already exists
+      const existing = db.prepare('SELECT * FROM roles WHERE name = ?').get(name);
+      if (existing) {
+        res.status(400).render('directory/role-form', {
+          title: 'Create Role',
+          role: null,
+          error: 'Role name already exists',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      // Generate UUID for role
+      const roleId = crypto.randomUUID();
+
+      // Create role
+      db.prepare('INSERT INTO roles (id, name, description, created_at) VALUES (?, ?, ?, ?)').run(
+        roleId,
+        name,
+        description,
+        new Date().toISOString()
+      );
+
+      res.redirect('/directory/roles');
+    } catch (error) {
+      console.error('[Management] Create role error:', error);
+      res.status(500).render('directory/role-form', {
+        title: 'Create Role',
+        role: null,
+        error: 'Failed to create role',
+        session: sessions.get(req.cookies?.['mgmt_session'])
+      });
+    }
+  });
+
+  // Edit role form
+  app.get('/directory/roles/:id/edit', requireAuth, (req, res) => {
+    try {
+      const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(req.params.id);
+
+      if (!role) {
+        return res.status(404).render('error', {
+          title: 'Not Found',
+          error: 'Role not found'
+        });
+      }
+
+      res.render('directory/role-form', {
+        title: `Edit Role: ${(role as any).name}`,
+        role,
+        session: sessions.get(req.cookies?.['mgmt_session'])
+      });
+    } catch (error) {
+      console.error('[Management] Edit role form error:', error);
+      res.status(500).render('error', {
+        title: 'Error',
+        error: 'Failed to load role'
+      });
+    }
+  });
+
+  // Update role
+  app.post('/directory/roles/:id/update', requireAuth, (req, res): void => {
+    try {
+      const roleId = sanitize(req.params.id);
+      const name = sanitize(req.body.name);
+      const description = sanitize(req.body.description || '');
+
+      const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(roleId);
+      if (!role) {
+        res.status(404).render('error', {
+          title: 'Not Found',
+          error: 'Role not found'
+        });
+        return;
+      }
+
+      if (!name) {
+        res.status(400).render('directory/role-form', {
+          title: `Edit Role: ${(role as any).name}`,
+          role,
+          error: 'Role name is required',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      // Check if role name already exists (excluding current role)
+      const existing = db.prepare('SELECT * FROM roles WHERE name = ? AND id != ?').get(name, roleId);
+      if (existing) {
+        res.status(400).render('directory/role-form', {
+          title: `Edit Role: ${(role as any).name}`,
+          role,
+          error: 'Role name already exists',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      // Update role
+      db.prepare('UPDATE roles SET name = ?, description = ? WHERE id = ?').run(name, description, roleId);
+
+      res.redirect(`/directory/roles/${roleId}`);
+    } catch (error) {
+      console.error('[Management] Update role error:', error);
+      res.status(500).json({ error: 'Failed to update role' });
+    }
+  });
+
+  // Delete role
+  app.post('/directory/roles/:id/delete', requireAuth, (req, res): void => {
+    try {
+      const roleId = sanitize(req.params.id);
+
+      // Check if role exists
+      const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(roleId);
+      if (!role) {
+        res.status(404).json({ error: 'Role not found' });
+        return;
+      }
+
+      // Delete role assignments first
+      db.prepare('DELETE FROM user_roles WHERE role_id = ?').run(roleId);
+
+      // Delete role
+      db.prepare('DELETE FROM roles WHERE id = ?').run(roleId);
+
+      res.json({ success: true, message: 'Role deleted successfully' });
+    } catch (error) {
+      console.error('[Management] Delete role error:', error);
+      res.status(500).json({ error: 'Failed to delete role' });
+    }
+  });
+
   // Role detail
   app.get('/directory/roles/:id', requireAuth, (req, res) => {
     try {
@@ -496,6 +656,245 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         title: 'Error',
         error: 'Failed to load groups'
       });
+    }
+  });
+
+  // New group form
+  app.get('/directory/groups/new', requireAuth, (req, res) => {
+    try {
+      const domains = db.prepare('SELECT * FROM domains ORDER BY name').all();
+
+      res.render('directory/group-form', {
+        title: 'Create Group',
+        group: null,
+        domains,
+        session: sessions.get(req.cookies?.['mgmt_session'])
+      });
+    } catch (error) {
+      console.error('[Management] New group form error:', error);
+      res.status(500).render('error', {
+        title: 'Error',
+        error: 'Failed to load form'
+      });
+    }
+  });
+
+  // Create group
+  app.post('/directory/groups', requireAuth, (req, res): void => {
+    try {
+      const name = sanitize(req.body.name);
+      const description = sanitize(req.body.description || '');
+      const domainId = sanitize(req.body.domain_id);
+
+      const domains = db.prepare('SELECT * FROM domains ORDER BY name').all();
+
+      if (!name) {
+        res.status(400).render('directory/group-form', {
+          title: 'Create Group',
+          group: null,
+          domains,
+          error: 'Group name is required',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      if (!domainId) {
+        res.status(400).render('directory/group-form', {
+          title: 'Create Group',
+          group: null,
+          domains,
+          error: 'Domain is required',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      // Check if domain exists
+      const domain = db.prepare('SELECT * FROM domains WHERE id = ?').get(domainId);
+      if (!domain) {
+        res.status(400).render('directory/group-form', {
+          title: 'Create Group',
+          group: null,
+          domains,
+          error: 'Invalid domain',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      // Check if group name already exists in domain
+      const existing = db.prepare('SELECT * FROM groups WHERE name = ? AND domain_id = ?').get(name, domainId);
+      if (existing) {
+        res.status(400).render('directory/group-form', {
+          title: 'Create Group',
+          group: null,
+          domains,
+          error: 'Group name already exists in this domain',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      // Generate UUID for group
+      const groupId = crypto.randomUUID();
+
+      // Create group
+      db.prepare('INSERT INTO groups (id, name, domain_id, description, created_at) VALUES (?, ?, ?, ?, ?)').run(
+        groupId,
+        name,
+        domainId,
+        description,
+        new Date().toISOString()
+      );
+
+      res.redirect('/directory/groups');
+    } catch (error) {
+      console.error('[Management] Create group error:', error);
+      const domains = db.prepare('SELECT * FROM domains ORDER BY name').all();
+      res.status(500).render('directory/group-form', {
+        title: 'Create Group',
+        group: null,
+        domains,
+        error: 'Failed to create group',
+        session: sessions.get(req.cookies?.['mgmt_session'])
+      });
+    }
+  });
+
+  // Edit group form
+  app.get('/directory/groups/:id/edit', requireAuth, (req, res) => {
+    try {
+      const group = db.prepare(`
+        SELECT g.*, d.name as domain_name
+        FROM groups g
+        JOIN domains d ON g.domain_id = d.id
+        WHERE g.id = ?
+      `).get(req.params.id);
+
+      if (!group) {
+        return res.status(404).render('error', {
+          title: 'Not Found',
+          error: 'Group not found'
+        });
+      }
+
+      const domains = db.prepare('SELECT * FROM domains ORDER BY name').all();
+
+      res.render('directory/group-form', {
+        title: `Edit Group: ${(group as any).name}`,
+        group,
+        domains,
+        session: sessions.get(req.cookies?.['mgmt_session'])
+      });
+    } catch (error) {
+      console.error('[Management] Edit group form error:', error);
+      res.status(500).render('error', {
+        title: 'Error',
+        error: 'Failed to load group'
+      });
+    }
+  });
+
+  // Update group
+  app.post('/directory/groups/:id/update', requireAuth, (req, res): void => {
+    try {
+      const groupId = sanitize(req.params.id);
+      const name = sanitize(req.body.name);
+      const description = sanitize(req.body.description || '');
+      const domainId = sanitize(req.body.domain_id);
+
+      const group = db.prepare('SELECT * FROM groups WHERE id = ?').get(groupId);
+      if (!group) {
+        res.status(404).render('error', {
+          title: 'Not Found',
+          error: 'Group not found'
+        });
+        return;
+      }
+
+      const domains = db.prepare('SELECT * FROM domains ORDER BY name').all();
+
+      if (!name) {
+        res.status(400).render('directory/group-form', {
+          title: `Edit Group: ${(group as any).name}`,
+          group,
+          domains,
+          error: 'Group name is required',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      if (!domainId) {
+        res.status(400).render('directory/group-form', {
+          title: `Edit Group: ${(group as any).name}`,
+          group,
+          domains,
+          error: 'Domain is required',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      // Check if domain exists
+      const domain = db.prepare('SELECT * FROM domains WHERE id = ?').get(domainId);
+      if (!domain) {
+        res.status(400).render('directory/group-form', {
+          title: `Edit Group: ${(group as any).name}`,
+          group,
+          domains,
+          error: 'Invalid domain',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      // Check if group name already exists in domain (excluding current group)
+      const existing = db.prepare('SELECT * FROM groups WHERE name = ? AND domain_id = ? AND id != ?').get(name, domainId, groupId);
+      if (existing) {
+        res.status(400).render('directory/group-form', {
+          title: `Edit Group: ${(group as any).name}`,
+          group,
+          domains,
+          error: 'Group name already exists in this domain',
+          session: sessions.get(req.cookies?.['mgmt_session'])
+        });
+        return;
+      }
+
+      // Update group
+      db.prepare('UPDATE groups SET name = ?, description = ?, domain_id = ? WHERE id = ?').run(name, description, domainId, groupId);
+
+      res.redirect(`/directory/groups/${groupId}`);
+    } catch (error) {
+      console.error('[Management] Update group error:', error);
+      res.status(500).json({ error: 'Failed to update group' });
+    }
+  });
+
+  // Delete group
+  app.post('/directory/groups/:id/delete', requireAuth, (req, res): void => {
+    try {
+      const groupId = sanitize(req.params.id);
+
+      // Check if group exists
+      const group = db.prepare('SELECT * FROM groups WHERE id = ?').get(groupId);
+      if (!group) {
+        res.status(404).json({ error: 'Group not found' });
+        return;
+      }
+
+      // Delete group memberships first
+      db.prepare('DELETE FROM user_groups WHERE group_id = ?').run(groupId);
+
+      // Delete group
+      db.prepare('DELETE FROM groups WHERE id = ?').run(groupId);
+
+      res.json({ success: true, message: 'Group deleted successfully' });
+    } catch (error) {
+      console.error('[Management] Delete group error:', error);
+      res.status(500).json({ error: 'Failed to delete group' });
     }
   });
 

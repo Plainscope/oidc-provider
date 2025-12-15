@@ -2,6 +2,16 @@ extends layout
 
 block content
   style.
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      color: #2d3748;
+      margin: 0;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -24,13 +34,27 @@ block content
     tr:hover {
       background: #f7fafc;
     }
-    h1 {
-      color: #2d3748;
-      margin-bottom: 1.5rem;
+    .action-buttons {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .btn-sm {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+    }
+    .btn-danger {
+      background: #fc8181;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #f56565;
     }
   
   .card
-    h1 Groups
+    .header-actions
+      h1 Groups
+      a.btn.btn-primary(href="/directory/groups/new") Create Group
     
     if groups && groups.length > 0
       table
@@ -51,6 +75,33 @@ block content
               td= group.user_count || 0
               td= new Date(group.created_at).toLocaleDateString()
               td
-                a.btn.btn-secondary(href=`/directory/groups/${group.id}`, style="padding: 0.5rem 1rem; font-size: 0.875rem;") View
+                .action-buttons
+                  a.btn.btn-secondary.btn-sm(href=`/directory/groups/${group.id}`) View
+                  a.btn.btn-secondary.btn-sm(href=`/directory/groups/${group.id}/edit`) Edit
+                  button.btn.btn-danger.btn-sm(
+                    type="button",
+                    onclick=`deleteGroup('${group.id}', '${group.name}')`
+                  ) Delete
     else
       p No groups found.
+      p
+        a.btn.btn-primary(href="/directory/groups/new") Create your first group
+  
+  script.
+    async function deleteGroup(groupId, groupName) {
+      if (!confirm(`Are you sure you want to delete the group "${groupName}"?\n\nThis will remove all user memberships for this group.`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/directory/groups/${groupId}/delete`, { method: 'POST' });
+        if (response.ok) {
+          location.reload();
+        } else {
+          const data = await response.json();
+          alert('Error: ' + (data.error || 'Failed to delete group'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
