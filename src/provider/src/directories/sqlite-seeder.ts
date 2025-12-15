@@ -6,6 +6,7 @@ import Database from 'better-sqlite3';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import * as path from 'path';
+import { randomUUID } from 'crypto';
 
 interface SeedUser {
   id?: string;
@@ -154,8 +155,7 @@ export class SqliteSeeder {
    * Generate UUID using crypto for security
    */
   private generateId(): string {
-    // Use Node.js crypto module for cryptographically secure UUIDs
-    return require('crypto').randomUUID();
+    return randomUUID();
   }
 
   /**
