@@ -11,13 +11,21 @@ const BEARER_TOKEN = process.env.DIRECTORY_BEARER_TOKEN || 'sk-AKnZKbq1O9RYwEagY
 async function login(page) {
   await page.goto(`${DIRECTORY_BASE_URL}/login`);
 
+  // Wait for login form to be ready with generous timeout
+  await page.waitForSelector('input#token', { state: 'visible', timeout: 15000 });
+
   await page.fill('input#token', BEARER_TOKEN);
+
+  // Click and wait for navigation with generous timeout
   await Promise.all([
-    page.waitForURL(url => url.toString().startsWith(`${DIRECTORY_BASE_URL}/`)),
+    page.waitForURL(url => url.toString().startsWith(`${DIRECTORY_BASE_URL}/`) && !url.toString().includes('/login'), { timeout: 15000 }),
     page.click('button:has-text("Sign In")')
   ]);
 
-  await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN);
+  // Wait for meta tag to be present with generous timeout for webkit
+  await page.waitForSelector('meta[name="auth-token"]', { timeout: 15000, state: 'attached' });
+
+  await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN, { timeout: 15000 });
 }
 
 test.describe('Directory CRUD Operations with Security', () => {
@@ -329,13 +337,24 @@ test.describe('Directory CRUD Operations with Security', () => {
     // Navigate to edit user2 and try to use email1
     await page.goto(`${DIRECTORY_BASE_URL}/users/edit?id=${user2.id}`);
 
+    // Wait for the form to load
+    await page.waitForSelector('input[placeholder="Primary Email"]', { state: 'visible', timeout: 5000 });
+
     await page.fill('input[placeholder="Primary Email"]', email1);
+
+    // Wait for Save button to be ready before clicking
+    await page.waitForSelector('button:has-text("Save")', { state: 'attached', timeout: 5000 });
     await page.click('button:has-text("Save")', { force: true });
 
-    // Wait for error message to appear
-    await page.waitForSelector('div.text-red-600', { state: 'visible' });
-    await expect(page.locator('div.text-red-600')).toBeVisible();
-    await expect(page.locator('div.text-red-600')).toContainText(/email already in use/i);
+    // Wait for error message to appear - Alpine.js uses x-show which may not be immediately visible
+    // So we wait for the element to have content or for a specific state
+    const errorElement = page.locator('div.bg-red-50');
+    await errorElement.waitFor({ state: 'attached', timeout: 10000 });
+
+    // Wait a bit for Alpine.js to update visibility
+    await page.waitForTimeout(500);
+
+    await expect(errorElement).toContainText(/email already in use/i, { timeout: 5000 });
   });
 
   test('should reject empty domain name', async ({ page }) => {

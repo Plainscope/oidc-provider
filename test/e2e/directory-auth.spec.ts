@@ -9,14 +9,18 @@ async function login(page, redirectTo: string = '/') {
   const redirectPath = redirectTo.startsWith('/') ? redirectTo : `/${redirectTo}`;
   await page.goto(`${BASE_URL}/login${redirectPath !== '/' ? `?redirectTo=${encodeURIComponent(redirectPath)}` : ''}`);
 
+  // Wait for token input to be ready
+  await page.waitForSelector('input#token', { state: 'visible', timeout: 15000 });
+
   await page.fill('input#token', BEARER_TOKEN);
   await Promise.all([
-    page.waitForURL(url => url.toString().startsWith(`${BASE_URL}${redirectPath}`)),
+    page.waitForURL(url => url.toString().startsWith(`${BASE_URL}${redirectPath}`), { timeout: 15000 }),
     page.click('button:has-text("Sign In")')
   ]);
 
   // Verify the auth token meta is available for subsequent API calls
-  await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN);
+  await page.waitForSelector('meta[name="auth-token"]', { timeout: 15000, state: 'attached' });
+  await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN, { timeout: 15000 });
 }
 
 test.describe('Directory Service Authentication', () => {
