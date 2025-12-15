@@ -51,13 +51,7 @@ function sanitize(input: string): string {
  * Generate session ID
  */
 function generateSessionId(): string {
-  const bytes = new Uint8Array(32);
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = Math.floor(Math.random() * 256);
-  }
-  return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+  return crypto.randomBytes(32).toString('hex');
 }
 
 /**
