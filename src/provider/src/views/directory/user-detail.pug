@@ -45,12 +45,13 @@ block content
     }
     .badge {
       display: inline-block;
-      padding: 0.25rem 0.75rem;
+      padding: 0.35rem 0.75rem;
       border-radius: 12px;
       font-size: 0.75rem;
       font-weight: 600;
       margin-right: 0.5rem;
       margin-bottom: 0.5rem;
+      position: relative;
     }
     .badge-role {
       background: #bee3f8;
@@ -59,6 +60,66 @@ block content
     .badge-group {
       background: #fbd38d;
       color: #744210;
+    }
+    .badge-removable {
+      padding-right: 1.75rem;
+    }
+    .badge-remove-btn {
+      position: absolute;
+      right: 0.25rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.2);
+      border: none;
+      color: inherit;
+      width: 1.25rem;
+      height: 1.25rem;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 0.65rem;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .badge-remove-btn:hover {
+      background: rgba(0, 0, 0, 0.4);
+      transform: translateY(-50%) scale(1.1);
+    }
+    .assignment-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .form-group {
+      flex: 1;
+      min-width: 250px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #4a5568;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .form-group select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      transition: border-color 0.2s;
+    }
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
     }
     table {
       width: 100%;
@@ -131,20 +192,44 @@ block content
     .section
       h2 Roles
       if roles && roles.length > 0
-        div
+        div#roles-list
           each role in roles
-            span.badge.badge-role= role.name
+            span.badge.badge-role.badge-removable(data-role-id=role.id)
+              = role.name
+              button.badge-remove-btn(type="button", title="Remove role") ✕
       else
         p No roles assigned.
+      
+      if availableRoles && availableRoles.length > 0
+        .assignment-controls
+          .form-group
+            label(for="role-select") Add Role:
+            select#role-select(data-user-id=user.id)
+              option(value="") Select a role...
+              each role in availableRoles
+                option(value=role.id)= role.name
+          button.btn.btn-primary.btn-sm#add-role-btn(type="button") Add
     
     .section
       h2 Groups
       if groups && groups.length > 0
-        div
+        div#groups-list
           each group in groups
-            span.badge.badge-group= group.name
+            span.badge.badge-group.badge-removable(data-group-id=group.id)
+              = group.name
+              button.badge-remove-btn(type="button", title="Remove group") ✕
       else
         p No groups assigned.
+      
+      if availableGroups && availableGroups.length > 0
+        .assignment-controls
+          .form-group
+            label(for="group-select") Add Group:
+            select#group-select(data-user-id=user.id)
+              option(value="") Select a group...
+              each group in availableGroups
+                option(value=group.id)= group.name
+          button.btn.btn-primary.btn-sm#add-group-btn(type="button") Add
     
     if properties && properties.length > 0
       .section
@@ -159,3 +244,92 @@ block content
               tr
                 td= prop.key
                 td= prop.value
+    
+    script.
+      const userId = '#{user.id}';
+      
+      // Add role functionality
+      document.getElementById('add-role-btn')?.addEventListener('click', async () => {
+        const roleSelect = document.getElementById('role-select');
+        const roleId = roleSelect?.value;
+        
+        if (!roleId) {
+          alert('Please select a role');
+          return;
+        }
+        
+        try {
+          const response = await fetch(`/directory/users/${userId}/roles/${roleId}`, { method: 'POST' });
+          if (response.ok) {
+            location.reload();
+          } else {
+            const data = await response.json();
+            alert('Error: ' + (data.error || 'Failed to add role'));
+          }
+        } catch (err) {
+          alert('Error: ' + err.message);
+        }
+      });
+      
+      // Remove role functionality
+      document.querySelectorAll('#roles-list .badge-remove-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const roleId = btn.parentElement.dataset.roleId;
+          if (confirm('Remove this role?')) {
+            try {
+              const response = await fetch(`/directory/users/${userId}/roles/${roleId}/remove`, { method: 'POST' });
+              if (response.ok) {
+                location.reload();
+              } else {
+                const data = await response.json();
+                alert('Error: ' + (data.error || 'Failed to remove role'));
+              }
+            } catch (err) {
+              alert('Error: ' + err.message);
+            }
+          }
+        });
+      });
+      
+      // Add group functionality
+      document.getElementById('add-group-btn')?.addEventListener('click', async () => {
+        const groupSelect = document.getElementById('group-select');
+        const groupId = groupSelect?.value;
+        
+        if (!groupId) {
+          alert('Please select a group');
+          return;
+        }
+        
+        try {
+          const response = await fetch(`/directory/users/${userId}/groups/${groupId}`, { method: 'POST' });
+          if (response.ok) {
+            location.reload();
+          } else {
+            const data = await response.json();
+            alert('Error: ' + (data.error || 'Failed to add group'));
+          }
+        } catch (err) {
+          alert('Error: ' + err.message);
+        }
+      });
+      
+      // Remove group functionality
+      document.querySelectorAll('#groups-list .badge-remove-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const groupId = btn.parentElement.dataset.groupId;
+          if (confirm('Remove this group?')) {
+            try {
+              const response = await fetch(`/directory/users/${userId}/groups/${groupId}/remove`, { method: 'POST' });
+              if (response.ok) {
+                location.reload();
+              } else {
+                const data = await response.json();
+                alert('Error: ' + (data.error || 'Failed to remove group'));
+              }
+            } catch (err) {
+              alert('Error: ' + err.message);
+            }
+          }
+        });
+      });

@@ -1,0 +1,210 @@
+extends layout
+
+block content
+  style.
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      color: #2d3748;
+      margin: 0;
+    }
+    .section {
+      margin-bottom: 2rem;
+    }
+    .section h2 {
+      color: #4a5568;
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+    .info-item {
+      padding: 1rem;
+      background: #f7fafc;
+      border-radius: 8px;
+    }
+    .info-label {
+      font-size: 0.75rem;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+    .info-value {
+      color: #2d3748;
+      font-weight: 500;
+    }
+    .user-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background: #f7fafc;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+    .user-info {
+      flex: 1;
+    }
+    .user-name {
+      font-weight: 600;
+      color: #2d3748;
+    }
+    .user-username {
+      font-size: 0.875rem;
+      color: #718096;
+    }
+    .remove-btn {
+      padding: 0.5rem 1rem;
+      background: #fed7d7;
+      color: #c53030;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    .remove-btn:hover {
+      background: #fc8181;
+      transform: translateY(-2px);
+    }
+    .assignment-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .form-group {
+      flex: 1;
+      min-width: 250px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #4a5568;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .form-group select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      transition: border-color 0.2s;
+    }
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+
+  .card
+    .header-actions
+      div
+        h1= group.name
+        p(style="color: #718096; margin-top: 0.5rem;")= group.description || 'No description'
+      a.btn.btn-secondary(href="/directory/groups") ← Back to Groups
+    
+    .section
+      h2 Group Information
+      .info-grid
+        .info-item
+          .info-label Group ID
+          .info-value= group.id
+        .info-item
+          .info-label Name
+          .info-value= group.name
+        .info-item
+          .info-label Domain
+          .info-value= group.domain_name
+        .info-item
+          .info-label Description
+          .info-value= group.description || 'N/A'
+        .info-item
+          .info-label Created At
+          .info-value= new Date(group.created_at).toLocaleString()
+    
+    .section
+      h2 Members (#{users && users.length ? users.length : 0})
+      if users && users.length > 0
+        div#users-list
+          each user in users
+            .user-item(data-user-id=user.id)
+              .user-info
+                .user-name= user.display_name || (user.first_name + ' ' + user.last_name).trim()
+                .user-username= user.username
+              button.remove-btn(type="button", title="Remove from group") Remove
+      else
+        p No users in this group yet.
+      
+      if availableUsers && availableUsers.length > 0
+        .assignment-controls
+          .form-group
+            label(for="user-select") Add User:
+            select#user-select(data-group-id=group.id)
+              option(value="") Select a user...
+              each user in availableUsers
+                option(value=user.id)
+                  = user.display_name || (user.first_name + ' ' + user.last_name).trim()
+                  = ' (' + user.username + ')'
+          button.btn.btn-primary.btn-sm#add-user-btn(type="button") Add
+    
+    script.
+      const groupId = '#{group.id}';
+      
+      // Add user functionality
+      document.getElementById('add-user-btn')?.addEventListener('click', async () => {
+        const userSelect = document.getElementById('user-select');
+        const userId = userSelect?.value;
+        
+        if (!userId) {
+          alert('Please select a user');
+          return;
+        }
+        
+        try {
+          const response = await fetch(`/directory/groups/${groupId}/users/${userId}`, { method: 'POST' });
+          if (response.ok) {
+            location.reload();
+          } else {
+            const data = await response.json();
+            alert('Error: ' + (data.error || 'Failed to add user'));
+          }
+        } catch (err) {
+          alert('Error: ' + err.message);
+        }
+      });
+      
+      // Remove user functionality
+      document.querySelectorAll('#users-list .user-item').forEach(item => {
+        item.querySelector('.remove-btn').addEventListener('click', async () => {
+          const userId = item.dataset.userId;
+          if (confirm('Remove this user from the group?')) {
+            try {
+              const response = await fetch(`/directory/groups/${groupId}/users/${userId}/remove`, { method: 'POST' });
+              if (response.ok) {
+                location.reload();
+              } else {
+                const data = await response.json();
+                alert('Error: ' + (data.error || 'Failed to remove user'));
+              }
+            } catch (err) {
+              alert('Error: ' + err.message);
+            }
+          }
+        });
+      });

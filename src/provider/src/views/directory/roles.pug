@@ -40,6 +40,7 @@ block content
             th Description
             th Users
             th Created
+            th Actions
         tbody
           each role in roles
             tr
@@ -47,5 +48,8 @@ block content
               td= role.description || 'N/A'
               td= role.user_count || 0
               td= new Date(role.created_at).toLocaleDateString()
+              td
+                a.btn.btn-secondary(href=`/directory/roles/${role.id}`, style="padding: 0.5rem 1rem; font-size: 0.875rem;") View
     else
       p No roles found.
+

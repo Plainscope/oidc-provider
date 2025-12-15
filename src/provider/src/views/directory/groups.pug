@@ -41,6 +41,7 @@ block content
             th Description
             th Users
             th Created
+            th Actions
         tbody
           each group in groups
             tr
@@ -49,5 +50,7 @@ block content
               td= group.description || 'N/A'
               td= group.user_count || 0
               td= new Date(group.created_at).toLocaleDateString()
+              td
+                a.btn.btn-secondary(href=`/directory/groups/${group.id}`, style="padding: 0.5rem 1rem; font-size: 0.875rem;") View
     else
       p No groups found.

@@ -211,6 +211,21 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         WHERE ug.user_id = ?
       `).all(req.params.id);
       const properties = db.prepare('SELECT * FROM user_properties WHERE user_id = ?').all(req.params.id);
+      
+      // Get all available roles and groups for assignment
+      const availableRoles = db.prepare(`
+        SELECT r.* FROM roles r
+        WHERE r.id NOT IN (
+          SELECT role_id FROM user_roles WHERE user_id = ?
+        )
+      `).all(req.params.id);
+      
+      const availableGroups = db.prepare(`
+        SELECT g.* FROM groups g
+        WHERE g.id NOT IN (
+          SELECT group_id FROM user_groups WHERE user_id = ?
+        )
+      `).all(req.params.id);
 
       res.render('directory/user-detail', {
         title: `User: ${(user as any).username}`,
@@ -219,6 +234,8 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         roles,
         groups,
         properties,
+        availableRoles,
+        availableGroups,
         session: sessions.get(req.cookies?.['mgmt_session'])
       });
     } catch (error) {
@@ -227,6 +244,110 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         title: 'Error',
         error: 'Failed to load user details'
       });
+    }
+  });
+
+  // Add role to user
+  app.post('/directory/users/:userId/roles/:roleId', requireAuth, (req, res): void => {
+    try {
+      const userId = sanitize(req.params.userId);
+      const roleId = sanitize(req.params.roleId);
+
+      // Check if user exists
+      const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      // Check if role exists
+      const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(roleId);
+      if (!role) {
+        res.status(404).json({ error: 'Role not found' });
+        return;
+      }
+
+      // Check if assignment already exists
+      const existing = db.prepare('SELECT * FROM user_roles WHERE user_id = ? AND role_id = ?').get(userId, roleId);
+      if (existing) {
+        res.status(400).json({ error: 'User already has this role' });
+        return;
+      }
+
+      // Add role to user
+      db.prepare('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)').run(userId, roleId);
+
+      res.json({ success: true, message: 'Role added successfully' });
+    } catch (error) {
+      console.error('[Management] Add role error:', error);
+      res.status(500).json({ error: 'Failed to add role' });
+    }
+  });
+
+  // Remove role from user
+  app.post('/directory/users/:userId/roles/:roleId/remove', requireAuth, (req, res): void => {
+    try {
+      const userId = sanitize(req.params.userId);
+      const roleId = sanitize(req.params.roleId);
+
+      db.prepare('DELETE FROM user_roles WHERE user_id = ? AND role_id = ?').run(userId, roleId);
+
+      res.json({ success: true, message: 'Role removed successfully' });
+    } catch (error) {
+      console.error('[Management] Remove role error:', error);
+      res.status(500).json({ error: 'Failed to remove role' });
+    }
+  });
+
+  // Add group to user
+  app.post('/directory/users/:userId/groups/:groupId', requireAuth, (req, res): void => {
+    try {
+      const userId = sanitize(req.params.userId);
+      const groupId = sanitize(req.params.groupId);
+
+      // Check if user exists
+      const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      // Check if group exists
+      const group = db.prepare('SELECT * FROM groups WHERE id = ?').get(groupId);
+      if (!group) {
+        res.status(404).json({ error: 'Group not found' });
+        return;
+      }
+
+      // Check if assignment already exists
+      const existing = db.prepare('SELECT * FROM user_groups WHERE user_id = ? AND group_id = ?').get(userId, groupId);
+      if (existing) {
+        res.status(400).json({ error: 'User already in this group' });
+        return;
+      }
+
+      // Add user to group
+      db.prepare('INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)').run(userId, groupId);
+
+      res.json({ success: true, message: 'Group added successfully' });
+    } catch (error) {
+      console.error('[Management] Add group error:', error);
+      res.status(500).json({ error: 'Failed to add group' });
+    }
+  });
+
+  // Remove group from user
+  app.post('/directory/users/:userId/groups/:groupId/remove', requireAuth, (req, res): void => {
+    try {
+      const userId = sanitize(req.params.userId);
+      const groupId = sanitize(req.params.groupId);
+
+      db.prepare('DELETE FROM user_groups WHERE user_id = ? AND group_id = ?').run(userId, groupId);
+
+      res.json({ success: true, message: 'Group removed successfully' });
+    } catch (error) {
+      console.error('[Management] Remove group error:', error);
+      res.status(500).json({ error: 'Failed to remove group' });
     }
   });
 
@@ -255,6 +376,103 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
     }
   });
 
+  // Role detail
+  app.get('/directory/roles/:id', requireAuth, (req, res) => {
+    try {
+      const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(req.params.id);
+
+      if (!role) {
+        return res.status(404).render('error', {
+          title: 'Not Found',
+          error: 'Role not found'
+        });
+      }
+
+      const users = db.prepare(`
+        SELECT u.id, u.username, u.first_name, u.last_name, u.display_name, u.created_at
+        FROM users u
+        JOIN user_roles ur ON u.id = ur.user_id
+        WHERE ur.role_id = ?
+        ORDER BY u.created_at DESC
+      `).all(req.params.id);
+
+      const availableUsers = db.prepare(`
+        SELECT u.id, u.username, u.first_name, u.last_name, u.display_name
+        FROM users u
+        WHERE u.id NOT IN (
+          SELECT user_id FROM user_roles WHERE role_id = ?
+        )
+        ORDER BY u.username
+      `).all(req.params.id);
+
+      res.render('directory/role-detail', {
+        title: `Role: ${(role as any).name}`,
+        role,
+        users,
+        availableUsers,
+        session: sessions.get(req.cookies?.['mgmt_session'])
+      });
+    } catch (error) {
+      console.error('[Management] Role detail error:', error);
+      res.status(500).render('error', {
+        title: 'Error',
+        error: 'Failed to load role details'
+      });
+    }
+  });
+
+  // Add user to role
+  app.post('/directory/roles/:roleId/users/:userId', requireAuth, (req, res): void => {
+    try {
+      const roleId = sanitize(req.params.roleId);
+      const userId = sanitize(req.params.userId);
+
+      // Check if role exists
+      const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(roleId);
+      if (!role) {
+        res.status(404).json({ error: 'Role not found' });
+        return;
+      }
+
+      // Check if user exists
+      const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      // Check if assignment already exists
+      const existing = db.prepare('SELECT * FROM user_roles WHERE user_id = ? AND role_id = ?').get(userId, roleId);
+      if (existing) {
+        res.status(400).json({ error: 'User already has this role' });
+        return;
+      }
+
+      // Add user to role
+      db.prepare('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)').run(userId, roleId);
+
+      res.json({ success: true, message: 'User added to role successfully' });
+    } catch (error) {
+      console.error('[Management] Add user to role error:', error);
+      res.status(500).json({ error: 'Failed to add user to role' });
+    }
+  });
+
+  // Remove user from role
+  app.post('/directory/roles/:roleId/users/:userId/remove', requireAuth, (req, res): void => {
+    try {
+      const roleId = sanitize(req.params.roleId);
+      const userId = sanitize(req.params.userId);
+
+      db.prepare('DELETE FROM user_roles WHERE user_id = ? AND role_id = ?').run(userId, roleId);
+
+      res.json({ success: true, message: 'User removed from role successfully' });
+    } catch (error) {
+      console.error('[Management] Remove user from role error:', error);
+      res.status(500).json({ error: 'Failed to remove user from role' });
+    }
+  });
+
   // Groups list
   app.get('/directory/groups', requireAuth, (req, res) => {
     try {
@@ -278,6 +496,108 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         title: 'Error',
         error: 'Failed to load groups'
       });
+    }
+  });
+
+  // Group detail
+  app.get('/directory/groups/:id', requireAuth, (req, res) => {
+    try {
+      const group = db.prepare(`
+        SELECT g.*, d.name as domain_name
+        FROM groups g
+        JOIN domains d ON g.domain_id = d.id
+        WHERE g.id = ?
+      `).get(req.params.id);
+
+      if (!group) {
+        return res.status(404).render('error', {
+          title: 'Not Found',
+          error: 'Group not found'
+        });
+      }
+
+      const users = db.prepare(`
+        SELECT u.id, u.username, u.first_name, u.last_name, u.display_name, u.created_at
+        FROM users u
+        JOIN user_groups ug ON u.id = ug.user_id
+        WHERE ug.group_id = ?
+        ORDER BY u.created_at DESC
+      `).all(req.params.id);
+
+      const availableUsers = db.prepare(`
+        SELECT u.id, u.username, u.first_name, u.last_name, u.display_name
+        FROM users u
+        WHERE u.id NOT IN (
+          SELECT user_id FROM user_groups WHERE group_id = ?
+        )
+        ORDER BY u.username
+      `).all(req.params.id);
+
+      res.render('directory/group-detail', {
+        title: `Group: ${(group as any).name}`,
+        group,
+        users,
+        availableUsers,
+        session: sessions.get(req.cookies?.['mgmt_session'])
+      });
+    } catch (error) {
+      console.error('[Management] Group detail error:', error);
+      res.status(500).render('error', {
+        title: 'Error',
+        error: 'Failed to load group details'
+      });
+    }
+  });
+
+  // Add user to group
+  app.post('/directory/groups/:groupId/users/:userId', requireAuth, (req, res): void => {
+    try {
+      const groupId = sanitize(req.params.groupId);
+      const userId = sanitize(req.params.userId);
+
+      // Check if group exists
+      const group = db.prepare('SELECT * FROM groups WHERE id = ?').get(groupId);
+      if (!group) {
+        res.status(404).json({ error: 'Group not found' });
+        return;
+      }
+
+      // Check if user exists
+      const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      // Check if assignment already exists
+      const existing = db.prepare('SELECT * FROM user_groups WHERE user_id = ? AND group_id = ?').get(userId, groupId);
+      if (existing) {
+        res.status(400).json({ error: 'User already in this group' });
+        return;
+      }
+
+      // Add user to group
+      db.prepare('INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)').run(userId, groupId);
+
+      res.json({ success: true, message: 'User added to group successfully' });
+    } catch (error) {
+      console.error('[Management] Add user to group error:', error);
+      res.status(500).json({ error: 'Failed to add user to group' });
+    }
+  });
+
+  // Remove user from group
+  app.post('/directory/groups/:groupId/users/:userId/remove', requireAuth, (req, res): void => {
+    try {
+      const groupId = sanitize(req.params.groupId);
+      const userId = sanitize(req.params.userId);
+
+      db.prepare('DELETE FROM user_groups WHERE user_id = ? AND group_id = ?').run(userId, groupId);
+
+      res.json({ success: true, message: 'User removed from group successfully' });
+    } catch (error) {
+      console.error('[Management] Remove user from group error:', error);
+      res.status(500).json({ error: 'Failed to remove user from group' });
     }
   });
 }
