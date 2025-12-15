@@ -323,7 +323,7 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
       }
 
       // Add user to group
-      db.prepare('INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)').run(userId, groupId);
+      db.prepare('INSERT INTO user_groups (id, user_id, group_id) VALUES (?, ?, ?)').run(crypto.randomUUID(), userId, groupId);
 
       res.json({ success: true, message: 'Group added successfully' });
     } catch (error) {
