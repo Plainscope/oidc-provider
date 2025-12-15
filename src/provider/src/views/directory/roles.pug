@@ -87,20 +87,22 @@ block content
   
   script.
     async function deleteRole(roleId, roleName) {
-      if (!confirm(`Are you sure you want to delete the role "${roleName}"?\n\nThis will remove all user assignments for this role.`)) {
-        return;
-      }
-      
-      try {
-        const response = await fetch(`/directory/roles/${roleId}/delete`, { method: 'POST' });
-        if (response.ok) {
-          location.reload();
-        } else {
-          const data = await response.json();
-          alert('Error: ' + (data.error || 'Failed to delete role'));
-        }
-      } catch (err) {
-        alert('Error: ' + err.message);
-      }
+      showConfirm(
+        `Are you sure you want to delete the role "${roleName}"?\n\nThis will remove all user assignments for this role.`,
+        async () => {
+          try {
+            const response = await fetch(`/directory/roles/${roleId}/delete`, { method: 'POST' });
+            if (response.ok) {
+              location.reload();
+            } else {
+              const data = await response.json();
+              showAlert('Error: ' + (data.error || 'Failed to delete role'), 'Error');
+            }
+          } catch (err) {
+            showAlert('Error: ' + err.message, 'Error');
+          }
+        },
+        'Delete Role'
+      );
     }
 

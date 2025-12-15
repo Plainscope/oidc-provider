@@ -172,7 +172,7 @@ block content
         const userId = userSelect?.value;
         
         if (!userId) {
-          alert('Please select a user');
+          showAlert('Please select a user', 'No User Selected');
           return;
         }
         
@@ -182,10 +182,10 @@ block content
             location.reload();
           } else {
             const data = await response.json();
-            alert('Error: ' + (data.error || 'Failed to add user'));
+            showAlert('Error: ' + (data.error || 'Failed to add user'), 'Error');
           }
         } catch (err) {
-          alert('Error: ' + err.message);
+          showAlert('Error: ' + err.message, 'Error');
         }
       });
       
@@ -193,18 +193,20 @@ block content
       document.querySelectorAll('#users-list .user-item').forEach(item => {
         item.querySelector('.remove-btn').addEventListener('click', async () => {
           const userId = item.dataset.userId;
-          if (confirm('Remove this user from the group?')) {
+          const userName = item.querySelector('.user-name').textContent.trim();
+          
+          showConfirm(`Remove user "${userName}" from this group?`, async () => {
             try {
               const response = await fetch(`/directory/groups/${groupId}/users/${userId}/remove`, { method: 'POST' });
               if (response.ok) {
                 location.reload();
               } else {
                 const data = await response.json();
-                alert('Error: ' + (data.error || 'Failed to remove user'));
+                showAlert('Error: ' + (data.error || 'Failed to remove user'), 'Error');
               }
             } catch (err) {
-              alert('Error: ' + err.message);
+              showAlert('Error: ' + err.message, 'Error');
             }
-          }
+          }, 'Remove User from Group');
         });
       });

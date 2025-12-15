@@ -254,7 +254,7 @@ block content
         const roleId = roleSelect?.value;
         
         if (!roleId) {
-          alert('Please select a role');
+          showAlert('Please select a role', 'No Role Selected');
           return;
         }
         
@@ -264,10 +264,10 @@ block content
             location.reload();
           } else {
             const data = await response.json();
-            alert('Error: ' + (data.error || 'Failed to add role'));
+            showAlert('Error: ' + (data.error || 'Failed to add role'), 'Error');
           }
         } catch (err) {
-          alert('Error: ' + err.message);
+          showAlert('Error: ' + err.message, 'Error');
         }
       });
       
@@ -275,19 +275,21 @@ block content
       document.querySelectorAll('#roles-list .badge-remove-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const roleId = btn.parentElement.dataset.roleId;
-          if (confirm('Remove this role?')) {
+          const roleName = btn.parentElement.textContent.trim().replace('✕', '').trim();
+          
+          showConfirm(`Remove role "${roleName}" from this user?`, async () => {
             try {
               const response = await fetch(`/directory/users/${userId}/roles/${roleId}/remove`, { method: 'POST' });
               if (response.ok) {
                 location.reload();
               } else {
                 const data = await response.json();
-                alert('Error: ' + (data.error || 'Failed to remove role'));
+                showAlert('Error: ' + (data.error || 'Failed to remove role'), 'Error');
               }
             } catch (err) {
-              alert('Error: ' + err.message);
+              showAlert('Error: ' + err.message, 'Error');
             }
-          }
+          }, 'Remove Role');
         });
       });
       
@@ -297,7 +299,7 @@ block content
         const groupId = groupSelect?.value;
         
         if (!groupId) {
-          alert('Please select a group');
+          showAlert('Please select a group', 'No Group Selected');
           return;
         }
         
@@ -307,10 +309,10 @@ block content
             location.reload();
           } else {
             const data = await response.json();
-            alert('Error: ' + (data.error || 'Failed to add group'));
+            showAlert('Error: ' + (data.error || 'Failed to add group'), 'Error');
           }
         } catch (err) {
-          alert('Error: ' + err.message);
+          showAlert('Error: ' + err.message, 'Error');
         }
       });
       
@@ -318,18 +320,20 @@ block content
       document.querySelectorAll('#groups-list .badge-remove-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const groupId = btn.parentElement.dataset.groupId;
-          if (confirm('Remove this group?')) {
+          const groupName = btn.parentElement.textContent.trim().replace('✕', '').trim();
+          
+          showConfirm(`Remove group "${groupName}" from this user?`, async () => {
             try {
               const response = await fetch(`/directory/users/${userId}/groups/${groupId}/remove`, { method: 'POST' });
               if (response.ok) {
                 location.reload();
               } else {
                 const data = await response.json();
-                alert('Error: ' + (data.error || 'Failed to remove group'));
+                showAlert('Error: ' + (data.error || 'Failed to remove group'), 'Error');
               }
             } catch (err) {
-              alert('Error: ' + err.message);
+              showAlert('Error: ' + err.message, 'Error');
             }
-          }
+          }, 'Remove Group');
         });
       });
