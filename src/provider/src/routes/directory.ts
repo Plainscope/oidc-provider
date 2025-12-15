@@ -16,19 +16,19 @@ const SESSION_DURATION = 3600000; // 1 hour
  */
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   const sessionId = req.cookies?.['mgmt_session'];
-  
+
   if (!sessionId || !sessions.has(sessionId)) {
-    return res.redirect('/mgmt/login');
+    return res.redirect('/directory/login');
   }
-  
+
   const session = sessions.get(sessionId)!;
-  
+
   // Check session expiry
   if (Date.now() - session.loginTime > SESSION_DURATION) {
     sessions.delete(sessionId);
-    return res.redirect('/mgmt/login');
+    return res.redirect('/directory/login');
   }
-  
+
   // Refresh session
   session.loginTime = Date.now();
   next();
@@ -63,73 +63,78 @@ function generateSessionId(): string {
  * Register management routes
  */
 export function registerManagementRoutes(app: Express, directory: SqliteDirectory, db: Database.Database) {
+  // Redirect /directory to /directory for convenience
+  /*  app.get('/directory', (_req, res) => {
+      res.redirect('/directory');
+    });*/
+
   // Login page
-  app.get('/mgmt/login', (req, res) => {
-    res.render('mgmt-login', {
+  app.get('/directory/login', (req, res) => {
+    res.render('directory/login', {
       title: 'Management Login',
       error: req.query.error
     });
   });
-  
+
   // Login handler
-  app.post('/mgmt/login', async (req, res) => {
+  app.post('/directory/login', async (req, res) => {
     try {
       const email = sanitize(req.body.email);
       const password = sanitize(req.body.password);
-      
+
       // Validate against directory
       const account = await directory.validate(email, password);
-      
+
       if (!account) {
-        return res.redirect('/mgmt/login?error=Invalid+credentials');
+        return res.redirect('/directory/login?error=Invalid+credentials');
       }
-      
+
       // Check if user has admin role
       const userRoles = db.prepare(`
         SELECT r.name FROM user_roles ur
         JOIN roles r ON ur.role_id = r.id
         WHERE ur.user_id = ?
       `).all(account.accountId) as { name: string }[];
-      
+
       const isAdmin = userRoles.some(r => r.name === 'admin');
-      
+
       if (!isAdmin) {
-        return res.redirect('/mgmt/login?error=Access+denied');
+        return res.redirect('/directory/login?error=Access+denied');
       }
-      
+
       // Create session
       const sessionId = generateSessionId();
       sessions.set(sessionId, {
         username: email,
         loginTime: Date.now()
       });
-      
+
       res.cookie('mgmt_session', sessionId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: SESSION_DURATION
       });
-      
-      res.redirect('/mgmt');
+
+      res.redirect('/directory');
     } catch (error) {
       console.error('[Management] Login error:', error);
-      res.redirect('/mgmt/login?error=Server+error');
+      res.redirect('/directory/login?error=Server+error');
     }
   });
-  
+
   // Logout
-  app.get('/mgmt/logout', (req, res) => {
+  app.get('/directory/logout', (req, res) => {
     const sessionId = req.cookies?.['mgmt_session'];
     if (sessionId) {
       sessions.delete(sessionId);
     }
     res.clearCookie('mgmt_session');
-    res.redirect('/mgmt/login');
+    res.redirect('/directory/login');
   });
-  
+
   // Dashboard
-  app.get('/mgmt', requireAuth, (req, res) => {
+  app.get('/directory', requireAuth, (req, res) => {
     try {
       const stats = {
         users: (db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }).count,
@@ -137,8 +142,8 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         groups: (db.prepare('SELECT COUNT(*) as count FROM groups').get() as { count: number }).count,
         domains: (db.prepare('SELECT COUNT(*) as count FROM domains').get() as { count: number }).count
       };
-      
-      res.render('mgmt-dashboard', {
+
+      res.render('directory/dashboard', {
         title: 'Directory Management',
         stats,
         session: sessions.get(req.cookies?.['mgmt_session'])
@@ -151,9 +156,9 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
       });
     }
   });
-  
+
   // Users list
-  app.get('/mgmt/users', requireAuth, (req, res) => {
+  app.get('/directory/users', requireAuth, (req, res) => {
     try {
       const users = db.prepare(`
         SELECT u.id, u.username, u.first_name, u.last_name, u.display_name, 
@@ -162,8 +167,8 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         FROM users u
         ORDER BY u.created_at DESC
       `).all();
-      
-      res.render('mgmt-users', {
+
+      res.render('directory/users', {
         title: 'Users',
         users,
         session: sessions.get(req.cookies?.['mgmt_session'])
@@ -176,9 +181,9 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
       });
     }
   });
-  
+
   // User detail
-  app.get('/mgmt/users/:id', requireAuth, (req, res) => {
+  app.get('/directory/users/:id', requireAuth, (req, res) => {
     try {
       const user = db.prepare(`
         SELECT u.*, d.name as domain_name
@@ -186,14 +191,14 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         JOIN domains d ON u.domain_id = d.id
         WHERE u.id = ?
       `).get(req.params.id);
-      
+
       if (!user) {
         return res.status(404).render('error', {
           title: 'Not Found',
           error: 'User not found'
         });
       }
-      
+
       const emails = db.prepare('SELECT * FROM user_emails WHERE user_id = ?').all(req.params.id);
       const roles = db.prepare(`
         SELECT r.* FROM roles r
@@ -206,8 +211,8 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         WHERE ug.user_id = ?
       `).all(req.params.id);
       const properties = db.prepare('SELECT * FROM user_properties WHERE user_id = ?').all(req.params.id);
-      
-      res.render('mgmt-user-detail', {
+
+      res.render('directory/user-detail', {
         title: `User: ${(user as any).username}`,
         user,
         emails,
@@ -224,9 +229,9 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
       });
     }
   });
-  
+
   // Roles list
-  app.get('/mgmt/roles', requireAuth, (req, res) => {
+  app.get('/directory/roles', requireAuth, (req, res) => {
     try {
       const roles = db.prepare(`
         SELECT r.*, COUNT(ur.user_id) as user_count
@@ -235,8 +240,8 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         GROUP BY r.id
         ORDER BY r.created_at DESC
       `).all();
-      
-      res.render('mgmt-roles', {
+
+      res.render('directory/roles', {
         title: 'Roles',
         roles,
         session: sessions.get(req.cookies?.['mgmt_session'])
@@ -249,9 +254,9 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
       });
     }
   });
-  
+
   // Groups list
-  app.get('/mgmt/groups', requireAuth, (req, res) => {
+  app.get('/directory/groups', requireAuth, (req, res) => {
     try {
       const groups = db.prepare(`
         SELECT g.*, d.name as domain_name, COUNT(ug.user_id) as user_count
@@ -261,8 +266,8 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
         GROUP BY g.id
         ORDER BY g.created_at DESC
       `).all();
-      
-      res.render('mgmt-groups', {
+
+      res.render('directory/groups', {
         title: 'Groups',
         groups,
         session: sessions.get(req.cookies?.['mgmt_session'])

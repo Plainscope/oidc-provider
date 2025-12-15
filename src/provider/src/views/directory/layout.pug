@@ -9,7 +9,7 @@ html
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { 
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #efefef;
         min-height: 100vh;
         display: flex;
         flex-direction: column;
@@ -99,20 +99,20 @@ html
     if session
       nav
         .container
-          a.logo(href="/mgmt") Directory Management
+          a.logo(href="/directory") Directory Management
           ul
             li
-              a(href="/mgmt") Dashboard
+              a(href="/directory") Dashboard
             li
-              a(href="/mgmt/users") Users
+              a(href="/directory/users") Users
             li
-              a(href="/mgmt/roles") Roles
+              a(href="/directory/roles") Roles
             li
-              a(href="/mgmt/groups") Groups
+              a(href="/directory/groups") Groups
             li
               span.user-info Logged in as #{session.username}
             li
-              a(href="/mgmt/logout") Logout
+              a(href="/directory/logout") Logout
     
     main
       .container

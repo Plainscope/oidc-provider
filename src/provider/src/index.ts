@@ -12,7 +12,7 @@ import useDirectory, { IDirectory } from './directories/directory';
 import { SqliteDirectory } from './directories/sqlite-directory';
 import { initializeSqliteDirectory } from './directories/sqlite-seeder';
 import useInteractions from './routes/interactions';
-import { registerManagementRoutes } from './routes/management';
+import { registerManagementRoutes } from './routes/directory';
 import useSqliteAdapter from './sqlite-adapter';
 import Database from 'better-sqlite3';
 import { AccountNotFoundError } from './directories/errors';
@@ -165,9 +165,9 @@ console.log(`[INIT] Using directory type: ${DIRECTORY_TYPE}`);
 if (DIRECTORY_TYPE === 'sqlite') {
   const dbPath = DIRECTORY_CONFIG.dbPath || process.env.DIRECTORY_DATABASE_FILE || path.join(process.cwd(), 'data/users.db');
   const usersFile = process.env.DIRECTORY_USERS_FILE;
-  
+
   console.log(`[INIT] Initializing SQLite directory at: ${dbPath}`);
-  
+
   // Check if database needs seeding
   if (!fs.existsSync(dbPath) || fs.statSync(dbPath).size === 0) {
     console.log('[INIT] Database does not exist or is empty, will seed with initial data');
@@ -205,12 +205,12 @@ const provider = new Provider(ISSUER, {
         const clientCfg = Array.isArray(configuration.clients) && configuration.clients[0] ? configuration.clients[0] as any : {};
         const clientId = process.env.CLIENT_ID || clientCfg.client_id;
         const redirectUri = (process.env.REDIRECT_URIS || (clientCfg.redirect_uris && clientCfg.redirect_uris[0])) as string;
-        
+
         // Ensure required parameters are present
         if (!clientId || !redirectUri) {
           throw new Error('Missing client configuration for login redirect');
         }
-        
+
         const scopes = (Array.isArray(configuration.scopes) && configuration.scopes.length > 0 ? configuration.scopes.join(' ') : null) || 'openid profile email';
         const loginUrl = `/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&prompt=login`;
         ctx.status = 303;
@@ -274,9 +274,9 @@ if (DIRECTORY_TYPE === 'sqlite' && directory instanceof SqliteDirectory) {
   const dbPath = DIRECTORY_CONFIG.dbPath || process.env.DIRECTORY_DATABASE_FILE || path.join(process.cwd(), 'data/users.db');
   const managementDb = new Database(dbPath);
   managementDb.pragma('foreign_keys = ON');
-  
+
   registerManagementRoutes(app, directory, managementDb);
-  console.log('[INIT] Management UI routes registered at /mgmt');
+  console.log('[INIT] Management UI routes registered at /directory');
 }
 
 // Register OIDC interaction routes
@@ -308,7 +308,7 @@ const server = app.listen(PORT, () => {
     .then(count => console.log(`[SERVER] Number of users: ${count}`))
     .catch(err => console.error('[SERVER] Failed to count users:', err instanceof Error ? err.message : err));
   console.log(`[SERVER] Proxy mode is ${provider.proxy ? 'enabled' : 'disabled'}`);
-  
+
   // Display quick start information for local development
   displayQuickStartInfo();
 });

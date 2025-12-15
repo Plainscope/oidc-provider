@@ -41,7 +41,9 @@ services:
       CLIENT_SECRET: ${PROVIDER_CLIENT_SECRET:-+XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq}
       REDIRECT_URIS: http://localhost:${DEMO_PORT:-8080}/signin-oidc
       POST_LOGOUT_REDIRECT_URIS: http://localhost:${DEMO_PORT:-8080}/signout-callback-oidc
-      DIRECTORY_TYPE: ${DIRECTORY_TYPE:-remote}
+      DIRECTORY_TYPE: ${DIRECTORY_TYPE:-sqlite}
+      DIRECTORY_DATABASE_FILE: /data/directory.db
+      DIRECTORY_USERS_FILE: /app/config/users.json
       DIRECTORY_BASE_URL: ${DIRECTORY_BASE_URL:-http://directory:8080}
       DIRECTORY_HEADERS: ${DIRECTORY_HEADERS:-{"Authorization":"Bearer sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth"}}
       FEATURES_DEV_INTERACTIONS: false
@@ -50,6 +52,7 @@ services:
       - "${PROVIDER_PORT:-9080}:8080"
     volumes:
       - provider-data:/data:rw
+      - ${DIRECTORY_USERS_FILE:-./docker/provider/users.json}:/app/config/users.json:ro
     networks:
       - oidc-net
     depends_on:

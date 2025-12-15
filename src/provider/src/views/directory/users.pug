@@ -1,4 +1,4 @@
-extends mgmt-layout
+extends layout
 
 block content
   style.
@@ -54,7 +54,7 @@ block content
     .header-actions
       h1 Users
       //- Future: add create user button
-      //- a.btn.btn-primary(href="/mgmt/users/new") + Add User
+      //- a.btn.btn-primary(href="/directory/users/new") + Add User
     
     if users && users.length > 0
       table
@@ -79,6 +79,6 @@ block content
                   span.badge.badge-inactive Inactive
               td= new Date(user.created_at).toLocaleDateString()
               td
-                a.btn.btn-secondary(href=`/mgmt/users/${user.id}`, style="padding: 0.5rem 1rem; font-size: 0.875rem;") View
+                a.btn.btn-secondary(href=`/directory/users/${user.id}`, style="padding: 0.5rem 1rem; font-size: 0.875rem;") View
     else
       p No users found.

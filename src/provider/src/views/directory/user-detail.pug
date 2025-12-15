@@ -1,4 +1,4 @@
-extends mgmt-layout
+extends layout
 
 block content
   style.
@@ -80,7 +80,7 @@ block content
       div
         h1= user.username
         p(style="color: #718096; margin-top: 0.5rem;")= user.display_name
-      a.btn.btn-secondary(href="/mgmt/users") ← Back to Users
+      a.btn.btn-secondary(href="/directory/users") ← Back to Users
     
     .section
       h2 Basic Information

@@ -2,22 +2,25 @@
 
 ## Overview
 
-The OIDC Provider now includes a comprehensive management UI for the SQLite directory, accessible at `/mgmt` when using `DIRECTORY_TYPE=sqlite`.
+The OIDC Provider now includes a comprehensive management UI for the SQLite directory, accessible at `/directory` when using `DIRECTORY_TYPE=sqlite`.
 
 ## Features
 
 ### 🔐 Secure Authentication
+
 - Admin-only access with role validation
 - Session management with httpOnly cookies
 - Secure password validation via directory service
 - Auto-logout after 1 hour of inactivity
 
 ### 📊 Dashboard
+
 - Real-time statistics: users, roles, groups, domains
 - Quick action buttons for common tasks
 - Modern, responsive design
 
 ### 👥 User Management
+
 - List all users with status, email, and creation date
 - Detailed user profiles showing:
   - Basic information (username, name, domain)
@@ -27,6 +30,7 @@ The OIDC Provider now includes a comprehensive management UI for the SQLite dire
   - Custom properties
 
 ### 🛡️ Roles & Groups
+
 - View all roles with user counts
 - View all groups with domain and user counts
 - Track assignments and memberships
@@ -59,6 +63,7 @@ The OIDC Provider now includes a comprehensive management UI for the SQLite dire
 ### Access the Management UI
 
 1. **Start provider with SQLite directory**:
+
    ```bash
    docker run -p 8080:8080 \
      -e DIRECTORY_TYPE=sqlite \
@@ -68,8 +73,9 @@ The OIDC Provider now includes a comprehensive management UI for the SQLite dire
    ```
 
 2. **Navigate to management UI**:
+
    ```
-   http://localhost:8080/mgmt
+   http://localhost:8080/directory
    ```
 
 3. **Login with admin credentials**:
@@ -80,10 +86,12 @@ The OIDC Provider now includes a comprehensive management UI for the SQLite dire
 ### First-Time Setup
 
 The database is automatically seeded on first run if:
+
 - Database file doesn't exist, OR
 - Database file is empty
 
 Seeding process:
+
 1. Creates schema (users, roles, groups, domains, etc.)
 2. Creates default domain: `localhost`
 3. Creates default roles: `admin`, `user`, `guest`
@@ -100,26 +108,30 @@ Seeding process:
 
 ## Pages
 
-### 1. Login Page (`/mgmt/login`)
+### 1. Login Page (`/directory/login`)
+
 - Clean, modern login form
 - Error message display
 - Gradient background
 - Mobile-responsive
 
-### 2. Dashboard (`/mgmt`)
+### 2. Dashboard (`/directory`)
+
 - Statistics cards: users, roles, groups, domains
 - Quick action buttons
 - Feature overview
 - Navigation menu
 
-### 3. Users List (`/mgmt/users`)
+### 3. Users List (`/directory/users`)
+
 - Table with all users
 - Status badges (active/inactive)
 - Email addresses
 - Creation dates
 - View detail buttons
 
-### 4. User Detail (`/mgmt/users/:id`)
+### 4. User Detail (`/directory/users/:id`)
+
 - Complete user profile
 - Multiple email addresses
 - Role assignments
@@ -127,13 +139,15 @@ Seeding process:
 - Custom properties
 - Domain information
 
-### 5. Roles (`/mgmt/roles`)
+### 5. Roles (`/directory/roles`)
+
 - List of all roles
 - Descriptions
 - User counts
 - Creation dates
 
-### 6. Groups (`/mgmt/groups`)
+### 6. Groups (`/directory/groups`)
+
 - List of all groups
 - Domain associations
 - User counts
@@ -142,16 +156,19 @@ Seeding process:
 ## UI Design
 
 ### Color Scheme
+
 - Primary: `#667eea` (purple-blue gradient)
 - Secondary: `#e2e8f0` (light gray)
 - Success: `#c6f6d5` (green)
 - Error: `#fed7d7` (red)
 
 ### Typography
+
 - Font: System font stack (San Francisco, Segoe UI, Roboto)
 - Modern, clean, readable
 
 ### Components
+
 - Cards with shadows and hover effects
 - Responsive tables
 - Badge components for status
@@ -206,16 +223,19 @@ services:
 ## Troubleshooting
 
 ### Cannot Access Management UI
+
 - Check `DIRECTORY_TYPE` is set to `sqlite`
 - Verify database file exists and has data
 - Check admin user has `admin` role
 
 ### Login Fails
+
 - Verify credentials are correct
 - Check user has `admin` role assigned
 - Ensure database is not corrupted
 
 ### Database Not Seeding
+
 - Check `DIRECTORY_USERS_FILE` path is correct
 - Verify users.json format is valid
 - Check file permissions and accessibility
@@ -223,6 +243,7 @@ services:
 ## Future Enhancements
 
 Potential features for future versions:
+
 - User creation/editing via UI
 - Role and group management
 - Bulk user import
@@ -242,6 +263,7 @@ The management UI features:
 5. **Roles/Groups**: Management views for access control
 
 All pages feature:
+
 - Responsive design (mobile-friendly)
 - Modern styling with shadows and animations
 - Intuitive navigation
