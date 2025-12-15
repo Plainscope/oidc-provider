@@ -604,7 +604,7 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
       }
 
       // Add user to role
-      db.prepare('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)').run(userId, roleId);
+      db.prepare('INSERT INTO user_roles (id, user_id, role_id) VALUES (?, ?, ?)').run(crypto.randomUUID(), userId, roleId);
 
       res.json({ success: true, message: 'User added to role successfully' });
     } catch (error) {
