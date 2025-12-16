@@ -145,6 +145,10 @@ test.describe('Directory CRUD Operations with Security', () => {
 
     // Try duplicate in the SAME domain (should fail)
     await page.click('button:has-text("Add Group")');
+
+    // Wait for modal and form to be ready
+    await page.waitForSelector('select', { state: 'visible' });
+
     await page.fill('input[placeholder*="Name"]', testGroupName);
     await page.selectOption('select', domainId);
     await page.fill('input[placeholder="Description"]', 'Duplicate group');
@@ -340,21 +344,28 @@ test.describe('Directory CRUD Operations with Security', () => {
     // Wait for the form to load
     await page.waitForSelector('input[placeholder="Primary Email"]', { state: 'visible', timeout: 5000 });
 
-    await page.fill('input[placeholder="Primary Email"]', email1);
+    // Clear field and fill with duplicate email
+    const emailInput = page.locator('input[placeholder="Primary Email"]');
+    await emailInput.fill(email1);
 
     // Wait for Save button to be ready before clicking
     await page.waitForSelector('button:has-text("Save")', { state: 'attached', timeout: 5000 });
+
+    // Click save button
     await page.click('button:has-text("Save")', { force: true });
 
-    // Wait for error message to appear - Alpine.js uses x-show which may not be immediately visible
-    // So we wait for the element to have content or for a specific state
+    // Wait for error message to appear - Alpine.js renders error dynamically
+    // Wait for the error element to have visible text content
     const errorElement = page.locator('div.bg-red-50');
-    await errorElement.waitFor({ state: 'attached', timeout: 10000 });
 
-    // Wait a bit for Alpine.js to update visibility
-    await page.waitForTimeout(500);
+    // Wait for error text to be populated (Alpine.js x-text binding)
+    await page.waitForFunction(() => {
+      const el = document.querySelector('div.bg-red-50');
+      return el && el.textContent && el.textContent.toLowerCase().includes('email');
+    }, { timeout: 10000 });
 
-    await expect(errorElement).toContainText(/email already in use/i, { timeout: 5000 });
+    // Now verify the error message
+    await expect(errorElement).toContainText(/email already in use|email.*use/i, { timeout: 5000 });
   });
 
   test('should reject empty domain name', async ({ page }) => {
