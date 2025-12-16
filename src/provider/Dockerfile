@@ -45,8 +45,7 @@ RUN npm ci --omit=dev \
 
 # Copy compiled application from build stage
 COPY --from=build /app/dist ./dist
-COPY src/views ./views
-COPY public ./public
+COPY --from=build /app/public ./public
 
 # Create data directory with correct permissions
 RUN mkdir -p /data \

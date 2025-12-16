@@ -187,9 +187,9 @@ if (DIRECTORY_TYPE === 'sqlite') {
  * Sets up Express, view engine, static files, and OIDC routes.
  */
 const app: Express = express();
-app.set('views', './views');
+app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
-console.log('[INIT] Express app configured with Pug view engine and views directory ./views');
+console.log('[INIT] Express app configured with Pug view engine and views directory:', path.join(__dirname, 'views'));
 
 // Initialize OIDC Provider with configuration and custom account finder
 const provider = new Provider(ISSUER, {
