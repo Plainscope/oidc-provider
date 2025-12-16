@@ -177,6 +177,249 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
     }
   });
 
+  // New user form (must come before /directory/users/:id)
+  app.get('/directory/users/new', requireAuth, (req, res) => {
+    try {
+      const domains = db.prepare('SELECT * FROM domains ORDER BY name').all();
+
+      res.render('directory/user-new', {
+        title: 'Create User',
+        domains,
+        session: sessions.get(req.cookies?.['mgmt_session'])
+      });
+    } catch (error) {
+      console.error('[Management] New user form error:', error);
+      res.status(500).render('error', {
+        title: 'Error',
+        error: 'Failed to load form'
+      });
+    }
+  });
+
+  // Create user
+  app.post('/directory/users/create', requireAuth, async (req, res): Promise<void> => {
+    try {
+      const username = sanitize(req.body.username);
+      const password = sanitize(req.body.password);
+      const email = sanitize(req.body.email);
+      const firstName = sanitize(req.body.first_name || '');
+      const lastName = sanitize(req.body.last_name || '');
+      let displayName = sanitize(req.body.display_name || '');
+      const domainName = sanitize(req.body.domain_name || 'local');
+      const isActive = req.body.is_active === true || req.body.is_active === 'true';
+      const emailVerified = req.body.email_verified === true || req.body.email_verified === 'true';
+
+      if (!username) {
+        res.status(400).json({ error: 'Username is required' });
+        return;
+      }
+
+      if (!password || password.length < 8) {
+        res.status(400).json({ error: 'Password must be at least 8 characters' });
+        return;
+      }
+
+      if (!email) {
+        res.status(400).json({ error: 'Email is required' });
+        return;
+      }
+
+      // Auto-generate display name if not provided
+      if (!displayName && (firstName || lastName)) {
+        displayName = `${firstName} ${lastName}`.trim();
+      }
+
+      // Check if username already exists
+      const existingUser = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+      if (existingUser) {
+        res.status(400).json({ error: 'Username already exists' });
+        return;
+      }
+
+      // Check if email already exists
+      const existingEmail = db.prepare('SELECT * FROM user_emails WHERE email = ?').get(email);
+      if (existingEmail) {
+        res.status(400).json({ error: 'Email already exists' });
+        return;
+      }
+
+      // Get or create domain
+      let domain = db.prepare('SELECT * FROM domains WHERE name = ?').get(domainName) as any;
+      if (!domain) {
+        const domainId = crypto.randomUUID();
+        db.prepare('INSERT INTO domains (id, name, created_at) VALUES (?, ?, ?)').run(
+          domainId,
+          domainName,
+          new Date().toISOString()
+        );
+        domain = { id: domainId };
+      }
+
+      // Hash password using directory's method
+      const passwordHash = await directory.hashPassword(password);
+
+      // Create user
+      const userId = crypto.randomUUID();
+      db.prepare(`
+        INSERT INTO users (
+          id, username, password, first_name, last_name, 
+          display_name, domain_id, is_active, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        userId,
+        username,
+        passwordHash,
+        firstName,
+        lastName,
+        displayName,
+        domain.id,
+        isActive ? 1 : 0,
+        new Date().toISOString()
+      );
+
+      // Create email
+      const emailId = crypto.randomUUID();
+      db.prepare(`
+        INSERT INTO user_emails (id, user_id, email, is_primary, is_verified)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(emailId, userId, email, 1, emailVerified ? 1 : 0);
+
+      res.json({ success: true, id: userId });
+    } catch (error) {
+      console.error('[Management] Create user error:', error);
+      res.status(500).json({ error: 'Failed to create user' });
+    }
+  });
+
+  // Edit user form (must come before /directory/users/:id)
+  app.get('/directory/users/:id/edit', requireAuth, (req, res) => {
+    try {
+      const user = db.prepare(`
+        SELECT u.*, d.name as domain_name
+        FROM users u
+        JOIN domains d ON u.domain_id = d.id
+        WHERE u.id = ?
+      `).get(req.params.id);
+
+      if (!user) {
+        return res.status(404).render('error', {
+          title: 'Not Found',
+          error: 'User not found'
+        });
+      }
+
+      const domains = db.prepare('SELECT * FROM domains ORDER BY name').all();
+
+      res.render('directory/user-edit', {
+        title: `Edit User: ${(user as any).username}`,
+        user,
+        domains,
+        session: sessions.get(req.cookies?.['mgmt_session'])
+      });
+    } catch (error) {
+      console.error('[Management] Edit user form error:', error);
+      res.status(500).render('error', {
+        title: 'Error',
+        error: 'Failed to load user'
+      });
+    }
+  });
+
+  // Update user
+  app.post('/directory/users/:id/update', requireAuth, async (req, res): Promise<void> => {
+    try {
+      const userId = sanitize(req.params.id);
+      const password = req.body.password ? sanitize(req.body.password) : null;
+      const firstName = sanitize(req.body.first_name || '');
+      const lastName = sanitize(req.body.last_name || '');
+      let displayName = sanitize(req.body.display_name || '');
+      const domainName = sanitize(req.body.domain_name || 'local');
+      const isActive = req.body.is_active === true || req.body.is_active === 'true';
+
+      const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      // Validate password if provided
+      if (password && password.length < 8) {
+        res.status(400).json({ error: 'Password must be at least 8 characters' });
+        return;
+      }
+
+      // Auto-generate display name if not provided
+      if (!displayName && (firstName || lastName)) {
+        displayName = `${firstName} ${lastName}`.trim();
+      }
+
+      // Get or create domain
+      let domain = db.prepare('SELECT * FROM domains WHERE name = ?').get(domainName) as any;
+      if (!domain) {
+        const domainId = crypto.randomUUID();
+        db.prepare('INSERT INTO domains (id, name, created_at) VALUES (?, ?, ?)').run(
+          domainId,
+          domainName,
+          new Date().toISOString()
+        );
+        domain = { id: domainId };
+      }
+
+      // Update user basic info
+      if (password) {
+        // Update with new password
+        const passwordHash = await directory.hashPassword(password);
+        db.prepare(`
+          UPDATE users 
+          SET password = ?, first_name = ?, last_name = ?, 
+              display_name = ?, domain_id = ?, is_active = ?
+          WHERE id = ?
+        `).run(passwordHash, firstName, lastName, displayName, domain.id, isActive ? 1 : 0, userId);
+      } else {
+        // Update without changing password
+        db.prepare(`
+          UPDATE users 
+          SET first_name = ?, last_name = ?, display_name = ?, 
+              domain_id = ?, is_active = ?
+          WHERE id = ?
+        `).run(firstName, lastName, displayName, domain.id, isActive ? 1 : 0, userId);
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[Management] Update user error:', error);
+      res.status(500).json({ error: 'Failed to update user' });
+    }
+  });
+
+  // Delete user
+  app.post('/directory/users/:id/delete', requireAuth, (req, res): void => {
+    try {
+      const userId = sanitize(req.params.id);
+
+      // Check if user exists
+      const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      // Delete all related records first
+      db.prepare('DELETE FROM user_emails WHERE user_id = ?').run(userId);
+      db.prepare('DELETE FROM user_roles WHERE user_id = ?').run(userId);
+      db.prepare('DELETE FROM user_groups WHERE user_id = ?').run(userId);
+      db.prepare('DELETE FROM user_properties WHERE user_id = ?').run(userId);
+
+      // Delete user
+      db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+
+      res.json({ success: true, message: 'User deleted successfully' });
+    } catch (error) {
+      console.error('[Management] Delete user error:', error);
+      res.status(500).json({ error: 'Failed to delete user' });
+    }
+  });
+
   // User detail
   app.get('/directory/users/:id', requireAuth, (req, res) => {
     try {

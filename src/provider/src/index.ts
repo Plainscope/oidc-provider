@@ -260,6 +260,10 @@ console.log('[INIT] Cookie parser enabled');
 app.use(securityHeaders);
 console.log('[INIT] Security headers middleware enabled');
 
+// Parse JSON bodies (for API requests)
+app.use(express.json());
+console.log('[INIT] JSON body parser enabled');
+
 // Parse URL-encoded bodies (for form submissions)
 app.use(express.urlencoded({ extended: false }));
 console.log('[INIT] URL-encoded body parser enabled');

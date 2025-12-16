@@ -141,7 +141,10 @@ block content
       div
         h1= user.username
         p(style="color: #718096; margin-top: 0.5rem;")= user.display_name
-      a.btn.btn-secondary(href="/directory/users") ← Back to Users
+      div(style="display: flex; gap: 1rem;")
+        a.btn.btn-primary(href=`/directory/users/${user.id}/edit`) Edit User
+        button.btn.btn-danger#delete-user-btn(data-user-id=user.id, data-username=user.username) Delete User
+        a.btn.btn-secondary(href="/directory/users") ← Back to Users
     
     .section
       h2 Basic Information
@@ -247,6 +250,28 @@ block content
     
     script.
       const userId = '#{user.id}';
+      
+      // Delete user functionality
+      document.getElementById('delete-user-btn')?.addEventListener('click', async () => {
+        const username = document.getElementById('delete-user-btn').dataset.username;
+        
+        showConfirm(`Are you sure you want to delete user "${username}"? This action cannot be undone and will remove all associated data.`, async () => {
+          try {
+            const response = await fetch(`/directory/users/${userId}/delete`, {
+              method: 'POST'
+            });
+            
+            if (response.ok) {
+              window.location.href = '/directory/users';
+            } else {
+              const data = await response.json();
+              showAlert(data.error || 'Failed to delete user', 'Error');
+            }
+          } catch (err) {
+            showAlert('Error: ' + err.message, 'Error');
+          }
+        }, 'Delete User');
+      });
       
       // Add role functionality
       document.getElementById('add-role-btn')?.addEventListener('click', async () => {

@@ -53,8 +53,7 @@ block content
   .card
     .header-actions
       h1 Users
-      //- Future: add create user button
-      //- a.btn.btn-primary(href="/directory/users/new") + Add User
+      a.btn.btn-primary(href="/directory/users/new") + Add User
     
     if users && users.length > 0
       table
@@ -79,6 +78,34 @@ block content
                   span.badge.badge-inactive Inactive
               td= new Date(user.created_at).toLocaleDateString()
               td
-                a.btn.btn-secondary(href=`/directory/users/${user.id}`, style="padding: 0.5rem 1rem; font-size: 0.875rem;") View
+                a.btn.btn-secondary(href=`/directory/users/${user.id}`, style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-right: 0.5rem;") View
+                a.btn.btn-primary(href=`/directory/users/${user.id}/edit`, style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-right: 0.5rem;") Edit
+                button.btn.btn-danger.delete-user-btn(data-user-id=user.id, data-username=user.username, style="padding: 0.5rem 1rem; font-size: 0.875rem;") Delete
     else
       p No users found.
+  
+  script.
+    // Delete user functionality
+    document.querySelectorAll('.delete-user-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const userId = btn.dataset.userId;
+        const username = btn.dataset.username;
+        
+        showConfirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`, async () => {
+          try {
+            const response = await fetch(`/directory/users/${userId}/delete`, {
+              method: 'POST'
+            });
+            
+            if (response.ok) {
+              location.reload();
+            } else {
+              const data = await response.json();
+              showAlert(data.error || 'Failed to delete user', 'Error');
+            }
+          } catch (err) {
+            showAlert('Error: ' + err.message, 'Error');
+          }
+        }, 'Delete User');
+      });
+    });

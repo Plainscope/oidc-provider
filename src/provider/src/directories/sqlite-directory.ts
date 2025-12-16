@@ -81,7 +81,7 @@ export class SqliteDirectory implements IDirectory {
 
   constructor(dbPath?: string) {
     this.dbPath = dbPath || process.env.DIRECTORY_DATABASE_FILE || path.join(process.cwd(), 'data/users.db');
-    
+
     // Ensure database directory exists
     const dbDir = path.dirname(this.dbPath);
     if (!fs.existsSync(dbDir)) {
@@ -90,13 +90,13 @@ export class SqliteDirectory implements IDirectory {
 
     // Initialize database connection
     this.db = new Database(this.dbPath);
-    
+
     // Enable foreign keys
     this.db.pragma('foreign_keys = ON');
-    
+
     // Set reasonable timeout for busy database
     this.db.pragma('busy_timeout = 5000');
-    
+
     console.log(`[SqliteDirectory] Initialized with database: ${this.dbPath}`);
   }
 
@@ -202,7 +202,7 @@ export class SqliteDirectory implements IDirectory {
    */
   async find(id: string): Promise<Account | undefined> {
     console.log(`[SqliteDirectory] Finding user by id: ${id}`);
-    
+
     try {
       let sqliteUser: SqliteUser | undefined;
 
@@ -218,7 +218,7 @@ export class SqliteDirectory implements IDirectory {
            WHERE ue.email = ? AND u.is_active = 1
            LIMIT 1`
         ).get(id) as SqliteUser | undefined;
-        
+
         sqliteUser = row;
       }
 
@@ -232,7 +232,7 @@ export class SqliteDirectory implements IDirectory {
 
       // Map to OIDC user
       const user = this.mapUser(sqliteUser, emails, properties, roles, groups);
-      
+
       console.log(`[SqliteDirectory] User found: ${id}`);
       return new Profile(user.id, user);
     } catch (error) {
@@ -246,7 +246,7 @@ export class SqliteDirectory implements IDirectory {
    */
   async validate(email: string, password: string): Promise<Account | undefined> {
     console.log(`[SqliteDirectory] Validating user: ${email}`);
-    
+
     try {
       // Find user by email
       const sqliteUser = this.db.prepare(
@@ -306,5 +306,13 @@ export class SqliteDirectory implements IDirectory {
       this.db.close();
       console.log('[SqliteDirectory] Database connection closed');
     }
+  }
+
+  /**
+   * Hash a password using bcrypt
+   */
+  async hashPassword(password: string): Promise<string> {
+    const saltRounds = 10;
+    return await bcrypt.hash(password, saltRounds);
   }
 }

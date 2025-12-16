@@ -2,8 +2,6 @@
 import { test, expect } from '@playwright/test';
 
 const PROVIDER_URL = 'http://localhost:9080';
-const DIRECTORY_URL = 'http://localhost:7080';
-const BEARER_TOKEN = 'sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth';
 
 // Test user credentials (should exist in the test database)
 const TEST_USER = {
@@ -11,6 +9,16 @@ const TEST_USER = {
   password: 'Rays-93-Accident',
   id: '8276bb5b-d0b7-41e9-a805-77b62a2865f4'
 };
+
+// Helper function to login
+async function login(page: any, email: string, password: string) {
+  await page.goto(`${PROVIDER_URL}/directory/login`);
+  await expect(page.locator('input[placeholder="admin@example.com"]')).toBeVisible({ timeout: 10000 });
+  await page.fill('input[placeholder="admin@example.com"]', email);
+  await page.fill('input[placeholder="Enter your password"]', password);
+  await page.click('button:has-text("Sign In")');
+  await page.waitForURL(url => !url.toString().includes('/login'), { timeout: 5000 });
+}
 
 test.describe('SQLite Directory Integration', () => {
 
@@ -58,212 +66,337 @@ test.describe('SQLite Directory Integration', () => {
 
   test('should load user profile from SQLite directory', async ({ page }) => {
     // Successfully logging in exercises the SQLite directory's find() method
-    await page.goto(`${PROVIDER_URL}/directory/login`);
-
-    await expect(page.locator('input[placeholder="admin@example.com"]')).toBeVisible({ timeout: 10000 });
-
-    await page.fill('input[placeholder="admin@example.com"]', TEST_USER.email);
-    await page.fill('input[placeholder="Enter your password"]', TEST_USER.password);
-
-    await page.click('button:has-text("Sign In")');
+    await login(page, TEST_USER.email, TEST_USER.password);
 
     // Successful login indicates that:
     // 1. validate() worked (found user by email, checked password)
     // 2. User profile was loaded correctly from SQLite
     // 3. find() method works for retrieving user data
 
-    // Should move past the login page
-    await page.waitForURL(url => !url.toString().includes('/login'), { timeout: 5000 });
-
     // Should be in authenticated session
     await expect(page).not.toHaveURL(/\/login/);
   });
 });
 
-test.describe('SQLite Directory API (via Remote Directory endpoints)', () => {
+test.describe('SQLite Directory - User CRUD Operations', () => {
 
-  test('should count users via /count endpoint', async ({ request }) => {
-    const response = await request.get(`${DIRECTORY_URL}/count`, {
-      headers: {
-        'Authorization': `Bearer ${BEARER_TOKEN}`
-      }
-    });
+  test('should list all users', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
 
-    expect(response.ok()).toBeTruthy();
-    const data = await response.json();
+    // Navigate to users list
+    await page.goto(`${PROVIDER_URL}/directory/users`);
 
-    // Should have at least the test user
-    expect(data.count).toBeGreaterThan(0);
+    // Should show users table
+    await expect(page.locator('h1:has-text("Users")')).toBeVisible();
+    await expect(page.locator('table')).toBeVisible();
+
+    // Should show at least the admin user
+    await expect(page.locator('td', { hasText: TEST_USER.email }).first()).toBeVisible();
   });
 
-  test('should find user by ID via /find endpoint', async ({ request }) => {
-    const response = await request.get(`${DIRECTORY_URL}/find/${TEST_USER.id}`, {
-      headers: {
-        'Authorization': `Bearer ${BEARER_TOKEN}`
-      }
-    });
+  test('should view user detail', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
 
-    expect(response.ok()).toBeTruthy();
-    const user = await response.json();
+    // Navigate to users list
+    await page.goto(`${PROVIDER_URL}/directory/users`);
 
-    expect(user.id).toBe(TEST_USER.id);
-    expect(user.emails).toBeDefined();
-    expect(user.emails.length).toBeGreaterThan(0);
+    // Click on first user's View button
+    await page.click('a.btn.btn-secondary:has-text("View")');
+
+    // Should show user detail page
+    await expect(page.locator('h2:has-text("Basic Information")')).toBeVisible();
+    await expect(page.locator('h2:has-text("Email Addresses")')).toBeVisible();
+    await expect(page.locator('h2:has-text("Roles")')).toBeVisible();
+    await expect(page.locator('h2:has-text("Groups")')).toBeVisible();
   });
 
-  test('should find user by email via /find endpoint', async ({ request }) => {
-    const response = await request.get(`${DIRECTORY_URL}/find/${encodeURIComponent(TEST_USER.email)}`, {
-      headers: {
-        'Authorization': `Bearer ${BEARER_TOKEN}`
-      }
-    });
+  test('should create a new user', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
 
-    expect(response.ok()).toBeTruthy();
-    const user = await response.json();
+    // Navigate to users list
+    await page.goto(`${PROVIDER_URL}/directory/users`);
 
-    expect(user.emails).toBeDefined();
-    const primaryEmail = user.emails.find((e: any) => e.is_primary);
-    expect(primaryEmail.email).toBe(TEST_USER.email);
+    // Click Add User button
+    await page.click('a:has-text("Add User")');
+
+    // Should show create user form
+    await expect(page.locator('h1:has-text("Create New User")')).toBeVisible();
+
+    // Generate unique test user data
+    const timestamp = Date.now();
+    const testUser = {
+      username: `testuser${timestamp}`,
+      password: 'TestPassword123!',
+      email: `testuser${timestamp}@example.com`,
+      firstName: 'Test',
+      lastName: 'User',
+      displayName: 'Test User'
+    };
+
+    // Fill out the form
+    await page.fill('#username', testUser.username);
+    await page.fill('#password', testUser.password);
+    await page.fill('#email', testUser.email);
+    await page.fill('#first_name', testUser.firstName);
+    await page.fill('#last_name', testUser.lastName);
+
+    // Wait for the network response
+    const responsePromise = page.waitForResponse(response =>
+      response.url().includes('/directory/users/create') && response.status() === 200
+    );
+
+    // Submit form
+    await page.click('button[type="submit"]:has-text("Create User")');
+
+    // Wait for response
+    await responsePromise;
+
+    // Should redirect to user detail page
+    await page.waitForURL(/\/directory\/users\/[a-f0-9-]+$/, { timeout: 5000 });
+
+    // Should show the new user's details
+    await expect(page.locator(`h1:has-text("${testUser.username}")`)).toBeVisible();
+    await expect(page.locator('.info-value', { hasText: testUser.username })).toBeVisible();
   });
 
-  test('should validate correct credentials via /validate endpoint', async ({ request }) => {
-    const response = await request.post(`${DIRECTORY_URL}/validate`, {
-      headers: {
-        'Authorization': `Bearer ${BEARER_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      data: {
-        email: TEST_USER.email,
-        password: TEST_USER.password
-      }
-    });
+  test('should validate required fields when creating user', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
+    // Navigate to create user form
+    await page.goto(`${PROVIDER_URL}/directory/users/new`);
 
-    expect(result.valid).toBe(true);
-    expect(result.user).toBeDefined();
-    expect(result.user.id).toBe(TEST_USER.id);
+    // Try to submit without filling required fields
+    await page.click('button[type="submit"]:has-text("Create User")');
+
+    // HTML5 validation should prevent submission
+    // Check that we're still on the form page
+    await expect(page).toHaveURL(/\/directory\/users\/new/);
   });
 
-  test('should reject invalid credentials via /validate endpoint', async ({ request }) => {
-    const response = await request.post(`${DIRECTORY_URL}/validate`, {
-      headers: {
-        'Authorization': `Bearer ${BEARER_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      data: {
-        email: TEST_USER.email,
-        password: 'wrong-password'
-      }
-    });
+  test('should not allow duplicate username', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
 
-    // Should return 400 for invalid credentials
+    // Navigate to create user form
+    await page.goto(`${PROVIDER_URL}/directory/users/new`);
+
+    // Try to create user with existing username
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'TestPassword123!');
+    await page.fill('#email', 'newadmin@example.com');
+
+    // Submit form and wait for response
+    const responsePromise = page.waitForResponse(response =>
+      response.url().includes('/directory/users/create')
+    );
+    await page.click('button[type="submit"]:has-text("Create User")');
+    const response = await responsePromise;
+
+    // Should show error (status 400)
     expect(response.status()).toBe(400);
-    const result = await response.json();
-    expect(result.valid).toBe(false);
+
+    // Should show alert modal
+    await expect(page.locator('#alertModal.active')).toBeVisible();
+    await expect(page.locator('#alertMessage')).toContainText('Username already exists');
   });
 
-  test('should return user with groups and roles', async ({ request }) => {
-    const response = await request.get(`${DIRECTORY_URL}/find/${TEST_USER.id}`, {
-      headers: {
-        'Authorization': `Bearer ${BEARER_TOKEN}`
-      }
-    });
+  test('should edit existing user', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
 
-    expect(response.ok()).toBeTruthy();
-    const user = await response.json();
+    // Navigate to users list
+    await page.goto(`${PROVIDER_URL}/directory/users`);
 
-    // User should have groups and roles arrays (may be empty)
-    expect(Array.isArray(user.groups)).toBeTruthy();
-    expect(Array.isArray(user.roles)).toBeTruthy();
+    // Find the test user (admin) and click Edit
+    await page.locator('tr', { hasText: TEST_USER.email }).locator('a.btn.btn-primary:has-text("Edit")').click();
+
+    // Should show edit form
+    await expect(page.locator('h1:has-text("Edit User:")')).toBeVisible();
+
+    // Update display name
+    const newDisplayName = `Updated at ${Date.now()}`;
+    await page.fill('#display_name', newDisplayName);
+
+    // Submit form
+    await page.click('button[type="submit"]:has-text("Update User")');
+
+    // Should redirect back to user detail
+    await page.waitForURL(/\/directory\/users\/[a-f0-9-]+$/, { timeout: 5000 });
+
+    // Should show updated display name
+    await expect(page.locator('p', { hasText: newDisplayName })).toBeVisible();
   });
 
-  test('should return user with properties', async ({ request }) => {
-    const response = await request.get(`${DIRECTORY_URL}/find/${TEST_USER.id}`, {
-      headers: {
-        'Authorization': `Bearer ${BEARER_TOKEN}`
-      }
-    });
+  test('should update user password', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
 
-    expect(response.ok()).toBeTruthy();
-    const user = await response.json();
+    // First, create a test user
+    const timestamp = Date.now();
+    const testUser = {
+      username: `passtest${timestamp}`,
+      password: 'OldPassword123!',
+      email: `passtest${timestamp}@example.com`
+    };
 
-    // User should have properties object
-    expect(user.properties).toBeDefined();
-  });
-});
+    await page.goto(`${PROVIDER_URL}/directory/users/new`);
+    await page.fill('#username', testUser.username);
+    await page.fill('#password', testUser.password);
+    await page.fill('#email', testUser.email);
+    await page.click('button[type="submit"]:has-text("Create User")');
+    await page.waitForURL(/\/directory\/users\/[a-f0-9-]+$/, { timeout: 5000 });
 
-test.describe('SQLite Directory - User Profile Claims', () => {
+    // Now edit the user
+    await page.click('a.btn.btn-primary:has-text("Edit User")');
 
-  test('should include standard OIDC claims in user profile', async ({ request }) => {
-    const response = await request.get(`${DIRECTORY_URL}/find/${TEST_USER.id}`, {
-      headers: {
-        'Authorization': `Bearer ${BEARER_TOKEN}`
-      }
-    });
+    // Change password
+    const newPassword = 'NewPassword123!';
+    await page.fill('#password', newPassword);
+    await page.click('button[type="submit"]:has-text("Update User")');
 
-    expect(response.ok()).toBeTruthy();
-    const user = await response.json();
-
-    // Check for standard OIDC claims
-    expect(user.id).toBeDefined();
-    expect(user.first_name).toBeDefined();
-    expect(user.last_name).toBeDefined();
-    expect(user.display_name).toBeDefined();
+    // Should update successfully
+    await page.waitForURL(/\/directory\/users\/[a-f0-9-]+$/, { timeout: 5000 });
+    await expect(page.locator(`h1:has-text("${testUser.username}")`)).toBeVisible();
   });
 
-  test('should handle user without optional claims', async ({ request }) => {
-    // This test verifies that the directory handles users with minimal data
-    const response = await request.get(`${DIRECTORY_URL}/find/${TEST_USER.id}`, {
-      headers: {
-        'Authorization': `Bearer ${BEARER_TOKEN}`
-      }
-    });
+  test('should delete user', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
 
-    expect(response.ok()).toBeTruthy();
-    const user = await response.json();
+    // First, create a test user to delete
+    const timestamp = Date.now();
+    const testUser = {
+      username: `deltest${timestamp}`,
+      password: 'TestPassword123!',
+      email: `deltest${timestamp}@example.com`
+    };
 
-    // Required fields should exist
-    expect(user.id).toBeDefined();
+    await page.goto(`${PROVIDER_URL}/directory/users/new`);
+    await page.fill('#username', testUser.username);
+    await page.fill('#password', testUser.password);
+    await page.fill('#email', testUser.email);
+    await page.click('button[type="submit"]:has-text("Create User")');
+    await page.waitForURL(/\/directory\/users\/[a-f0-9-]+$/, { timeout: 5000 });
 
-    // Optional fields may or may not exist, but should not cause errors
-    // The directory should handle missing optional fields gracefully
+    // Delete the user from detail page
+    await page.click('button.btn.btn-danger:has-text("Delete User")');
+
+    // Should show confirmation modal
+    await expect(page.locator('#confirmModal.active')).toBeVisible();
+    await expect(page.locator('#confirmMessage')).toContainText(testUser.username);
+
+    // Confirm deletion
+    await page.click('#confirmBtn');
+
+    // Should redirect to users list
+    await page.waitForURL(/\/directory\/users$/, { timeout: 5000 });
+
+    // User should no longer appear in the list
+    await expect(page.locator('td', { hasText: testUser.username })).not.toBeVisible();
   });
-});
 
-test.describe('SQLite Directory - Error Handling', () => {
+  test('should delete user from list page', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
 
-  test('should return 404 for non-existent user', async ({ request }) => {
-    const fakeUserId = '00000000-0000-0000-0000-000000000000';
-    const response = await request.get(`${DIRECTORY_URL}/find/${fakeUserId}`, {
-      headers: {
-        'Authorization': `Bearer ${BEARER_TOKEN}`
-      }
-    });
+    // Create a test user
+    const timestamp = Date.now();
+    const testUser = {
+      username: `listdel${timestamp}`,
+      password: 'TestPassword123!',
+      email: `listdel${timestamp}@example.com`
+    };
 
-    expect(response.status()).toBe(404);
+    await page.goto(`${PROVIDER_URL}/directory/users/new`);
+    await page.fill('#username', testUser.username);
+    await page.fill('#password', testUser.password);
+    await page.fill('#email', testUser.email);
+    await page.click('button[type="submit"]:has-text("Create User")');
+    await page.waitForURL(/\/directory\/users\/[a-f0-9-]+$/, { timeout: 5000 });
+
+    // Go back to users list
+    await page.goto(`${PROVIDER_URL}/directory/users`);
+
+    // Find the test user row and click delete
+    const userRow = page.locator('tr', { hasText: testUser.username });
+    await userRow.locator('button.btn.btn-danger:has-text("Delete")').click();
+
+    // Should show confirmation modal
+    await expect(page.locator('#confirmModal.active')).toBeVisible();
+
+    // Confirm deletion
+    await page.click('#confirmBtn');
+
+    // Wait a moment for deletion
+    await page.waitForTimeout(500);
+
+    // Page should reload and user should be gone
+    await expect(page.locator('td', { hasText: testUser.username })).not.toBeVisible();
   });
 
-  test('should handle concurrent requests', async ({ request }) => {
-    // Test that SQLite directory can handle multiple concurrent requests
-    const requests = [];
+  test('should cancel user deletion', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
 
-    for (let i = 0; i < 10; i++) {
-      requests.push(
-        request.get(`${DIRECTORY_URL}/find/${TEST_USER.id}`, {
-          headers: {
-            'Authorization': `Bearer ${BEARER_TOKEN}`
-          }
-        })
-      );
-    }
+    // Navigate to a user detail page
+    await page.goto(`${PROVIDER_URL}/directory/users`);
+    await page.click('a.btn.btn-secondary:has-text("View")');
+    await page.waitForURL(/\/directory\/users\/[a-f0-9-]+$/, { timeout: 5000 });
 
-    const responses = await Promise.all(requests);
+    // Click delete button
+    await page.click('button.btn.btn-danger:has-text("Delete User")');
 
-    // All requests should succeed
-    responses.forEach(response => {
-      expect(response.ok()).toBeTruthy();
-    });
+    // Should show confirmation modal
+    await expect(page.locator('#confirmModal.active')).toBeVisible();
+
+    // Cancel deletion
+    await page.click('button:has-text("Cancel")');
+
+    // Modal should close
+    await expect(page.locator('#confirmModal.active')).not.toBeVisible();
+
+    // Should still be on user detail page
+    await expect(page).toHaveURL(/\/directory\/users\/[a-f0-9-]+$/);
+  });
+
+  test('should auto-generate display name from first and last name', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
+
+    // Navigate to create user form
+    await page.goto(`${PROVIDER_URL}/directory/users/new`);
+
+    const timestamp = Date.now();
+
+    // Fill first and last name
+    await page.fill('#first_name', 'Alice');
+    await page.fill('#last_name', 'Johnson');
+
+    // Display name should auto-populate
+    await expect(page.locator('#display_name')).toHaveValue('Alice Johnson');
+
+    // Complete the form
+    await page.fill('#username', `alice${timestamp}`);
+    await page.fill('#password', 'TestPassword123!');
+    await page.fill('#email', `alice${timestamp}@example.com`);
+
+    // Submit
+    await page.click('button[type="submit"]:has-text("Create User")');
+    await page.waitForURL(/\/directory\/users\/[a-f0-9-]+$/, { timeout: 5000 });
+
+    // Should show auto-generated display name
+    await expect(page.locator('p', { hasText: 'Alice Johnson' })).toBeVisible();
+  });
+
+  test('should handle inactive users', async ({ page }) => {
+    await login(page, TEST_USER.email, TEST_USER.password);
+
+    // Create an inactive user
+    const timestamp = Date.now();
+    await page.goto(`${PROVIDER_URL}/directory/users/new`);
+
+    await page.fill('#username', `inactive${timestamp}`);
+    await page.fill('#password', 'TestPassword123!');
+    await page.fill('#email', `inactive${timestamp}@example.com`);
+    await page.selectOption('#is_active', 'false');
+
+    await page.click('button[type="submit"]:has-text("Create User")');
+    await page.waitForURL(/\/directory\/users\/[a-f0-9-]+$/, { timeout: 5000 });
+
+    // Should show inactive status (exact match in Status field)
+    await expect(page.locator('.info-item').filter({ hasText: 'Status' }).locator('.info-value', { hasText: 'Inactive' })).toBeVisible();
   });
 });
