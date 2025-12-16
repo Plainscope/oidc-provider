@@ -1,0 +1,38 @@
+extends layout
+
+block content
+  .card.form-container
+    .header-actions
+      h1= title
+      a.btn.btn-secondary(href="/directory/roles") Cancel
+    
+    if error
+      .error-message= error
+    
+    form(method="POST", action=role ? `/directory/roles/${role.id}/update` : '/directory/roles')
+      .form-group
+        label(for="name") Role Name 
+          span.required *
+        input#name(
+          type="text",
+          name="name",
+          value=role ? role.name : '',
+          required,
+          maxlength="255",
+          placeholder="e.g., administrator, moderator"
+        )
+        small Unique name for the role (alphanumeric and underscores recommended)
+      
+      .form-group
+        label(for="description") Description
+        textarea#description(
+          name="description",
+          maxlength="500",
+          placeholder="Brief description of the role's purpose and permissions"
+        )= role ? role.description : ''
+        small Optional description of what this role represents
+      
+      .form-actions
+        button.btn.btn-primary(type="submit")
+          = role ? 'Update Role' : 'Create Role'
+        a.btn.btn-secondary(href="/directory/roles") Cancel

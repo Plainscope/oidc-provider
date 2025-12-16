@@ -1,0 +1,53 @@
+extends layout
+
+block content
+  .card.form-container
+    .header-actions
+      h1= title
+      a.btn.btn-secondary(href="/directory/groups") Cancel
+    
+    if error
+      .error-message= error
+    
+    form(method="POST", action=group ? `/directory/groups/${group.id}/update` : '/directory/groups')
+      .form-group
+        label(for="name") Group Name 
+          span.required *
+        input#name(
+          type="text",
+          name="name",
+          value=group ? group.name : '',
+          required,
+          maxlength="255",
+          placeholder="e.g., developers, managers"
+        )
+        small Unique name for the group within the domain
+      
+      .form-group
+        label(for="domain_id") Domain 
+          span.required *
+        select#domain_id(
+          name="domain_id",
+          required
+        )
+          option(value="") Select a domain...
+          each domain in domains
+            option(
+              value=domain.id,
+              selected=group && group.domain_id === domain.id
+            )= domain.name
+        small The domain this group belongs to
+      
+      .form-group
+        label(for="description") Description
+        textarea#description(
+          name="description",
+          maxlength="500",
+          placeholder="Brief description of the group's purpose"
+        )= group ? group.description : ''
+        small Optional description of what this group represents
+      
+      .form-actions
+        button.btn.btn-primary(type="submit")
+          = group ? 'Update Group' : 'Create Group'
+        a.btn.btn-secondary(href="/directory/groups") Cancel

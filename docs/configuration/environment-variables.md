@@ -349,6 +349,114 @@ volumes:
 
 See the [SQLite Adapter Documentation](../configuration/sqlite-adapter.md) for detailed implementation information.
 
+## Directory Configuration
+
+The OIDC provider supports three directory types for user management: JSON file (local), SQLite database (local), and remote HTTP service.
+
+### DIRECTORY_TYPE
+
+- **Type**: String
+- **Default**: `local`
+- **Values**: `local`, `sqlite`, `remote`
+- **Description**: Type of directory service to use for user management
+- **Example**: `DIRECTORY_TYPE=sqlite`
+
+### DIRECTORY_USERS (Local JSON)
+
+- **Type**: JSON string
+- **Default**: Not set
+- **Description**: User data as JSON string (for `local` directory type)
+- **Example**: `DIRECTORY_USERS='[{"id":"1","email":"user@example.com","password":"hash"}]'`
+
+### DIRECTORY_USERS_FILE (Local JSON)
+
+- **Type**: String (file path)
+- **Default**: `./users.json`
+- **Description**: Path to JSON file containing user data (for `local` directory type)
+- **Example**: `DIRECTORY_USERS_FILE=/var/lib/oidc-provider/users.json`
+
+### DIRECTORY_DATABASE_FILE (SQLite)
+
+- **Type**: String (file path)
+- **Default**: `/app/data/users.db`
+- **Description**: Path to SQLite database file (for `sqlite` directory type)
+- **Example**: `DIRECTORY_DATABASE_FILE=/data/users.db`
+- **Note**: The database must be compatible with the remote directory schema
+
+### DIRECTORY_BASE_URL (Remote)
+
+- **Type**: String (URL)
+- **Default**: Not set
+- **Description**: Base URL of remote directory service (for `remote` directory type)
+- **Example**: `DIRECTORY_BASE_URL=http://directory:5000`
+
+### DIRECTORY_HEADERS (Remote)
+
+- **Type**: JSON object
+- **Default**: Not set
+- **Description**: HTTP headers to include in requests to remote directory (typically Authorization)
+- **Example**: `DIRECTORY_HEADERS='{"Authorization":"Bearer secret-token"}'`
+
+### DIRECTORY_COUNT_ENDPOINT (Remote)
+
+- **Type**: String
+- **Default**: `/count`
+- **Description**: Endpoint path for counting users on remote directory
+- **Example**: `DIRECTORY_COUNT_ENDPOINT=/api/users/count`
+
+### DIRECTORY_FIND_ENDPOINT (Remote)
+
+- **Type**: String
+- **Default**: `/find`
+- **Description**: Endpoint path for finding users by ID on remote directory
+- **Example**: `DIRECTORY_FIND_ENDPOINT=/api/users`
+
+### DIRECTORY_VALIDATE_ENDPOINT (Remote)
+
+- **Type**: String
+- **Default**: `/validate`
+- **Description**: Endpoint path for validating credentials on remote directory
+- **Example**: `DIRECTORY_VALIDATE_ENDPOINT=/api/auth/validate`
+
+### DIRECTORY_CONFIG (Advanced)
+
+- **Type**: JSON object
+- **Default**: Not set
+- **Description**: Complete directory configuration as JSON (overrides individual directory variables)
+- **Example**:
+
+```bash
+DIRECTORY_CONFIG='{
+  "dbPath": "/data/users.db"
+}'
+```
+
+## Directory Configuration Examples
+
+### Local JSON File (Default)
+
+```bash
+DIRECTORY_TYPE=local
+DIRECTORY_USERS_FILE=/app/config/users.json
+```
+
+### SQLite Database
+
+```bash
+DIRECTORY_TYPE=sqlite
+DIRECTORY_DATABASE_FILE=/app/data/users.db
+```
+
+### Remote Directory Service
+
+```bash
+DIRECTORY_TYPE=remote
+DIRECTORY_BASE_URL=http://directory:5000
+DIRECTORY_HEADERS='{"Authorization":"Bearer sk-secret-token"}'
+```
+
+See [User Management Documentation](user-management.md) for detailed configuration guides.
+
 ### USERS_FILE
 
 - **Type**: String (file path)
@@ -369,6 +477,10 @@ See the [SQLite Adapter Documentation](../configuration/sqlite-adapter.md) for d
 | NODE_ENV | String | production | No | production |
 | SCOPES | Comma-CSV | openid,profile,email | No | openid,profile,email,phone |
 | DATABASE_FILE | Path | ../../data/oidc.db | No | /data/oidc.db |
+| DIRECTORY_TYPE | String | local | No | sqlite |
+| DIRECTORY_DATABASE_FILE | Path | /app/data/users.db | No | /data/users.db |
+| DIRECTORY_USERS_FILE | Path | ./users.json | No | /config/users.json |
+| DIRECTORY_BASE_URL | URL | - | No | http://directory:5000 |
 | FEATURES_DEV_INTERACTIONS | Boolean | false | No | true |
 
 ## Setting Environment Variables

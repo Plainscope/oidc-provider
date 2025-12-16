@@ -1,0 +1,43 @@
+extends layout
+
+block content
+  .card
+    h1 Directory Dashboard
+    p.subtitle Welcome to the SQLite Directory Management Console
+  
+  .stats-grid
+    
+    .stat-card
+      .stat-value= stats.users
+      .stat-label Users
+    
+    .stat-card
+      .stat-value= stats.roles
+      .stat-label Roles
+    
+    .stat-card
+      .stat-value= stats.groups
+      .stat-label Groups
+    
+    .stat-card
+      .stat-value= stats.domains
+      .stat-label Domains
+  
+  .card
+    h2 Quick Actions
+    .actions
+      a.btn.btn-primary(href="/directory/users") Manage Users
+      a.btn.btn-secondary(href="/directory/roles") Manage Roles
+      a.btn.btn-secondary(href="/directory/groups") Manage Groups
+  
+  .card
+    h2 About
+    p This management interface provides secure access to your SQLite directory database.
+    p
+      strong Features:
+    ul
+      li User management with roles and groups
+      li Multiple email addresses per user
+      li Custom user properties
+      li Audit logging
+      li Bcrypt password security

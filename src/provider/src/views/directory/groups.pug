@@ -1,0 +1,59 @@
+extends layout
+
+block content
+  .card
+    .header-actions
+      h1 Groups
+      a.btn.btn-primary(href="/directory/groups/new") Create Group
+    
+    if groups && groups.length > 0
+      table
+        thead
+          tr
+            th Name
+            th Domain
+            th Description
+            th Users
+            th Created
+            th Actions
+        tbody
+          each group in groups
+            tr
+              td= group.name
+              td= group.domain_name
+              td= group.description || 'N/A'
+              td= group.user_count || 0
+              td= new Date(group.created_at).toLocaleDateString()
+              td
+                .action-buttons
+                  a.btn.btn-secondary.btn-sm(href=`/directory/groups/${group.id}`) View
+                  a.btn.btn-secondary.btn-sm(href=`/directory/groups/${group.id}/edit`) Edit
+                  button.btn.btn-danger.btn-sm(
+                    type="button",
+                    onclick=`deleteGroup('${group.id}', '${group.name}')`
+                  ) Delete
+    else
+      p No groups found.
+      p
+        a.btn.btn-primary(href="/directory/groups/new") Create your first group
+  
+  script.
+    async function deleteGroup(groupId, groupName) {
+      showConfirm(
+        `Are you sure you want to delete the group "${groupName}"?\n\nThis will remove all user memberships for this group.`,
+        async () => {
+          try {
+            const response = await fetch(`/directory/groups/${groupId}/delete`, { method: 'POST' });
+            if (response.ok) {
+              location.reload();
+            } else {
+              const data = await response.json();
+              showAlert('Error: ' + (data.error || 'Failed to delete group'), 'Error');
+            }
+          } catch (err) {
+            showAlert('Error: ' + err.message, 'Error');
+          }
+        },
+        'Delete Group'
+      );
+    }

@@ -3,13 +3,18 @@
  * Main server entry point. Sets up Express, OIDC Provider, and all routes.
  */
 import express, { Express, Request, Response, NextFunction } from 'express';
+import cookieParser from 'cookie-parser';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Provider } from 'oidc-provider';
 import { configuration } from './configuration';
 import useDirectory, { IDirectory } from './directories/directory';
+import { SqliteDirectory } from './directories/sqlite-directory';
+import { initializeSqliteDirectory } from './directories/sqlite-seeder';
 import useInteractions from './routes/interactions';
+import { registerManagementRoutes } from './routes/directory';
 import useSqliteAdapter from './sqlite-adapter';
+import Database from 'better-sqlite3';
 import { AccountNotFoundError } from './directories/errors';
 import { displayQuickStartInfo, validateProductionConfig } from './quick-start-helper';
 
@@ -64,6 +69,7 @@ console.log('[INIT] Starting OIDC Provider with environment:', {
   DIRECTORY_CONFIG: process.env.DIRECTORY_CONFIG ? '<set>' : undefined,
   DIRECTORY_USERS: process.env.DIRECTORY_USERS ? '<set>' : undefined,
   DIRECTORY_USERS_FILE: process.env.DIRECTORY_USERS_FILE,
+  DIRECTORY_DATABASE_FILE: process.env.DIRECTORY_DATABASE_FILE,
 });
 
 /**
@@ -145,23 +151,45 @@ const resolveDirectoryJson = (): string => {
 
 const DIRECTORY_CONFIG = process.env.DIRECTORY_CONFIG ? JSON.parse(process.env.DIRECTORY_CONFIG) : {
   json: DIRECTORY_TYPE === 'local' ? resolveDirectoryJson() : undefined,
+  dbPath: DIRECTORY_TYPE === 'sqlite' ? process.env.DIRECTORY_DATABASE_FILE : undefined,
   baseUrl: process.env.DIRECTORY_BASE_URL,
   headers: process.env.DIRECTORY_HEADERS ? JSON.parse(process.env.DIRECTORY_HEADERS) : undefined,
   countEndpoint: process.env.DIRECTORY_COUNT_ENDPOINT,
   findEndpoint: process.env.DIRECTORY_FIND_ENDPOINT,
   validateEndpoint: process.env.DIRECTORY_VALIDATE_ENDPOINT,
 };
-const directory: IDirectory = useDirectory(DIRECTORY_TYPE as 'local' | 'remote', DIRECTORY_CONFIG);
+const directory: IDirectory = useDirectory(DIRECTORY_TYPE as 'local' | 'remote' | 'sqlite', DIRECTORY_CONFIG);
 console.log(`[INIT] Using directory type: ${DIRECTORY_TYPE}`);
+
+// Initialize SQLite directory if needed
+if (DIRECTORY_TYPE === 'sqlite') {
+  const dbPath = DIRECTORY_CONFIG.dbPath || process.env.DIRECTORY_DATABASE_FILE || path.join(process.cwd(), 'data/users.db');
+  const usersFile = process.env.DIRECTORY_USERS_FILE;
+
+  console.log(`[INIT] Initializing SQLite directory at: ${dbPath}`);
+
+  // Check if database needs seeding
+  if (!fs.existsSync(dbPath) || fs.statSync(dbPath).size === 0) {
+    console.log('[INIT] Database does not exist or is empty, will seed with initial data');
+    (async () => {
+      try {
+        await initializeSqliteDirectory(dbPath, usersFile);
+        console.log('[INIT] SQLite directory initialized successfully');
+      } catch (error) {
+        console.error('[INIT] Failed to initialize SQLite directory:', error);
+      }
+    })();
+  }
+}
 
 /**
  * Main entry point for OIDC Provider server.
  * Sets up Express, view engine, static files, and OIDC routes.
  */
 const app: Express = express();
-app.set('views', './views');
+app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
-console.log('[INIT] Express app configured with Pug view engine and views directory ./views');
+console.log('[INIT] Express app configured with Pug view engine and views directory:', path.join(__dirname, 'views'));
 
 // Initialize OIDC Provider with configuration and custom account finder
 const provider = new Provider(ISSUER, {
@@ -177,12 +205,12 @@ const provider = new Provider(ISSUER, {
         const clientCfg = Array.isArray(configuration.clients) && configuration.clients[0] ? configuration.clients[0] as any : {};
         const clientId = process.env.CLIENT_ID || clientCfg.client_id;
         const redirectUri = (process.env.REDIRECT_URIS || (clientCfg.redirect_uris && clientCfg.redirect_uris[0])) as string;
-        
+
         // Ensure required parameters are present
         if (!clientId || !redirectUri) {
           throw new Error('Missing client configuration for login redirect');
         }
-        
+
         const scopes = (Array.isArray(configuration.scopes) && configuration.scopes.length > 0 ? configuration.scopes.join(' ') : null) || 'openid profile email';
         const loginUrl = `/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&prompt=login`;
         ctx.status = 303;
@@ -224,9 +252,17 @@ provider.use(async (ctx, next) => {
 app.use(express.static('./public'));
 console.log('[INIT] Serving static files from ./public');
 
+// Cookie parser for management UI sessions
+app.use(cookieParser());
+console.log('[INIT] Cookie parser enabled');
+
 // Apply security headers to all routes
 app.use(securityHeaders);
 console.log('[INIT] Security headers middleware enabled');
+
+// Parse JSON bodies (for API requests)
+app.use(express.json());
+console.log('[INIT] JSON body parser enabled');
 
 // Parse URL-encoded bodies (for form submissions)
 app.use(express.urlencoded({ extended: false }));
@@ -236,6 +272,16 @@ console.log('[INIT] URL-encoded body parser enabled');
 app.get('/healthz', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+// Register management UI routes for SQLite directory
+if (DIRECTORY_TYPE === 'sqlite' && directory instanceof SqliteDirectory) {
+  const dbPath = DIRECTORY_CONFIG.dbPath || process.env.DIRECTORY_DATABASE_FILE || path.join(process.cwd(), 'data/users.db');
+  const managementDb = new Database(dbPath);
+  managementDb.pragma('foreign_keys = ON');
+
+  registerManagementRoutes(app, directory, managementDb);
+  console.log('[INIT] Management UI routes registered at /directory');
+}
 
 // Register OIDC interaction routes
 useInteractions(app, provider, directory);
@@ -266,7 +312,7 @@ const server = app.listen(PORT, () => {
     .then(count => console.log(`[SERVER] Number of users: ${count}`))
     .catch(err => console.error('[SERVER] Failed to count users:', err instanceof Error ? err.message : err));
   console.log(`[SERVER] Proxy mode is ${provider.proxy ? 'enabled' : 'disabled'}`);
-  
+
   // Display quick start information for local development
   displayQuickStartInfo();
 });

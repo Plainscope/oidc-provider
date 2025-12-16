@@ -1,0 +1,49 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Docker: Build",
+      "group": "build",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "build"
+      ],
+    },
+    {
+      "label": "Docker: Up",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "up",
+        "-d"
+      ],
+      "dependsOn": "Docker: Build"
+    },
+    {
+      "label": "Docker: Down",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "down"
+      ]
+    },
+    {
+      "label": "Test",
+      "type": "shell",
+      "group": "test",
+      "command": "npm",
+      "args": [
+        "run",
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/test"
+      },
+      "dependsOn": "Docker: Up"
+    }
+  ]
+}

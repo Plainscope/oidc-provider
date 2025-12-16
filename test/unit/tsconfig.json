@@ -2,8 +2,25 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "outDir": "./compiled",
-    "rootDir": ".",
-    "noEmit": false
+    "rootDir": "../..",
+    "noEmit": false,
+    "typeRoots": [
+      "../node_modules/@types",
+      "../node_modules"
+    ],
+    "paths": {
+      "better-sqlite3": [
+        "../node_modules/@types/better-sqlite3"
+      ],
+      "bcrypt": [
+        "../node_modules/@types/bcrypt"
+      ],
+      "validator": [
+        "../node_modules/validator"
+      ]
+    }
   },
-  "include": ["*.ts"]
+  "include": [
+    "*.ts"
+  ]
 }

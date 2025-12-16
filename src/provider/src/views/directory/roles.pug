@@ -1,0 +1,58 @@
+extends layout
+
+block content
+  .card
+    .header-actions
+      h1 Roles
+      a.btn.btn-primary(href="/directory/roles/new") Create Role
+    
+    if roles && roles.length > 0
+      table
+        thead
+          tr
+            th Name
+            th Description
+            th Users
+            th Created
+            th Actions
+        tbody
+          each role in roles
+            tr
+              td= role.name
+              td= role.description || 'N/A'
+              td= role.user_count || 0
+              td= new Date(role.created_at).toLocaleDateString()
+              td
+                .action-buttons
+                  a.btn.btn-secondary.btn-sm(href=`/directory/roles/${role.id}`) View
+                  a.btn.btn-secondary.btn-sm(href=`/directory/roles/${role.id}/edit`) Edit
+                  button.btn.btn-danger.btn-sm(
+                    type="button",
+                    onclick=`deleteRole('${role.id}', '${role.name}')`
+                  ) Delete
+    else
+      p No roles found.
+      p
+        a.btn.btn-primary(href="/directory/roles/new") Create your first role
+  
+  script.
+    async function deleteRole(roleId, roleName) {
+      showConfirm(
+        `Are you sure you want to delete the role "${roleName}"?\n\nThis will remove all user assignments for this role.`,
+        async () => {
+          try {
+            const response = await fetch(`/directory/roles/${roleId}/delete`, { method: 'POST' });
+            if (response.ok) {
+              location.reload();
+            } else {
+              const data = await response.json();
+              showAlert('Error: ' + (data.error || 'Failed to delete role'), 'Error');
+            }
+          } catch (err) {
+            showAlert('Error: ' + err.message, 'Error');
+          }
+        },
+        'Delete Role'
+      );
+    }
+

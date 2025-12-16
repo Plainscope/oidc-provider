@@ -1,0 +1,101 @@
+extends layout
+
+block content
+  .card
+    .header-actions
+      div
+        h1= group.name
+        p(style="color: #718096; margin-top: 0.5rem;")= group.description || 'No description'
+      a.btn.btn-secondary(href="/directory/groups") ← Back to Groups
+    
+    .section
+      h2 Group Information
+      .info-grid
+        .info-item
+          .info-label Group ID
+          .info-value= group.id
+        .info-item
+          .info-label Name
+          .info-value= group.name
+        .info-item
+          .info-label Domain
+          .info-value= group.domain_name
+        .info-item
+          .info-label Description
+          .info-value= group.description || 'N/A'
+        .info-item
+          .info-label Created At
+          .info-value= new Date(group.created_at).toLocaleString()
+    
+    .section
+      h2 Members (#{users && users.length ? users.length : 0})
+      if users && users.length > 0
+        div#users-list
+          each user in users
+            .user-item(data-user-id=user.id)
+              .user-info
+                .user-name= user.display_name || (user.first_name + ' ' + user.last_name).trim()
+                .user-username= user.username
+              button.remove-btn(type="button", title="Remove from group") Remove
+      else
+        p No users in this group yet.
+      
+      if availableUsers && availableUsers.length > 0
+        .assignment-controls
+          .form-group
+            label(for="user-select") Add User:
+            select#user-select(data-group-id=group.id)
+              option(value="") Select a user...
+              each user in availableUsers
+                option(value=user.id)
+                  = user.display_name || (user.first_name + ' ' + user.last_name).trim()
+                  = ' (' + user.username + ')'
+          button.btn.btn-primary.btn-sm#add-user-btn(type="button") Add
+    
+    script.
+      const groupId = '#{group.id}';
+      
+      // Add user functionality
+      document.getElementById('add-user-btn')?.addEventListener('click', async () => {
+        const userSelect = document.getElementById('user-select');
+        const userId = userSelect?.value;
+        
+        if (!userId) {
+          showAlert('Please select a user', 'No User Selected');
+          return;
+        }
+        
+        try {
+          const response = await fetch(`/directory/groups/${groupId}/users/${userId}`, { method: 'POST' });
+          if (response.ok) {
+            location.reload();
+          } else {
+            const data = await response.json();
+            showAlert('Error: ' + (data.error || 'Failed to add user'), 'Error');
+          }
+        } catch (err) {
+          showAlert('Error: ' + err.message, 'Error');
+        }
+      });
+      
+      // Remove user functionality
+      document.querySelectorAll('#users-list .user-item').forEach(item => {
+        item.querySelector('.remove-btn').addEventListener('click', async () => {
+          const userId = item.dataset.userId;
+          const userName = item.querySelector('.user-name').textContent.trim();
+          
+          showConfirm(`Remove user "${userName}" from this group?`, async () => {
+            try {
+              const response = await fetch(`/directory/groups/${groupId}/users/${userId}/remove`, { method: 'POST' });
+              if (response.ok) {
+                location.reload();
+              } else {
+                const data = await response.json();
+                showAlert('Error: ' + (data.error || 'Failed to remove user'), 'Error');
+              }
+            } catch (err) {
+              showAlert('Error: ' + err.message, 'Error');
+            }
+          }, 'Remove User from Group');
+        });
+      });

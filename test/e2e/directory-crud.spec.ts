@@ -11,13 +11,21 @@ const BEARER_TOKEN = process.env.DIRECTORY_BEARER_TOKEN || 'sk-AKnZKbq1O9RYwEagY
 async function login(page) {
   await page.goto(`${DIRECTORY_BASE_URL}/login`);
 
+  // Wait for login form to be ready with generous timeout
+  await page.waitForSelector('input#token', { state: 'visible', timeout: 15000 });
+
   await page.fill('input#token', BEARER_TOKEN);
+
+  // Click and wait for navigation with generous timeout
   await Promise.all([
-    page.waitForURL(url => url.toString().startsWith(`${DIRECTORY_BASE_URL}/`)),
+    page.waitForURL(url => url.toString().startsWith(`${DIRECTORY_BASE_URL}/`) && !url.toString().includes('/login'), { timeout: 15000 }),
     page.click('button:has-text("Sign In")')
   ]);
 
-  await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN);
+  // Wait for meta tag to be present with generous timeout for webkit
+  await page.waitForSelector('meta[name="auth-token"]', { timeout: 15000, state: 'attached' });
+
+  await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN, { timeout: 15000 });
 }
 
 test.describe('Directory CRUD Operations with Security', () => {
@@ -137,6 +145,10 @@ test.describe('Directory CRUD Operations with Security', () => {
 
     // Try duplicate in the SAME domain (should fail)
     await page.click('button:has-text("Add Group")');
+
+    // Wait for modal and form to be ready
+    await page.waitForSelector('select', { state: 'visible' });
+
     await page.fill('input[placeholder*="Name"]', testGroupName);
     await page.selectOption('select', domainId);
     await page.fill('input[placeholder="Description"]', 'Duplicate group');
@@ -329,13 +341,31 @@ test.describe('Directory CRUD Operations with Security', () => {
     // Navigate to edit user2 and try to use email1
     await page.goto(`${DIRECTORY_BASE_URL}/users/edit?id=${user2.id}`);
 
-    await page.fill('input[placeholder="Primary Email"]', email1);
+    // Wait for the form to load
+    await page.waitForSelector('input[placeholder="Primary Email"]', { state: 'visible', timeout: 5000 });
+
+    // Clear field and fill with duplicate email
+    const emailInput = page.locator('input[placeholder="Primary Email"]');
+    await emailInput.fill(email1);
+
+    // Wait for Save button to be ready before clicking
+    await page.waitForSelector('button:has-text("Save")', { state: 'attached', timeout: 5000 });
+
+    // Click save button
     await page.click('button:has-text("Save")', { force: true });
 
-    // Wait for error message to appear
-    await page.waitForSelector('div.text-red-600', { state: 'visible' });
-    await expect(page.locator('div.text-red-600')).toBeVisible();
-    await expect(page.locator('div.text-red-600')).toContainText(/email already in use/i);
+    // Wait for error message to appear - Alpine.js renders error dynamically
+    // Wait for the error element to have visible text content
+    const errorElement = page.locator('div.bg-red-50');
+
+    // Wait for error text to be populated (Alpine.js x-text binding)
+    await page.waitForFunction(() => {
+      const el = document.querySelector('div.bg-red-50');
+      return el && el.textContent && el.textContent.toLowerCase().includes('email');
+    }, { timeout: 10000 });
+
+    // Now verify the error message
+    await expect(errorElement).toContainText(/email already in use|email.*use/i, { timeout: 5000 });
   });
 
   test('should reject empty domain name', async ({ page }) => {

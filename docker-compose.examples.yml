@@ -1,0 +1,171 @@
+# Docker Compose Examples for Different Directory Configurations
+#
+# This file demonstrates three different ways to configure user directories:
+# 1. JSON file (local) - Simple, file-based
+# 2. SQLite database (sqlite) - Structured, relational
+# 3. Remote HTTP service (remote) - Enterprise, external
+#
+# Choose one configuration and copy it to docker-compose.yml
+
+# ============================================================================
+# Example 1: JSON File Directory (Default - Simple)
+# ============================================================================
+# Suitable for: Development, small deployments, simple user lists
+#
+# services:
+#   provider:
+#     image: plainscope/simple-oidc-provider
+#     ports:
+#       - "8080:8080"
+#     environment:
+#       ISSUER: http://localhost:8080
+#       CLIENT_ID: 85125d57-a403-4fe2-84d8-62c6db9b6d73
+#       CLIENT_SECRET: +XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq
+#       REDIRECT_URIS: http://localhost:8080/callback
+#       DIRECTORY_TYPE: local
+#       DIRECTORY_USERS_FILE: /app/config/users.json
+#     volumes:
+#       - ./users.json:/app/config/users.json:ro
+#       - provider-data:/data
+#
+# volumes:
+#   provider-data:
+
+# ============================================================================
+# Example 2: SQLite Database Directory (Recommended for Self-Hosted)
+# ============================================================================
+# Suitable for: Self-hosted, structured data, roles and groups, audit logs
+#
+# Key Benefits:
+# - Relational data model with foreign keys
+# - Multiple emails per user
+# - Roles and groups support
+# - Custom user properties
+# - Audit logging
+# - No external database server required
+#
+# You can optionally run the directory service for the management UI:
+
+services:
+  # Directory management service (optional - provides web UI)
+  directory:
+    image: plainscope/simple-oidc-provider-directory
+    container_name: oidc-directory
+    ports:
+      - "7080:8080"
+    environment:
+      PORT: 8080
+      DATABASE_FILE: /data/users.db
+      BEARER_TOKEN: sk-your-secret-token-here
+      SESSION_COOKIE_SECURE: false
+    volumes:
+      - shared-data:/data
+    networks:
+      - oidc-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8080/healthz || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # OIDC Provider using SQLite directory
+  provider:
+    image: plainscope/simple-oidc-provider
+    container_name: oidc-provider
+    ports:
+      - "8080:8080"
+    environment:
+      ISSUER: http://localhost:8080
+      CLIENT_ID: 85125d57-a403-4fe2-84d8-62c6db9b6d73
+      CLIENT_SECRET: +XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq
+      REDIRECT_URIS: http://localhost:8080/callback
+      # SQLite Directory Configuration
+      DIRECTORY_TYPE: sqlite
+      DIRECTORY_DATABASE_FILE: /data/users.db
+    volumes:
+      - shared-data:/data
+    networks:
+      - oidc-net
+    depends_on:
+      directory:
+        condition: service_healthy
+
+networks:
+  oidc-net:
+
+volumes:
+  shared-data:
+
+# ============================================================================
+# Example 3: Remote Directory Service (Enterprise)
+# ============================================================================
+# Suitable for: Enterprise, integration with existing identity systems
+#
+# services:
+#   directory:
+#     image: plainscope/simple-oidc-provider-directory
+#     container_name: oidc-directory
+#     ports:
+#       - "7080:8080"
+#     environment:
+#       PORT: 8080
+#       DATABASE_FILE: /data/users.db
+#       BEARER_TOKEN: sk-your-secret-token-here
+#     volumes:
+#       - directory-data:/data
+#     networks:
+#       - oidc-net
+#
+#   provider:
+#     image: plainscope/simple-oidc-provider
+#     container_name: oidc-provider
+#     ports:
+#       - "8080:8080"
+#     environment:
+#       ISSUER: http://localhost:8080
+#       CLIENT_ID: 85125d57-a403-4fe2-84d8-62c6db9b6d73
+#       CLIENT_SECRET: +XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq
+#       REDIRECT_URIS: http://localhost:8080/callback
+#       # Remote Directory Configuration
+#       DIRECTORY_TYPE: remote
+#       DIRECTORY_BASE_URL: http://directory:8080
+#       DIRECTORY_HEADERS: '{"Authorization":"Bearer sk-your-secret-token-here"}'
+#     networks:
+#       - oidc-net
+#     depends_on:
+#       - directory
+#
+# networks:
+#   oidc-net:
+#
+# volumes:
+#   directory-data:
+
+# ============================================================================
+# Configuration Notes
+# ============================================================================
+#
+# Security:
+# - Replace CLIENT_SECRET with a strong random value: openssl rand -hex 32
+# - Replace BEARER_TOKEN with a strong random value: openssl rand -hex 32
+# - Use HTTPS in production
+# - Set SESSION_COOKIE_SECURE: true in production
+#
+# SQLite Directory:
+# - Database is automatically created on first run
+# - Use directory service UI to manage users (http://localhost:7080)
+# - Database is shared between provider and directory service
+# - Supports bcrypt password hashing
+#
+# Remote Directory:
+# - Provider and directory service run independently
+# - Directory service can be on different host
+# - Use bearer token for API authentication
+# - Good for microservices architecture
+#
+# Switching Between Configurations:
+# 1. Stop running containers: docker-compose down
+# 2. Update DIRECTORY_TYPE and related environment variables
+# 3. Restart: docker-compose up -d
+#
+# ============================================================================
