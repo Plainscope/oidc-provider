@@ -47,6 +47,88 @@ html
       nav a:hover {
         color: #667eea;
       }
+      .user-menu {
+        position: relative;
+      }
+      .user-menu-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+      .user-menu-toggle:hover {
+        background: #f7fafc;
+      }
+      .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .user-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .user-name {
+        color: #2d3748;
+        font-weight: 500;
+      }
+      .dropdown-arrow {
+        width: 0;
+        height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 4px solid #4a5568;
+        transition: transform 0.2s;
+      }
+      .user-menu.active .dropdown-arrow {
+        transform: rotate(180deg);
+      }
+      .user-dropdown {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        right: 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        min-width: 200px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.2s ease;
+        z-index: 1000;
+      }
+      .user-menu.active .user-dropdown {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+      .user-dropdown a {
+        display: block;
+        padding: 0.75rem 1.25rem;
+        color: #4a5568;
+        text-decoration: none;
+        transition: all 0.2s;
+        border-radius: 8px;
+        margin: 0.25rem;
+      }
+      .user-dropdown a:hover {
+        background: #f7fafc;
+        color: #667eea;
+      }
       main {
         flex: 1;
         padding: 2rem;
@@ -193,10 +275,19 @@ html
               a(href="/directory/roles") Roles
             li
               a(href="/directory/groups") Groups
-            li
-              span.user-info Logged in as #{session.username}
-            li
-              a(href="/directory/logout") Logout
+            li.user-menu
+              .user-menu-toggle(onclick="toggleUserMenu()")
+                .user-avatar
+                  if session.picture
+                    img(src=session.picture alt=session.username)
+                  else if session.given_name && session.family_name
+                    | #{session.given_name.charAt(0)}#{session.family_name.charAt(0)}
+                  else
+                    | #{session.username.charAt(0)}
+                span.user-name #{session.username}
+                .dropdown-arrow
+              .user-dropdown
+                a(href="/directory/logout") Logout
     
     main
       .container
@@ -228,6 +319,20 @@ html
           button.btn.btn-primary(onclick="closeModal('alertModal')") OK
     
     script.
+      // User menu toggle
+      function toggleUserMenu() {
+        const userMenu = document.querySelector('.user-menu');
+        userMenu.classList.toggle('active');
+      }
+      
+      // Close user menu when clicking outside
+      document.addEventListener('click', function(event) {
+        const userMenu = document.querySelector('.user-menu');
+        if (userMenu && !userMenu.contains(event.target)) {
+          userMenu.classList.remove('active');
+        }
+      });
+      
       // Modal management
       let confirmCallback = null;
       
