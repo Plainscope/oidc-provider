@@ -9,6 +9,7 @@ Comprehensive test suite for the OIDC provider including end-to-end tests and un
 This test suite includes:
 
 ### End-to-End Tests (E2E)
+
 - Authorization Code flow
 - Token exchange and validation
 - User profile and claims
@@ -16,6 +17,7 @@ This test suite includes:
 - Security validations
 
 ### Unit Tests
+
 - Configuration module tests
 - Configuration precedence validation
 - Array replacement behavior
