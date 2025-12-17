@@ -8,6 +8,7 @@ on:
     paths:
       - src/**/*
       - test/**/*
+      - .github/workflows/*
   pull_request:
     types:
       - opened
@@ -19,6 +20,7 @@ on:
     paths:
       - src/**/*
       - test/**/*
+      - .github/workflows/*
 
 permissions:
   checks: write
@@ -131,7 +133,7 @@ jobs:
   push-docker-images:
     name: "Build and Push Docker Images"
     needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    #if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency:
       group: docker-push-${{ github.ref }}
