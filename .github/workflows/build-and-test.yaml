@@ -172,7 +172,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/${{ github.repository_owner }}/oidc-${{ matrix.image.name }}
+          images: ghcr.io/${{ github.repository_owner }}/simple-oidc-${{ matrix.image.name }}
           tags: |
             type=semver,pattern={{version}},value=${{ steps.package-version.outputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=${{ steps.package-version.outputs.version }}
