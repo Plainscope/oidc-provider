@@ -1,13 +1,13 @@
-# Build and publish stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0.22-bookworm-slim AS build
+# Build and publish stage (minor-float tag: always latest 8.0.x patch)
+FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim AS build
 WORKDIR /src
 COPY demo.csproj .
 RUN dotnet restore demo.csproj
 COPY . .
 RUN dotnet publish demo.csproj -c Release -o /app/publish /p:UseAppHost=false
 
-# Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:8.0.22-bookworm-slim AS runtime
+# Runtime stage (minor-float tag: always latest 8.0.x patch)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim AS runtime
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://+:8080
 # Install curl for health checks

@@ -1,4 +1,5 @@
-FROM python:3.12.12-alpine
+# Minor-float tag: always latest 3.12.x patch
+FROM python:3.12-alpine
 
 WORKDIR /app
 

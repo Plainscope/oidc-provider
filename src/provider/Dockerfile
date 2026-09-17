@@ -1,5 +1,5 @@
-# Build stage - pinned LTS for reproducible, supported runtime
-FROM node:22.21.1-alpine AS build
+# Build stage - LTS major-float tag (always latest 22.x patch)
+FROM node:22-alpine AS build
 
 # Install build dependencies
 RUN apk add --no-cache python3 make g++
@@ -19,8 +19,8 @@ COPY public ./public
 # Build TypeScript
 RUN npm run build
 
-# Runtime stage - pinned LTS; no build tools to minimize attack surface
-FROM node:22.21.1-alpine AS runtime
+# Runtime stage - LTS major-float tag; no build tools to minimize attack surface
+FROM node:22-alpine AS runtime
 
 # Apply security updates only (curl kept for healthcheck)
 RUN apk add --no-cache curl \
