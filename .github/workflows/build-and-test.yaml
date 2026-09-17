@@ -130,6 +130,94 @@ jobs:
         with:
           path: build-and-test-logs.txt
 
+  security-scan:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    name: "Security Scan (Trivy + Gitleaks)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for secret scanning
+
+      - name: Run Trivy filesystem scan (deps, secrets, misconfig)
+        uses: aquasecurity/trivy-action@v0.36.0
+        # Report-only until the baseline is triaged; remove to enforce.
+        continue-on-error: true
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-fs.sarif
+          exit-code: '1'
+
+      - name: Upload Trivy SARIF to code scanning
+        if: always() && hashFiles('trivy-fs.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+      - name: Run Gitleaks secret scan (OSS)
+        # Report-only until committed dev-only fixtures are triaged/allowlisted.
+        continue-on-error: true
+        run: |
+          docker run --rm -v "${PWD}:/repo" ghcr.io/gitleaks/gitleaks:latest detect \
+            --source /repo --redact --verbose \
+            --report-format sarif --report-path /repo/gitleaks.sarif \
+            --exit-code 1
+
+      - name: Upload Gitleaks SARIF to code scanning
+        if: always() && hashFiles('gitleaks.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: gitleaks.sarif
+          category: gitleaks
+
+      - name: Build images for vulnerability scan
+        run: |
+          docker build -t scan-provider:ci -f src/provider/Dockerfile src/provider
+          docker build -t scan-directory:ci -f src/directory/Dockerfile src/directory
+          docker build -t scan-demo:ci -f src/demo/Dockerfile src/demo
+
+      - name: Scan provider image
+        uses: aquasecurity/trivy-action@v0.36.0
+        # Report-only until the baseline is triaged; remove to enforce.
+        continue-on-error: true
+        with:
+          scan-type: image
+          image-ref: scan-provider:ci
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: '1'
+
+      - name: Scan directory image
+        uses: aquasecurity/trivy-action@v0.36.0
+        # Report-only until the baseline is triaged; remove to enforce.
+        continue-on-error: true
+        with:
+          scan-type: image
+          image-ref: scan-directory:ci
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: '1'
+
+      - name: Scan demo image
+        uses: aquasecurity/trivy-action@v0.36.0
+        # Report-only until the baseline is triaged; remove to enforce.
+        continue-on-error: true
+        with:
+          scan-type: image
+          image-ref: scan-demo:ci
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: '1'
+
   push-docker-images:
     name: "Build and Push Docker Images"
     permissions:
