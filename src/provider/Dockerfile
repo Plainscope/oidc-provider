@@ -16,8 +16,11 @@ RUN npm ci
 COPY src ./src
 COPY public ./public
 
-# Build TypeScript
-RUN npm run build
+# Build TypeScript (prune dev deps afterwards so the runtime stage can reuse
+# node_modules directly without recompiling native modules)
+RUN npm run build \
+    && npm prune --omit=dev \
+    && npm cache clean --force
 
 # Runtime stage - LTS major-float tag; no build tools to minimize attack surface
 FROM node:22-alpine AS runtime
@@ -36,14 +39,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Copy dependency files
+# Copy dependency files for reference (node_modules comes from build stage)
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm ci --omit=dev \
-    && npm cache clean --force
-
-# Copy compiled application from build stage
+# Copy compiled application and pruned production dependencies from build stage
+# (reuses binaries built above; no compiler toolchain needed in runtime image)
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/public ./public
 

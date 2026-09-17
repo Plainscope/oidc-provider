@@ -37,5 +37,7 @@ ENV PORT=8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
   CMD curl -f http://localhost:8080/healthz || exit 1
 
-# Run with production WSGI server (Flask dev server is development-only)
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--timeout", "60", "app:app"]
+# Run with production WSGI server (Flask dev server is development-only).
+# Single worker with threads: SQLite init/ownership stays on one process
+# while threads absorb concurrent UI/API load.
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "8", "--timeout", "60", "app:app"]

@@ -11,7 +11,6 @@ from datetime import timedelta
 from urllib.parse import quote
 from flask import Flask, request, abort, jsonify, render_template, redirect, url_for, session
 from flask_session import Session
-from limits.util import parse as parse_rate_limit
 
 # Configure logging
 logging.basicConfig(
@@ -61,7 +60,7 @@ try:
     limiter = Limiter(
         get_remote_address,
         app=app,
-        default_limits=[parse_rate_limit('200 per minute')],
+        default_limits=['200 per minute'],
     )
 except Exception as e:
     limiter = None
@@ -172,10 +171,18 @@ def set_security_headers(response):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=(), payment=()'
-    # CSP: lock down to self; templates must avoid inline scripts/styles where possible
+    # CSP mirrors the provider service, plus the two CDN hosts the UI
+    # requires: Tailwind (styling) and Alpine.js (all page interactivity
+    # and API calls). Server-rendered templates also rely on inline
+    # scripts/styles, so 'unsafe-inline' is required for the UI to
+    # function. object-src/base-uri stay locked down; sensitive actions
+    # additionally require bearer auth and CSRF tokens.
+    # TODO: vendor Alpine.js/Tailwind locally to drop the CDN allowlist.
     response.headers['Content-Security-Policy'] = (
-        "default-src 'self'; script-src 'self'; style-src 'self'; "
-        "img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'"
+        "default-src 'self'; script-src 'self' 'unsafe-inline' "
+        "https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; "
+        "font-src 'self' data:; object-src 'none'; base-uri 'self'"
     )
     return response
 

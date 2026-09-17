@@ -14,7 +14,7 @@
     "playwright:codegen": "playwright codegen http://localhost:8080"
   },
   "devDependencies": {
-    "@playwright/test": "^1.40.0",
+    "@playwright/test": "~1.62.0",
     "@types/bcrypt": "^5.0.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/jsonwebtoken": "^9.0.0",
