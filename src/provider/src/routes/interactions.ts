@@ -31,6 +31,22 @@ const sanitizeInput = (input: string): string => {
 };
 
 /**
+ * Validates password length without trimming (spaces can be significant)
+ */
+const sanitizePassword = (input: string): string => {
+  if (typeof input !== 'string') {
+    return '';
+  }
+
+  const MAX_INPUT_LENGTH = 1024;
+  if (input.length > MAX_INPUT_LENGTH) {
+    throw new Error(`Password exceeds maximum length of ${MAX_INPUT_LENGTH} characters`);
+  }
+
+  return input;
+};
+
+/**
  * Validates email format using validator.js
  * @param email - The email to validate
  * @returns true if email format is valid
@@ -44,8 +60,11 @@ const isValidEmail = (email: string): boolean => {
   return baseValid;
 };
 
-// Configurable timing attack prevention delay (ms)
-const MIN_AUTH_RESPONSE_TIME = parseInt(process.env.MIN_AUTH_RESPONSE_TIME || '100', 10);
+// Configurable timing attack prevention delay (ms), validated to avoid NaN bypass
+const parsedMinAuthDelay = parseInt(process.env.MIN_AUTH_RESPONSE_TIME || '100', 10);
+const MIN_AUTH_RESPONSE_TIME = Number.isFinite(parsedMinAuthDelay) && parsedMinAuthDelay >= 0 && parsedMinAuthDelay <= 5000
+  ? parsedMinAuthDelay
+  : 100;
 
 
 /**
@@ -121,7 +140,7 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
 
       try {
         email = sanitizeInput(rawEmail);
-        password = sanitizeInput(rawPassword);
+        password = sanitizePassword(rawPassword);
       } catch (error) {
         console.warn(`[INTERACTION] Input validation error:`, error);
 

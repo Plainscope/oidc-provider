@@ -61,16 +61,26 @@ def register_legacy_routes(bp):
         
         try:
             user = User.get_by_email(email)
-            if not user:
-                return jsonify({'valid': False}), 200
-            
-            stored_password = user.get('password', '')
-            # Only allow bcrypt check; log warning if stored password is not hashed
+            # Use dummy hash when user not found to keep response timing similar
+            # and avoid user-enumeration via timing differences
+            stored_password = user.get('password', '') if user else '$2b$12$invalidinvalidinvalidinvalidinvalidinvalidinva1'
             if not stored_password.startswith('$2'):
-                logger.warning(f"[SECURITY] Plain text password detected for user {user.get('id', '<unknown>')}. Authentication denied. User must reset password.")
+                if user:
+                    logger.warning(f"[SECURITY] Plain text password detected for user {user.get('id', '<unknown>')}. Authentication denied. User must reset password.")
                 valid = False
+                # Dummy bcrypt check to normalize timing
+                try:
+                    bcrypt.checkpw(b'invalid-credential', b'$2b$12$invalidinvalidinvalidinvalidinvalidinvalidinva1')
+                except Exception:
+                    pass
             else:
-                valid = bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8'))
+                try:
+                    valid = bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8'))
+                except Exception:
+                    valid = False
+                # Unknown users must never validate even if dummy hash matched
+                if user is None:
+                    valid = False
             # If valid and stored is plain, rehash on first use (this block is now unreachable, but kept for clarity)
             if valid and not stored_password.startswith('$2'):
                 new_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -78,14 +88,14 @@ def register_legacy_routes(bp):
                     User.update(user['id'], password=new_hash)
                 except Exception:
                     logger.warning('[API] Failed to rehash password during migration')
-            
-            response = {'valid': valid}
 
             if not valid:
-                return jsonify(response), 400
+                # Same status for unknown users and wrong passwords to avoid enumeration
+                return jsonify({'valid': False}), 401
 
+            response = {'valid': True}
             response['user'] = exclude_password(user)
-            
+
             return jsonify(response)
         except Exception as e:
             logger.error(f'[API] Error validating credentials: {str(e)}')
@@ -93,18 +103,16 @@ def register_legacy_routes(bp):
     
     @bp.route('/healthz', methods=['GET'])
     def health_check():
-        """GET /healthz - Health check endpoint."""
+        """GET /healthz - Health check endpoint (no sensitive data)."""
         logger.info('[API] GET /healthz')
-        
+
         try:
             users = User.list_all()
             return jsonify({
-                'status': 'healthy',
-                'user_count': len(users)
+                'status': 'healthy'
             })
         except Exception as e:
             logger.error(f'[API] Health check failed: {str(e)}')
             return jsonify({
-                'status': 'unhealthy',
-                'error': str(e)
+                'status': 'unhealthy'
             }), 500

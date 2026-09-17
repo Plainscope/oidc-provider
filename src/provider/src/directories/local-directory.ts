@@ -5,6 +5,7 @@ import { User } from "./user";
 import { IDirectory } from "./directory";
 import { Account } from "oidc-provider";
 import { Profile } from "./profile";
+import * as bcrypt from 'bcrypt';
 
 /*
  * LocalDirectory implements IDirectory using in-memory user data
@@ -52,8 +53,30 @@ export class LocalDirectory implements IDirectory {
    */
   async validate(email: string, password: string): Promise<Profile | undefined> {
     console.log(`[DIRECTORY] Validating user: ${email}`);
-    const user = this.users.find(user => user.email === email && user.password === password);
+    const user = this.users.find(user => user.email === email);
     if (!user) {
+      console.warn(`[DIRECTORY] Invalid credentials for: ${email}`);
+      return undefined;
+    }
+
+    let valid = false;
+    if (typeof user.password === 'string' && user.password.startsWith('$2')) {
+      try {
+        valid = await bcrypt.compare(password, user.password);
+      } catch {
+        valid = false;
+      }
+    } else if (process.env.NODE_ENV !== 'production') {
+      // Development-only fallback for plaintext seed users (users.json).
+      // Production must use bcrypt-hashed passwords.
+      console.warn(`[DIRECTORY] Plaintext password fallback used for: ${email} (development only)`);
+      valid = user.password === password;
+    } else {
+      console.error(`[DIRECTORY] Plaintext password rejected in production for: ${email}`);
+      return undefined;
+    }
+
+    if (!valid) {
       console.warn(`[DIRECTORY] Invalid credentials for: ${email}`);
       return undefined;
     }

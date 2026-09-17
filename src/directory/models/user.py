@@ -168,12 +168,39 @@ class User:
     
     @staticmethod
     def validate_credentials(username: str, password: str) -> Optional[Dict]:
-        """Validate user credentials."""
+        """Validate user credentials using bcrypt (constant-time)."""
+        import bcrypt
+        import hmac
+
         user = User.get_by_username(username, include_details=False)
-        
-        if not user or user.get('password') != password or not user.get('is_active'):
+
+        if not user or not user.get('is_active'):
             logger.warning(f'[AUTH] Invalid credentials for user: {username}')
             return None
-        
+
+        stored = user.get('password', '') or ''
+        # Only bcrypt hashes are accepted; plaintext passwords are always rejected
+        if not isinstance(stored, str) or not stored.startswith('$2'):
+            logger.warning(f'[SECURITY] Plaintext password rejected for user: {username}')
+            # Perform a dummy bcrypt check to keep timing similar and mitigate enumeration
+            try:
+                bcrypt.checkpw(b'invalid', bcrypt.gensalt())
+            except Exception:
+                pass
+            return None
+
+        try:
+            valid = bcrypt.checkpw(password.encode('utf-8'), stored.encode('utf-8'))
+        except Exception:
+            valid = False
+
+        # Constant-time gate even though bcrypt is already slow
+        if not hmac.compare_digest('valid' if valid else 'invalid', 'valid'):
+            return None
+
+        if not valid:
+            logger.warning(f'[AUTH] Invalid credentials for user: {username}')
+            return None
+
         logger.info(f'[AUTH] User validated: {username}')
         return user

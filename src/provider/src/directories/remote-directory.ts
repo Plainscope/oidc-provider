@@ -23,14 +23,15 @@ export class RemoteDirectory implements IDirectory {
     this.findEndpoint = findEndpoint || '/find';
     this.validateEndpoint = validateEndpoint || '/validate';
     console.log(`[RemoteDirectory] Initialized with baseUrl: ${baseUrl}`);
-    console.log(`[RemoteDirectory] Initialized with headers: ${JSON.stringify(headers)}`);
+    // Never log header values: they may contain Authorization bearer tokens
+    console.log(`[RemoteDirectory] Initialized with ${Object.keys(headers || {}).length} custom header(s) (values redacted)`);
   }
 
   /**
    * Maps directory user object to OIDC User interface
    */
   private mapUser(dirUser: any, email?: string): User {
-    console.log(`[RemoteDirectory] Mapping user:`, JSON.stringify(dirUser, null, 2));
+    console.log(`[RemoteDirectory] Mapping user id: ${dirUser?.id || email || '<unknown>'}`);
     return {
       id: dirUser.id,
       email: dirUser.emails?.[0]?.email || dirUser.email || email || '',
@@ -79,7 +80,7 @@ export class RemoteDirectory implements IDirectory {
    */
   async find(id: string): Promise<Account | undefined> {
     console.log(`[RemoteDirectory] Finding user by id: ${id}`);
-    let response = await fetch(`${this.baseUrl}/${this.findEndpoint}/${id}`, { headers: this.headers });
+    let response = await fetch(`${this.baseUrl}/${this.findEndpoint}/${encodeURIComponent(id)}`, { headers: this.headers });
 
     // Fallback: if lookup by id fails and id looks like an email, try finding by email
     if (!response.ok && id.includes('@')) {

@@ -1,13 +1,15 @@
-FROM python:3.12-alpine
+FROM python:3.12.12-alpine
 
 WORKDIR /app
 
 # Copy requirements and install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Install curl for container health checks
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl \
+    && apk upgrade --no-cache
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S python \
@@ -30,5 +32,9 @@ EXPOSE 8080
 ENV FLASK_APP=app.py
 ENV PORT=8080
 
-# Run the application
-CMD ["python", "app.py"]
+# Health check (authenticated endpoints excluded; /healthz under legacy blueprint requires no auth bypass only for this path)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD curl -f http://localhost:8080/healthz || exit 1
+
+# Run with production WSGI server (Flask dev server is development-only)
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--timeout", "60", "app:app"]

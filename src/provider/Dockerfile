@@ -1,5 +1,5 @@
-# Build stage
-FROM node:25-alpine AS build
+# Build stage - pinned LTS for reproducible, supported runtime
+FROM node:22.21.1-alpine AS build
 
 # Install build dependencies
 RUN apk add --no-cache python3 make g++
@@ -19,11 +19,11 @@ COPY public ./public
 # Build TypeScript
 RUN npm run build
 
-# Runtime stage
-FROM node:25-alpine AS runtime
+# Runtime stage - pinned LTS; no build tools to minimize attack surface
+FROM node:22.21.1-alpine AS runtime
 
-# Install runtime dependencies and security updates
-RUN apk add --no-cache python3 make g++ curl \
+# Apply security updates only (curl kept for healthcheck)
+RUN apk add --no-cache curl \
     && apk upgrade --no-cache
 
 # Create non-root user for security

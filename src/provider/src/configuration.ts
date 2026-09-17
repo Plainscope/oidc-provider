@@ -265,7 +265,21 @@ if (configuration.jwks && Array.isArray(configuration.jwks.keys) && configuratio
   delete (configuration as any).jwks;
 }
 
-console.log('[CONFIG] Final merged configuration:', configuration);
+console.log('[CONFIG] Final merged configuration:', {
+  clients: (configuration.clients || []).map((c: any) => ({
+    client_id: c.client_id,
+    client_name: c.client_name,
+    redirect_uris: c.redirect_uris,
+    grant_types: c.grant_types,
+    response_types: c.response_types,
+    // client_secret, jwks and other secrets intentionally redacted
+  })),
+  scopes: (configuration as any).scopes,
+  claims: Object.keys((configuration as any).claims || {}),
+  features: (configuration as any).features,
+  cookiesConfigured: Boolean((configuration as any).cookies?.keys?.length),
+  jwksConfigured: Boolean((configuration as any).jwks?.keys?.length),
+});
 
 // Apply preset if enabled (but only if OIDC_PRESET is explicitly set or in development mode)
 const presetName = process.env.OIDC_PRESET;
@@ -301,6 +315,26 @@ try {
   }
   else {
     throw new Error(`Critical error with cookies.keys in production: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+// Fail fast in production if known default/dev secrets are still configured
+if (process.env.NODE_ENV === 'production') {
+  const KNOWN_DEFAULT_SECRETS = [
+    'a74566f905056b6806d69afc09f2803d1aa477e1d708540683994d6e4745334a',
+    '40763539018b2f012d30aa7eba0123db3dc847b0eca146e5d7160838f8b2d092',
+    'local-dev-secret',
+    'test-secret',
+  ];
+  const clientSecrets = ((configuration.clients as any[]) || []).map(c => c?.client_secret).filter(Boolean);
+  if (clientSecrets.some(s => KNOWN_DEFAULT_SECRETS.includes(s))) {
+    throw new Error('Default development client secret detected in production. Set CLIENT_ID/CLIENT_SECRET or CLIENTS.');
+  }
+  const cookieKeys: string[] = Array.isArray((configuration.cookies as any)?.keys)
+    ? (configuration.cookies as any).keys
+    : [];
+  if (cookieKeys.some(k => KNOWN_DEFAULT_SECRETS.includes(k))) {
+    throw new Error('Default development cookie key detected in production. Set COOKIES_KEYS.');
   }
 }
 

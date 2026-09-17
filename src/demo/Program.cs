@@ -33,8 +33,11 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie(options =>
 {
-  options.Cookie.SameSite = SameSiteMode.Unspecified;
+  // Lax blocks CSRF on cross-site POSTs while allowing top-level navigation.
+  // (Was Unspecified, which defers to browser defaults.)
+  options.Cookie.SameSite = SameSiteMode.Lax;
   options.Cookie.SecurePolicy = securePolicy;
+  options.Cookie.HttpOnly = true;
 })
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
@@ -48,9 +51,11 @@ builder.Services.AddAuthentication(options =>
     options.MetadataAddress = settings.MetadataAddress;
   }
 
-  // In Development, relax backchannel certificate validation to allow local dev certs
+  // In Development ONLY, relax backchannel certificate validation to allow local dev certs.
+  // WARNING: never set ASPNETCORE_ENVIRONMENT=Development in production - this disables TLS validation.
   if (isDevelopment)
   {
+    Console.WriteLine("WARNING: Development mode - backchannel TLS certificate validation is DISABLED. Never use Development in production.");
     options.BackchannelHttpHandler = new HttpClientHandler
     {
       ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
@@ -79,10 +84,13 @@ builder.Services.AddAuthentication(options =>
   };
 
   // 5. Address Correlation Failed issue
-  options.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
-  options.CorrelationCookie.SecurePolicy = securePolicy;
-  options.NonceCookie.SameSite = SameSiteMode.Unspecified;
-  options.NonceCookie.SecurePolicy = securePolicy;
+  // Correlation/nonce cookies must round-trip on cross-site FormPost responses,
+  // which requires SameSite=None + Secure in production (HTTPS). On local HTTP
+  // development, keep the lax developer-friendly defaults.
+  options.CorrelationCookie.SameSite = isDevelopment ? SameSiteMode.Unspecified : SameSiteMode.None;
+  options.CorrelationCookie.SecurePolicy = isDevelopment ? securePolicy : CookieSecurePolicy.Always;
+  options.NonceCookie.SameSite = isDevelopment ? SameSiteMode.Unspecified : SameSiteMode.None;
+  options.NonceCookie.SecurePolicy = isDevelopment ? securePolicy : CookieSecurePolicy.Always;
 
   // This alone fixes the problem for most people in 2025
   options.UsePkce = true;
@@ -137,10 +145,11 @@ builder.Services.AddAuthentication(options =>
     {
       if (context.Principal?.Identity is ClaimsIdentity identity)
       {
-        // Log all claims for debugging
+        // Log claim types only at Debug level; claim values may contain PII
+        // and must never be written to Information-level logs.
         var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<OpenIdConnectEvents>>();
-        logger.LogInformation("OIDC Claims received: {Claims}",
-                string.Join(", ", identity.Claims.Select(c => $"{c.Type}={c.Value}")));
+        logger.LogDebug("OIDC claims received: {ClaimTypes}",
+                string.Join(", ", identity.Claims.Select(c => c.Type)));
 
         // Map 'sub' claim to both NameIdentifier and 'sid' for compatibility
         var subClaim = identity.FindFirst("sub");
@@ -188,6 +197,25 @@ builder.Services.AddAuthentication(options =>
 });
 
 var app = builder.Build();
+
+// Security headers for all responses (demo app)
+app.Use(async (context, next) =>
+{
+  context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+  context.Response.Headers["X-Frame-Options"] = "DENY";
+  context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+  context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=()";
+  context.Response.Headers["Content-Security-Policy"] =
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'";
+  await next();
+});
+
+if (!isDevelopment)
+{
+  app.UseHsts();
+  app.UseHttpsRedirection();
+}
+
 app.UseStaticFiles();
 
 app.UseRouting();

@@ -48,6 +48,18 @@ function sanitize(input: string): string {
 }
 
 /**
+ * Validate password length without trimming (whitespace can be significant)
+ */
+function sanitizePassword(input: string): string {
+  if (typeof input !== 'string') return '';
+  const MAX_LENGTH = 1024;
+  if (input.length > MAX_LENGTH) {
+    throw new Error(`Password exceeds maximum length of ${MAX_LENGTH}`);
+  }
+  return input;
+}
+
+/**
  * Generate session ID
  */
 function generateSessionId(): string {
@@ -75,12 +87,13 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
   app.post('/directory/login', async (req, res) => {
     try {
       const email = sanitize(req.body.email);
-      const password = sanitize(req.body.password);
+      const password = sanitizePassword(req.body.password);
 
       // Validate against directory
       const account = await directory.validate(email, password);
 
       if (!account) {
+        // Generic error to avoid user enumeration
         return res.redirect('/directory/login?error=Invalid+credentials');
       }
 
@@ -94,7 +107,8 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
       const isAdmin = userRoles.some(r => r.name === 'admin');
 
       if (!isAdmin) {
-        return res.redirect('/directory/login?error=Access+denied');
+        // Same generic error: do not reveal valid non-admin credentials
+        return res.redirect('/directory/login?error=Invalid+credentials');
       }
 
       // Create session
@@ -200,7 +214,7 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
   app.post('/directory/users/create', requireAuth, async (req, res): Promise<void> => {
     try {
       const username = sanitize(req.body.username);
-      const password = sanitize(req.body.password);
+      const password = sanitizePassword(req.body.password);
       const email = sanitize(req.body.email);
       const firstName = sanitize(req.body.first_name || '');
       const lastName = sanitize(req.body.last_name || '');
@@ -329,7 +343,7 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
   app.post('/directory/users/:id/update', requireAuth, async (req, res): Promise<void> => {
     try {
       const userId = sanitize(req.params.id);
-      const password = req.body.password ? sanitize(req.body.password) : null;
+      const password = req.body.password ? sanitizePassword(req.body.password) : null;
       const firstName = sanitize(req.body.first_name || '');
       const lastName = sanitize(req.body.last_name || '');
       let displayName = sanitize(req.body.display_name || '');

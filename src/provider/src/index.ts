@@ -4,6 +4,7 @@
  */
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Provider } from 'oidc-provider';
@@ -51,7 +52,12 @@ const securityHeaders = (_req: Request, res: Response, next: NextFunction) => {
   // Note: Start with shorter max-age in initial deployment and gradually increase
   // Default is 1 day (86400s), can be increased to 1 year (31536000s) after validation
   if (process.env.NODE_ENV === 'production' && process.env.ISSUER?.startsWith('https://')) {
-    const hstsMaxAge = process.env.HSTS_MAX_AGE || '86400'; // Default: 1 day
+    const rawHsts = process.env.HSTS_MAX_AGE || '86400';
+    // Validate to prevent header injection via environment
+    const hstsMaxAge = /^\d+$/.test(rawHsts) ? rawHsts : '86400';
+    if (hstsMaxAge !== rawHsts) {
+      console.warn('[SECURITY] Invalid HSTS_MAX_AGE ignored, using default 86400');
+    }
     res.setHeader('Strict-Transport-Security', `max-age=${hstsMaxAge}; includeSubDomains; preload`);
   }
 
@@ -187,6 +193,10 @@ if (DIRECTORY_TYPE === 'sqlite') {
  * Sets up Express, view engine, static files, and OIDC routes.
  */
 const app: Express = express();
+// Trust proxy only when explicitly behind a reverse proxy to get correct IPs/secure cookies
+if (process.env.PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 console.log('[INIT] Express app configured with Pug view engine and views directory:', path.join(__dirname, 'views'));
@@ -242,14 +252,14 @@ console.log(`[INIT] OIDC Provider initialized with issuer: ${ISSUER}`);
 provider.proxy = process.env.PROXY === 'true';
 console.log(`[INIT] Proxy mode: ${provider.proxy ? 'enabled' : 'disabled'}`);
 
-// Log all incoming OIDC requests for auditing
+// Log all incoming OIDC requests for auditing (redacted: never log headers/cookies/tokens)
 provider.use(async (ctx, next) => {
-  console.log(`[PROVIDER] ${ctx.method} ${ctx.path} - Headers:`, ctx.headers);
+  console.log(`[PROVIDER] ${ctx.method} ${ctx.path}`);
   await next();
 });
 
-// Serve static files (CSS, images, etc.)
-app.use(express.static('./public'));
+// Serve static files (CSS, images, etc.) using absolute path
+app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: '1d', index: false }));
 console.log('[INIT] Serving static files from ./public');
 
 // Cookie parser for management UI sessions
@@ -260,12 +270,24 @@ console.log('[INIT] Cookie parser enabled');
 app.use(securityHeaders);
 console.log('[INIT] Security headers middleware enabled');
 
-// Parse JSON bodies (for API requests)
-app.use(express.json());
+// Rate limiting to mitigate brute-force and credential-stuffing attacks
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100, // max 100 auth attempts per window per IP
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+});
+app.use('/interaction/', authLimiter);
+app.use('/directory/login', authLimiter);
+console.log('[INIT] Rate limiting middleware enabled');
+
+// Parse JSON bodies (for API requests) with size limit to prevent payload DoS
+app.use(express.json({ limit: '100kb' }));
 console.log('[INIT] JSON body parser enabled');
 
-// Parse URL-encoded bodies (for form submissions)
-app.use(express.urlencoded({ extended: false }));
+// Parse URL-encoded bodies (for form submissions) with size limit
+app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 console.log('[INIT] URL-encoded body parser enabled');
 
 // Lightweight health check for container orchestration

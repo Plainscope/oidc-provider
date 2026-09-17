@@ -1,4 +1,7 @@
 services:
+  # WARNING: default secret values below are DEVELOPMENT-ONLY and committed for local e2e convenience.
+  # Never use them in production. Override via DIRECTORY_BEARER_TOKEN / PROVIDER_CLIENT_ID /
+  # PROVIDER_CLIENT_SECRET environment variables (see CI workflow and production compose file).
   directory:
     build:
       context: ./src/directory

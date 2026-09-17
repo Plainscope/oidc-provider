@@ -1,4 +1,5 @@
 """UI routes for the web dashboard using Jinja templates."""
+import hmac
 import logging
 from flask import render_template, request, session, redirect, url_for, jsonify, abort, current_app
 
@@ -27,11 +28,10 @@ def register_ui_routes(bp):
             if not token:
                 return jsonify({'error': 'Token cannot be empty'}), 400
             
-            # Validate token by checking it against BEARER_TOKEN if configured
-            # Get BEARER_TOKEN from app config (stored during init)
+            # Validate token using constant-time comparison to prevent timing attacks
             bearer_token = current_app.config.get('BEARER_TOKEN')
-            
-            if bearer_token and token != bearer_token:
+
+            if bearer_token and not hmac.compare_digest(token, bearer_token):
                 logger.warning('[AUTH] POST /login - Invalid token provided')
                 return jsonify({'error': 'Invalid token'}), 401
             
