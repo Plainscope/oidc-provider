@@ -1,152 +1,99 @@
 # Plan 05: Admin UX, Security UX & Delivery Quality Enhancements
 
 **Status**: Proposed enhancement  
-**Target component**: `src/directory` (SPA, API integration, tests, deployment/docs)  
+**Target component**: Directory SPA, FastAPI API integration, tests and deployment/docs  
 **Priority**: High  
 **Estimated effort**: 3–5 days incremental to Plans 02–04  
 **Dependencies**: Plans 02, 03 and 04
 
 ## Purpose
 
-This plan captures additional enhancements to make the redesigned directory console safer and more operationally useful, without turning it into a full identity-management product.
-
-The emphasis is on **clarity, safe administration, accessibility, and production feedback** rather than adding more screens.
+Improve the embedded React + TypeScript administration experience with safe workflows, accessibility, resilience and operational visibility without expanding the Directory into a token-issuing identity product.
 
 ## Enhancements
 
 ### 1. Admin-first information architecture
 
-- Use a persistent navigation shell with clear **Manage** and **Observe** sections.
-- Keep Users as the primary workflow; expose Roles, Groups and Domains as secondary resources.
-- Put Audit and system health under an Observe section.
-- Add breadcrumbs on detail/edit views so destructive workflows retain context.
-- Provide a command palette (⌘K / Ctrl+K) for navigation and common actions.
-- Make search state URL-addressable so filtered lists can be bookmarked/shared.
+- Persistent navigation with Manage and Observe sections.
+- Users as the primary workflow; Roles, Groups and Domains as secondary resources.
+- Audit and health under Observe.
+- Breadcrumbs, command palette and URL-addressable search state.
 
-### 2. Safer destructive and privileged actions
+### 2. Safer privileged actions
 
-- Require an explicit confirmation for delete, bulk deactivate, role replacement and other high-impact mutations.
-- Confirmation dialogs must state the target, action and irreversible consequence where applicable.
-- Disable submit controls while mutations are in flight and surface the server result.
-- After mutation, invalidate affected TanStack Query caches rather than relying on stale optimistic state.
-- For bulk actions, show the exact number of affected records before confirmation.
-- Never display access tokens, refresh tokens, passwords, private keys or other secrets in tables, toasts, audit views or client-side logs.
+- Explicit confirmation for deletes, bulk deactivation, role replacement and other high-impact mutations.
+- Disable controls during mutations and show authoritative server results.
+- Invalidate affected query caches after mutations.
+- Never display passwords, access/refresh credentials, private keys or other secrets in UI, audit views or client logs.
 
-### 3. Security-aware SPA authentication
+### 3. Directory admin authentication
 
-- Keep access JWTs in memory by default.
-- Use the httpOnly refresh cookie defined by Plan 04; do not persist refresh tokens in localStorage.
-- Centralize 401 handling: attempt one silent refresh, then redirect to login.
-- Prevent refresh loops and concurrent refresh storms with a single-flight refresh promise.
-- Clear in-memory credentials on logout and browser-session teardown.
-- Surface generic authentication errors to users while preserving detailed diagnostics in server-side logs.
+- Use the admin authentication/session contract defined by Plan 04.
+- Keep browser credentials scoped to the Directory administration surface.
+- Do not persist sensitive credentials in localStorage.
+- Centralize 401 handling and prevent refresh loops/storms where refresh is supported.
+- Do not implement Provider/OIDC token issuance in the Directory.
 
 ### 4. Operational visibility
 
-Add a compact status area to the dashboard:
+Show API reachability/latency, database readiness where exposed, authentication/session state, refresh timestamps and degraded/error states.
 
-- API reachability and latency.
-- Database readiness when exposed by the backend.
-- Authentication/session status.
-- Last successful data refresh.
-- Degraded/error states with a clear retry action.
+Audit views should include actor/service identity, timestamp, action, resource, outcome and correlation/request IDs without exposing secrets.
 
-For audit logs:
+### 5. Data tables and forms
 
-- Show actor/service identity, timestamp, action, resource and outcome.
-- Support correlation/request IDs when supplied by the API.
-- Make change details expandable rather than permanently occupying table width.
-- Keep CSV export server-driven or generated from already-authorized API data.
+- Server-side pagination/filtering/sorting aligned to Plan 02.
+- Debounced search, stable loading/empty/error states and explicit select-all semantics.
+- Keyboard-accessible controls.
+- Preserve entered form values after failed requests.
+- Semantic required fields and accessible validation announcements.
 
-### 5. Data-table quality
+### 6. Accessibility
 
-Standardize a reusable table component with:
+Target WCAG 2.2 AA with visible focus, focus trapping/restoration, logical headings, color-independent status, reduced-motion support and screen-reader announcements.
 
-- Server-side pagination, filtering and sorting aligned to Plan 02.
-- Debounced search.
-- Persisted column visibility and page size.
-- Select-all semantics scoped explicitly to the current page/filter.
-- Keyboard-accessible row selection and actions.
-- Stable empty, loading, partial-error and retry states.
-- Mobile fallback that converts dense rows into stacked record cards rather than horizontal scrolling wherever practical.
+### 7. Performance and resilience
 
-### 6. Forms and validation
+- Route-level code splitting.
+- Abort obsolete requests.
+- Bounded server-side pagination.
+- Route-level error boundaries.
+- Lightweight initial shell.
 
-- Share Zod schemas with API response/request types where feasible.
-- Validate on blur and submit; avoid noisy validation while users are typing.
-- Preserve entered values when a request fails.
-- Mark required fields semantically, not only with color.
-- Provide password strength guidance without logging or transmitting password values outside the intended request.
-- Announce validation and mutation results to assistive technology with live regions.
+### 8. Testing
 
-### 7. Accessibility and interaction quality
+1. Unit/component tests for forms, dialogs, auth state and table behavior.
+2. API contract tests against the FastAPI `/api/v1` contract.
+3. E2E coverage for login, CRUD, audit, logout and unauthorized flows.
+4. Accessibility checks in CI.
 
-Target WCAG 2.2 AA as stated in Plan 03, with additional checks for:
+### 9. Secure embedded deployment
 
-- Visible keyboard focus.
-- Focus trapping and restoration in dialogs/drawers.
-- Escape-to-close for overlays.
-- Logical heading hierarchy.
-- Color-independent status indicators.
-- Reduced-motion preference.
-- Screen-reader announcements for route changes and async mutations.
-- Touch targets appropriate for mobile administration.
-
-### 8. Performance and resilience
-
-- Route-level code splitting for Users, Roles, Groups, Domains and Audit.
-- Cache stable reference data such as roles/groups with sensible stale times.
-- Abort obsolete search requests.
-- Avoid rendering thousands of rows client-side; rely on API pagination.
-- Add error boundaries around route-level UI.
-- Keep the initial shell lightweight and defer non-critical screens.
-
-### 9. Test strategy
-
-Add tests at three levels:
-
-1. **Unit/component**: forms, dialogs, auth state transitions, table selection/filtering.
-2. **API contract**: generated client types and error handling against the Plan 02 OpenAPI contract.
-3. **End-to-end**: login → list users → edit user → verify audit entry; plus logout/refresh and unauthorized flows.
-
-Include accessibility checks in CI for the principal routes.
-
-### 10. Secure deployment defaults
-
-Extend the SPA packaging work with:
-
-- CSP that permits only the resources actually required by the embedded build; remove CDN dependencies.
-- HSTS and Permissions-Policy in production.
-- No source maps containing sensitive deployment information in production unless explicitly required.
-- Runtime configuration supplied through a safe server-rendered endpoint or build-time public configuration; never embed secrets in the frontend bundle.
-- Read-only static assets and non-root runtime as supported by the container.
-- Document proxy headers and trusted-proxy configuration so client IP/request IDs cannot be spoofed by untrusted upstreams.
+- CSP permits only resources required by the embedded build.
+- No CDN runtime dependencies.
+- No secrets in frontend build/runtime configuration.
+- Read-only static assets and non-root runtime where supported.
+- Document trusted-proxy headers.
 
 ## Rollout
 
-1. Implement the design-system and safety primitives before the resource pages.
-2. Ship Users first behind `UI_ENABLED=true`.
-3. Run the SPA against the versioned API contract while retaining legacy routes.
-4. Enable Roles, Groups, Domains and Audit after their contract tests pass.
-5. Keep a documented rollback path to the existing UI during the first release.
-6. Remove CDN-based assets and old templates only after the SPA has parity for all required workflows.
+1. Build safety/design primitives first.
+2. Ship Users first against `/api/v1`.
+3. Add Roles, Groups, Domains and Audit as their contract tests pass.
+4. Complete authentication integration with Plan 04.
+5. Verify required workflows before removing old Jinja/Alpine assets.
+6. Keep a documented rollback path for the embedded Directory release.
 
 ## Definition of Done
 
-- [ ] No secret-bearing values are persisted by the SPA.
-- [ ] High-impact mutations have explicit, accessible confirmation.
-- [ ] Users supports server-side search/filter/sort/pagination and safe bulk actions.
-- [ ] Auth refresh is single-flight and handles 401s without loops.
-- [ ] Audit views expose actor/action/outcome/correlation context without leaking secrets.
-- [ ] Principal routes pass automated accessibility checks.
-- [ ] Route-level errors, loading states and retry paths are covered.
-- [ ] Production build contains no CDN runtime dependencies.
-- [ ] E2E coverage exercises login, refresh, CRUD, audit and logout.
+- [ ] High-impact mutations have explicit accessible confirmation.
+- [ ] SPA uses the FastAPI `/api/v1` contract.
+- [ ] No secret-bearing values are persisted or logged by the SPA.
+- [ ] Authentication handling does not imply Directory token issuance.
+- [ ] Accessibility, resilience and E2E coverage pass.
+- [ ] Embedded production build contains no CDN runtime dependencies.
 - [ ] Deployment/rollback documentation is updated.
 
-## Open Questions
+## Settled Decisions
 
-1. Which actions should require step-up authentication once the authentication model supports it?
-2. Should bulk operations be synchronous with a hard limit, or move to an asynchronous job model for large selections?
-3. Should audit CSV export be limited to privileged roles?
-4. What is the preferred public branding/design token set for the Plainscope/Cuemarshal deployment?
+This enhancement plan follows FastAPI (**ADR-001**), React + TypeScript (**ADR-002**), embedded deployment (**ADR-003**), Provider token authority (**ADR-004**), and Provider-gated legacy API removal (**ADR-005**).
