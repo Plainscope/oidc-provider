@@ -1,0 +1,44 @@
+# Optional PostgreSQL backend for the Directory service (Plan 01 / issue #41)
+#
+# Usage (overlay on the main compose file):
+#   export DATABASE_URL=postgresql+psycopg://directory:directory@postgres:5432/directory
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up -d postgres directory
+#
+# Development credentials only — never use these values in production.
+# Override POSTGRES_* and DATABASE_URL for real deployments.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: oidc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: directory
+      POSTGRES_PASSWORD: directory
+      POSTGRES_DB: directory
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - oidc-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U directory -d directory"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
+  directory:
+    environment:
+      # Prefer DATABASE_URL when set; falls back to DATABASE_FILE/SQLite
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://directory:directory@postgres:5432/directory}
+      # Keep DATABASE_FILE unset or point elsewhere so the engine chooses Postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
