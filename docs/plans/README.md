@@ -14,6 +14,16 @@ These plans are submitted for review before any implementation work begins.
 | 04 | [Security & Production Readiness](./04-security-production-readiness.md) | Draft | 4–7 days | Critical |
 | 05 | [Admin UX, Security UX & Delivery Quality](./05-admin-ux-security-enhancements.md) | Proposed | 3–5 days | High |
 
+## Accepted Architecture Decisions
+
+See [docs/adr/](../adr/) for the accepted architecture decisions:
+
+- **FastAPI** is the Directory API framework ([ADR-001](../adr/001-fastapi-for-directory-api.md)).
+- **React + TypeScript** is the admin UI stack ([ADR-002](../adr/002-react-typescript-admin-ui.md)).
+- The SPA is **embedded** in the Directory deployment ([ADR-003](../adr/003-embedded-spa-deployment.md)).
+- The Directory is a **backing store**; the Provider remains responsible for token issuance ([ADR-004](../adr/004-directory-is-backing-store.md)).
+- Legacy API endpoints can be removed after the Provider is migrated and verified against `/api/v1`; Provider compatibility is a release gate ([ADR-005](../adr/005-immediate-legacy-api-deprecation.md)).
+
 ## Suggested Order of Execution
 
 1. **Plan 04 (Security)** and **Plan 01 (Postgres)** can start in parallel – they have limited overlap.
