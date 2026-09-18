@@ -14,7 +14,7 @@ export const TEST_USER = {
  */
 export const OIDC_CONFIG = {
   clientId: process.env.PROVIDER_CLIENT_ID || 'test-client-id',
-  clientSecret: process.env.PROVIDER_CLIENT_SECRET || 'local-dev-client-secret',
+  clientSecret: process.env.PROVIDER_CLIENT_SECRET || 'local-dev-secret',
   redirectUri: `${DEMO_BASE_URL}/signin-oidc`,
   postLogoutRedirectUri: `${DEMO_BASE_URL}/signout-callback-oidc`,
   scope: 'openid profile email',

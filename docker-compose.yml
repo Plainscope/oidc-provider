@@ -41,7 +41,7 @@ services:
       PORT: 8080
       ISSUER: http://provider:8080
       CLIENT_ID: ${PROVIDER_CLIENT_ID:-test-client-id}
-      CLIENT_SECRET: ${PROVIDER_CLIENT_SECRET:-local-dev-client-secret}
+      CLIENT_SECRET: ${PROVIDER_CLIENT_SECRET:-local-dev-secret}
       REDIRECT_URIS: http://localhost:${DEMO_PORT:-8080}/signin-oidc
       POST_LOGOUT_REDIRECT_URIS: http://localhost:${DEMO_PORT:-8080}/signout-callback-oidc
       DIRECTORY_TYPE: ${DIRECTORY_TYPE:-sqlite}
@@ -82,7 +82,7 @@ services:
       OPENID__AUTHORITY: http://provider:8080
       OPENID__PUBLICORIGIN: http://localhost:${PROVIDER_PORT:-9080}
       OPENID__CLIENTID: ${PROVIDER_CLIENT_ID:-test-client-id}
-      OPENID__CLIENTSECRET: ${PROVIDER_CLIENT_SECRET:-local-dev-client-secret}
+      OPENID__CLIENTSECRET: ${PROVIDER_CLIENT_SECRET:-local-dev-secret}
       OPENID__REQUIREHTTPSMETADATA: false
       OPENID__SCOPES__0: openid
       OPENID__SCOPES__1: profile
