@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 import { DIRECTORY_BASE_URL } from '../utils/urls';
 
 const BASE_URL = DIRECTORY_BASE_URL;
-const BEARER_TOKEN = 'sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth';
+const BEARER_TOKEN = process.env.DIRECTORY_BEARER_TOKEN || 'local-dev-bearer-token';
 const INVALID_TOKEN = 'sk-invalid-token-12345';
 
 async function login(page, redirectTo: string = '/') {
