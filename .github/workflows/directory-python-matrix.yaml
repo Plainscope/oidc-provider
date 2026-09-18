@@ -75,6 +75,9 @@ jobs:
           import flask_session
           import flask_limiter
           import gunicorn
+          import sqlalchemy
+          import psycopg
+          import alembic
 
           print(f"Python: {sys.version}")
           print(f"Flask: {pkg_version('Flask')}")
@@ -84,6 +87,9 @@ jobs:
           print(f"Flask-Session: {pkg_version('Flask-Session')}")
           print(f"Flask-Limiter: {pkg_version('Flask-Limiter')}")
           print(f"gunicorn: {pkg_version('gunicorn')}")
+          print(f"SQLAlchemy: {pkg_version('SQLAlchemy')}")
+          print(f"psycopg: {pkg_version('psycopg')}")
+          print(f"alembic: {pkg_version('alembic')}")
           print("All required packages import successfully.")
           EOF
 
@@ -91,6 +97,11 @@ jobs:
         run: |
           set -euo pipefail
           python test_constraints.py
+
+      - name: Run dual-engine database tests (SQLite; Postgres if DATABASE_URL set)
+        run: |
+          set -euo pipefail
+          python test_database_engines.py
 
       - name: Application factory smoke test
         run: |
