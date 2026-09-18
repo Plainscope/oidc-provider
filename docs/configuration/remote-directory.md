@@ -271,7 +271,7 @@ curl -X GET http://localhost:7090/find/8276bb5b-d0b7-41e9-a805-77b62a2865f4 \
 curl -X POST http://localhost:7090/validate \
   -H "Authorization: Bearer remote-directory-secret-token" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@localhost","password":"Rays-93-Accident"}'
+  -d '{"email":"admin@localhost","password":"test-password"}'
 ```
 
 ## Security Considerations
