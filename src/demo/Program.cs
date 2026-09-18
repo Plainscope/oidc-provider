@@ -205,8 +205,11 @@ app.Use(async (context, next) =>
   context.Response.Headers["X-Frame-Options"] = "DENY";
   context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
   context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=()";
+  // Note: no form-action directive — the Razor signout form posts back to
+  // the app itself and overly strict form-action breaks the OIDC signout
+  // redirect chain in some browsers. The signout endpoint is POST-only.
   context.Response.Headers["Content-Security-Policy"] =
-    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'";
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'";
   await next();
 });
 

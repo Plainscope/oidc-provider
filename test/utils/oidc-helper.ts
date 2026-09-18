@@ -1,5 +1,6 @@
 import * as jwt from 'jsonwebtoken';
 import { test as base } from '@playwright/test';
+import { DEMO_BASE_URL, PROVIDER_BASE_URL } from './urls';
 
 /**
  * OIDC Helper Utilities
@@ -7,8 +8,8 @@ import { test as base } from '@playwright/test';
  */
 
 export class OIDCHelper {
-  static providerUrl = 'http://localhost:9080';
-  static demoUrl = 'http://localhost:8080';
+  static providerUrl = PROVIDER_BASE_URL;
+  static demoUrl = DEMO_BASE_URL;
 
   /**
    * Fetch OpenID Configuration

@@ -189,6 +189,12 @@ Configuration is in `playwright.config.ts`:
 ## Environment Variables
 
 - `CI`: Set to `true` for CI environment (stricter settings)
+- `DEMO_BASE_URL`, `PROVIDER_BASE_URL`, `DIRECTORY_BASE_URL`: Override service
+  URLs when the default ports clash with other local services (see `.env.example`).
+  `DEMO_BASE_URL` must stay in sync with compose's `DEMO_PORT`
+  (provider redirect URIs derive from it):
+  `DEMO_PORT=18080 docker compose up -d` +
+  `DEMO_BASE_URL=http://localhost:18080 npx playwright test`
 
 ## Troubleshooting
 

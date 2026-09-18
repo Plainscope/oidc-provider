@@ -173,13 +173,15 @@ def set_security_headers(response):
     response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=(), payment=()'
     # CSP mirrors the provider service, plus the two CDN hosts the UI
     # requires: Tailwind (styling) and Alpine.js (all page interactivity
-    # and API calls). Server-rendered templates also rely on inline
-    # scripts/styles, so 'unsafe-inline' is required for the UI to
+    # and API calls). Server-rendered templates rely on inline scripts,
+    # and Alpine.js compiles x-data/x-show expressions via new Function(),
+    # so 'unsafe-inline' AND 'unsafe-eval' are both required for the UI to
     # function. object-src/base-uri stay locked down; sensitive actions
     # additionally require bearer auth and CSRF tokens.
-    # TODO: vendor Alpine.js/Tailwind locally to drop the CDN allowlist.
+    # TODO: vendor Alpine.js/Tailwind locally to drop the CDN allowlist
+    # (Alpine's CSP build could then drop 'unsafe-eval' too).
     response.headers['Content-Security-Policy'] = (
-        "default-src 'self'; script-src 'self' 'unsafe-inline' "
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' "
         "https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; "
         "font-src 'self' data:; object-src 'none'; base-uri 'self'"

@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/auth.fixtures';
 import { TEST_USER, OIDC_CONFIG } from '../fixtures/auth.fixtures';
+import { DEMO_BASE_URL, DEMO_HOST } from '../utils/urls';
 
 /**
  * Tests for Authorization Code Flow
@@ -60,7 +61,7 @@ test.describe('OIDC Authorization Code Flow', () => {
     }
 
     await page.waitForURL(
-      (url) => url.href.startsWith('http://localhost:8080') && !url.pathname.includes('signin-oidc'),
+      (url) => url.href.startsWith(DEMO_BASE_URL) && !url.pathname.includes('signin-oidc'),
       { timeout: 20000 },
     );
     const signOutButton = page.locator('main form[action="/auth/signout"] button');
@@ -70,7 +71,7 @@ test.describe('OIDC Authorization Code Flow', () => {
   test('should complete full auth flow and return to app', async ({ authenticatedPage }) => {
     // User should be authenticated and back at the app
     const url = authenticatedPage.url();
-    expect(url).toContain('localhost:8080');
+    expect(url).toContain(DEMO_HOST);
 
     // Should show authenticated UI (sign out button)
     const signOutButton = authenticatedPage.locator('main form[action="/auth/signout"] button');

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { OIDC_CONFIG } from '../fixtures/auth.fixtures';
+import { PROVIDER_BASE_URL } from '../utils/urls';
 
 /**
  * Tests for Token Flow and Endpoints
@@ -7,7 +8,7 @@ import { OIDC_CONFIG } from '../fixtures/auth.fixtures';
  */
 
 test.describe('OIDC Token Flow', () => {
-  const providerUrl = 'http://localhost:9080';
+  const providerUrl = PROVIDER_BASE_URL;
 
   test('should return valid authorization code from /auth endpoint', async ({ page }) => {
     // Build authorization request

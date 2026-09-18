@@ -1,7 +1,8 @@
 /// <reference types="@playwright/test" />
 import { test, expect } from '@playwright/test';
+import { PROVIDER_BASE_URL } from '../utils/urls';
 
-const PROVIDER_URL = 'http://localhost:9080';
+const PROVIDER_URL = PROVIDER_BASE_URL;
 
 // Test user credentials (should exist in the test database)
 const TEST_USER = {

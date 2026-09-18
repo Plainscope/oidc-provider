@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/auth.fixtures';
+import { DEMO_BASE_URL, DEMO_HOST, DEMO_PORT, PROVIDER_BASE_URL } from '../utils/urls';
 
 /**
  * Tests for Logout Flow
@@ -13,7 +14,7 @@ async function performLogout(page: any) {
   await signOutButton.click();
 
   // Wait for logout confirmation page
-  await page.waitForURL(/localhost:9080\/session\/end/, { timeout: 5000 });
+  await page.waitForURL((url: URL) => url.href.startsWith(`${PROVIDER_BASE_URL}/session/end`), { timeout: 5000 });
 
   // Click "Yes, sign me out" button on the confirmation page
   const confirmButton = page.getByRole('button', { name: /yes.*sign.*out/i });
@@ -21,7 +22,7 @@ async function performLogout(page: any) {
 
   // Wait for redirect back to demo app
   await page.waitForURL(url =>
-    url.hostname === 'localhost' && url.port === '8080',
+    url.hostname === new URL(DEMO_BASE_URL).hostname && url.port === DEMO_PORT,
     { timeout: 10000 }
   );
 }
@@ -38,7 +39,7 @@ test.describe('OIDC Logout Flow', () => {
 
     // Verify we're back at the demo app
     const url = authenticatedPage.url();
-    expect(url).toContain('localhost:8080');
+    expect(url).toContain(DEMO_HOST);
   });
 
   test('should clear session on logout', async ({ authenticatedPage }) => {
@@ -110,7 +111,7 @@ test.describe('OIDC Logout Flow', () => {
   test('should complete OIDC logout flow', async ({ authenticatedPage }) => {
     // Verify authenticated
     const initialUrl = authenticatedPage.url();
-    expect(initialUrl).toContain('localhost:8080');
+    expect(initialUrl).toContain(DEMO_HOST);
 
     // Click sign out
     const signOutButton = authenticatedPage.locator('main form[action="/auth/signout"] button');
@@ -121,7 +122,7 @@ test.describe('OIDC Logout Flow', () => {
 
     // Should be back at app but unauthenticated
     const finalUrl = authenticatedPage.url();
-    expect(finalUrl).toContain('localhost:8080');
+    expect(finalUrl).toContain(DEMO_HOST);
   });
 
   test('should show login button after logout', async ({ authenticatedPage }) => {

@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/auth.fixtures';
 import { OIDC_CONFIG } from '../fixtures/auth.fixtures';
+import { DEMO_BASE_URL, PROVIDER_BASE_URL, PROVIDER_HOST } from '../utils/urls';
 
 /**
  * Tests for Security Validations
@@ -7,7 +8,7 @@ import { OIDC_CONFIG } from '../fixtures/auth.fixtures';
  */
 
 test.describe('Security Validations', () => {
-  const providerUrl = 'http://localhost:9080';
+  const providerUrl = PROVIDER_BASE_URL;
 
   test('should enforce HTTPS in production (or allow HTTP in dev)', async ({ page }) => {
     // This test documents HTTPS requirement
@@ -28,7 +29,7 @@ test.describe('Security Validations', () => {
   });
 
   test('should set HttpOnly flag on session cookies', async ({ page }) => {
-    await page.goto('http://localhost:8080');
+    await page.goto(DEMO_BASE_URL);
 
     const cookies = await page.context().cookies();
     const sessionCookie = cookies.find(c =>
@@ -123,7 +124,7 @@ test.describe('Security Validations', () => {
 
     // Should show error or stay on provider, not redirect to malicious URL
     // The URL might still contain the param, but should not have redirected to it
-    const actuallyRedirected = !finalUrl.includes('localhost:9080') && finalUrl.includes('evil.com');
+    const actuallyRedirected = !finalUrl.includes(PROVIDER_HOST) && finalUrl.includes('evil.com');
     expect(actuallyRedirected).toBe(false);
   });
 
@@ -138,7 +139,7 @@ test.describe('Security Validations', () => {
 
     // Should show error or stay on provider, not redirect to unregistered URI
     const finalUrl = page.url();
-    const actuallyRedirected = !finalUrl.includes('localhost:9080') && finalUrl.includes('different-redirect.com');
+    const actuallyRedirected = !finalUrl.includes(PROVIDER_HOST) && finalUrl.includes('different-redirect.com');
     expect(actuallyRedirected).toBe(false);
   });
 

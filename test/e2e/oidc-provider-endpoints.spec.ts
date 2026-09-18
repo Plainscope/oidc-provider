@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { PROVIDER_BASE_URL } from '../utils/urls';
 
 /**
  * Tests for OIDC Provider Endpoints
@@ -7,7 +8,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('OIDC Provider Endpoints', () => {
   // Base URL for provider (via Docker Compose port mapping)
-  const providerUrl = 'http://localhost:9080';
+  const providerUrl = PROVIDER_BASE_URL;
 
   test('should serve OpenID Configuration metadata', async ({ page }) => {
     const response = await page.goto(

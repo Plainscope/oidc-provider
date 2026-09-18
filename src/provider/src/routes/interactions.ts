@@ -3,6 +3,7 @@ import { Provider } from 'oidc-provider';
 import assert from 'assert';
 import validator from 'validator';
 import { IDirectory } from '../directories/directory';
+import { authLimiter, isRateLimitEnabled } from '../rate-limit';
 
 // Production mode flag
 const isProduction = process.env.NODE_ENV === 'production';
@@ -73,6 +74,9 @@ const MIN_AUTH_RESPONSE_TIME = Number.isFinite(parsedMinAuthDelay) && parsedMinA
  * @param provider OIDC Provider instance
  */
 export default (app: Express, provider: Provider, directory: IDirectory) => {
+  if (isRateLimitEnabled) {
+    console.log('[INTERACTION] Login brute-force rate limiting enabled');
+  }
   // GET /interaction/:uid - Handles login and consent prompts
   app.get('/interaction/:uid', async (req, res) => {
     try {
@@ -119,8 +123,8 @@ export default (app: Express, provider: Provider, directory: IDirectory) => {
     }
   });
 
-  // POST /interaction/:uid/login - Handles login form submission
-  app.post('/interaction/:uid/login', async (req, res, next) => {
+  // POST /interaction/:uid/login - Handles login form submission (rate-limited)
+  app.post('/interaction/:uid/login', authLimiter, async (req, res, next) => {
     try {
       const interaction = await provider.interactionDetails(req, res);
       const { uid, prompt, params, session } = interaction;

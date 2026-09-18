@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/auth.fixtures';
 import { TEST_USER } from '../fixtures/auth.fixtures';
+import { DEMO_BASE_URL, PROVIDER_BASE_URL } from '../utils/urls';
 
 /**
  * Tests for SQLite Adapter Persistence
@@ -30,7 +31,7 @@ test.describe('SQLite Adapter Persistence', () => {
 
     // Wait for redirect back to app
     await page.waitForURL(
-      (url) => url.href.startsWith('http://localhost:8080') && !url.pathname.includes('signin-oidc'),
+      (url) => url.href.startsWith(DEMO_BASE_URL) && !url.pathname.includes('signin-oidc'),
       { timeout: 20000 },
     );
 
@@ -133,7 +134,7 @@ test.describe('SQLite Adapter Persistence', () => {
 
     // Wait for successful auth
     await page.waitForURL(
-      (url) => url.href.startsWith('http://localhost:8080') && !url.pathname.includes('signin-oidc'),
+      (url) => url.href.startsWith(DEMO_BASE_URL) && !url.pathname.includes('signin-oidc'),
       { timeout: 20000 },
     );
 
@@ -143,7 +144,7 @@ test.describe('SQLite Adapter Persistence', () => {
 
     // The authorization code should have been exchanged and stored in DB
     // Tokens should be retrievable from database
-    const response = await page.goto('http://localhost:9080/healthz');
+    const response = await page.goto(`${PROVIDER_BASE_URL}/healthz`);
     expect(response?.status()).toBe(200);
   });
 
@@ -170,7 +171,7 @@ test.describe('SQLite Adapter Persistence', () => {
 
     // Wait for redirect
     await page.waitForURL(
-      (url) => url.href.startsWith('http://localhost:8080') && !url.pathname.includes('signin-oidc'),
+      (url) => url.href.startsWith(DEMO_BASE_URL) && !url.pathname.includes('signin-oidc'),
       { timeout: 20000 },
     );
 
@@ -180,7 +181,7 @@ test.describe('SQLite Adapter Persistence', () => {
 
     // The adapter should properly handle expiration times for different token types
     // Verify health check still works (indicates database is functional)
-    const response = await page.goto('http://localhost:9080/healthz');
+    const response = await page.goto(`${PROVIDER_BASE_URL}/healthz`);
     expect(response?.status()).toBe(200);
   });
 });

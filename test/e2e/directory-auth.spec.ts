@@ -1,7 +1,8 @@
 /// <reference types="@playwright/test" />
 import { test, expect } from '@playwright/test';
+import { DIRECTORY_BASE_URL } from '../utils/urls';
 
-const BASE_URL = 'http://localhost:7080';
+const BASE_URL = DIRECTORY_BASE_URL;
 const BEARER_TOKEN = 'sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth';
 const INVALID_TOKEN = 'sk-invalid-token-12345';
 

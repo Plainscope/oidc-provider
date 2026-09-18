@@ -7,6 +7,7 @@ import { SqliteDirectory } from '../directories/sqlite-directory';
 import Database from 'better-sqlite3';
 import validator from 'validator';
 import crypto from 'crypto';
+import { authLimiter } from '../rate-limit';
 
 // Simple in-memory session store for management UI
 const sessions = new Map<string, { username: string; loginTime: number }>();
@@ -83,8 +84,8 @@ export function registerManagementRoutes(app: Express, directory: SqliteDirector
     });
   });
 
-  // Login handler
-  app.post('/directory/login', async (req, res) => {
+  // Login handler (rate-limited against brute force)
+  app.post('/directory/login', authLimiter, async (req, res) => {
     try {
       const email = sanitize(req.body.email);
       const password = sanitizePassword(req.body.password);

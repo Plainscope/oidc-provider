@@ -4,7 +4,6 @@
  */
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
-import rateLimit from 'express-rate-limit';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Provider } from 'oidc-provider';
@@ -37,9 +36,11 @@ const securityHeaders = (_req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   // Content Security Policy
+  // Allows 'unsafe-inline' for the service's own Pug views; fonts CDN is
+  // required by the stock end-session confirmation page.
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com;"
   );
 
   // Permissions Policy (formerly Feature Policy)
@@ -269,18 +270,9 @@ console.log('[INIT] Cookie parser enabled');
 // Apply security headers to all routes
 app.use(securityHeaders);
 console.log('[INIT] Security headers middleware enabled');
-
-// Rate limiting to mitigate brute-force and credential-stuffing attacks
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 100, // max 100 auth attempts per window per IP
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later' },
-});
-app.use('/interaction/', authLimiter);
-app.use('/directory/login', authLimiter);
-console.log('[INIT] Rate limiting middleware enabled');
+// NOTE: brute-force rate limiting is applied per-route to login POST
+// endpoints (see rate-limit.ts), not globally, to avoid throttling
+// routine OIDC flows and automated test suites.
 
 // Parse JSON bodies (for API requests) with size limit to prevent payload DoS
 app.use(express.json({ limit: '100kb' }));

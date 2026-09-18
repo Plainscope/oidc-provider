@@ -1,4 +1,5 @@
 import { test as base, expect } from '@playwright/test';
+import { DEMO_BASE_URL } from '../utils/urls';
 
 /**
  * Credentials for test user
@@ -12,15 +13,15 @@ export const TEST_USER = {
  * OAuth 2.0 / OIDC Configuration
  */
 export const OIDC_CONFIG = {
-  clientId: '85125d57-a403-4fe2-84d8-62c6db9b6d73',
-  clientSecret: '+XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq',
-  redirectUri: 'http://localhost:8080/signin-oidc',
-  postLogoutRedirectUri: 'http://localhost:8080/signout-callback-oidc',
+  clientId: process.env.PROVIDER_CLIENT_ID || '85125d57-a403-4fe2-84d8-62c6db9b6d73',
+  clientSecret: process.env.PROVIDER_CLIENT_SECRET || '+XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq',
+  redirectUri: `${DEMO_BASE_URL}/signin-oidc`,
+  postLogoutRedirectUri: `${DEMO_BASE_URL}/signout-callback-oidc`,
   scope: 'openid profile email',
   // Provider URLs (internal Docker network)
   providerBaseUrl: 'http://provider:8080',
   // Demo app URLs (from host)
-  demoBaseUrl: 'http://localhost:8080',
+  demoBaseUrl: DEMO_BASE_URL,
 };
 
 /**
@@ -62,7 +63,7 @@ async function createAuthenticatedPage(page: any, credentials = TEST_USER) {
 
   // Wait for redirect back to the demo app (callback may briefly hit /signin-oidc)
   await page.waitForURL(
-    (url: URL) => url.href.startsWith('http://localhost:8080') && !url.pathname.includes('signin-oidc'),
+    (url: URL) => url.href.startsWith(DEMO_BASE_URL) && !url.pathname.includes('signin-oidc'),
     { timeout: 20000 },
   );
 

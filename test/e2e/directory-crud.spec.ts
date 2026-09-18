@@ -4,8 +4,8 @@
  * Tests CSRF protection and uniqueness constraints in the remote directory UI
  */
 import { test, expect } from '@playwright/test';
+import { DIRECTORY_BASE_URL } from '../utils/urls';
 
-const DIRECTORY_BASE_URL = process.env.DIRECTORY_URL || 'http://localhost:7080';
 const BEARER_TOKEN = process.env.DIRECTORY_BEARER_TOKEN || 'sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth';
 
 async function login(page) {
