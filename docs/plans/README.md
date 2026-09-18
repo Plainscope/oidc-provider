@@ -12,12 +12,14 @@ These plans are submitted for review before any implementation work begins.
 | 02 | [API Redesign (OpenAPI, versioning, pagination, errors)](./02-api-redesign.md) | Draft | 4–6 days | High |
 | 03 | [Modern SPA UI](./03-ui-spa-redesign.md) | Draft | 6–10 days | Medium-High |
 | 04 | [Security & Production Readiness](./04-security-production-readiness.md) | Draft | 4–7 days | Critical |
+| 05 | [Admin UX, Security UX & Delivery Quality](./05-admin-ux-security-enhancements.md) | Proposed | 3–5 days | High |
 
 ## Suggested Order of Execution
 
 1. **Plan 04 (Security)** and **Plan 01 (Postgres)** can start in parallel – they have limited overlap.
 2. **Plan 02 (API)** should follow or run alongside Plan 01 so the new API can target the improved data layer.
 3. **Plan 03 (UI)** depends on a stable `/api/v1` contract and preferably JWT auth from Plan 04.
+4. **Plan 05 (Enhancements)** should be applied alongside Plan 03 and finalized with Plans 02/04 before production rollout.
 
 ## Review Checklist
 
