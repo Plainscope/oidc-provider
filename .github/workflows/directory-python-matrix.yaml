@@ -103,6 +103,11 @@ jobs:
           set -euo pipefail
           python test_database_engines.py
 
+      - name: Run secrets loader tests
+        run: |
+          set -euo pipefail
+          python test_secrets_loader.py
+
       - name: Application factory smoke test
         run: |
           set -euo pipefail
