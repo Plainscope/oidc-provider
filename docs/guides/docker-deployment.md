@@ -66,7 +66,7 @@ services:
     environment:
       PORT: 8080
       ISSUER: http://provider:8080
-      CLIENT_ID: 85125d57-a403-4fe2-84d8-62c6db9b6d73
+      CLIENT_ID: test-client-id
       CLIENT_SECRET: local-dev-client-secret
       REDIRECT_URIS: http://localhost:8080/signin-oidc
       POST_LOGOUT_REDIRECT_URIS: http://localhost:8080/signout-callback-oidc
