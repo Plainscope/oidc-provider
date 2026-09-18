@@ -1,45 +1,34 @@
-# Plan 02: API Redesign – OpenAPI-first, Versioning, Pagination, Error Shapes
+# Plan 02: FastAPI v1 API Redesign
 
-**Status**: Draft for review  
-**Target component**: `src/directory` (routes + models)  
+**Status**: Draft for implementation  
+**Target component**: `src/directory` and Provider remote-directory client  
 **Priority**: High  
 **Estimated effort**: 4–6 days  
-**Dependencies**: Benefits from Postgres plan (connection pooling) but can start in parallel
+**Dependencies**: Plan 01 may proceed independently; Provider compatibility is a release gate.
 
 ## Goals
 
-- Make the API **OpenAPI 3.1 first** (spec is the source of truth).
-- Introduce explicit versioning (`/api/v1/...`).
-- Standardise pagination, filtering, sorting and field selection.
-- Remove or deprecate the legacy endpoints (`/count`, `/find/:id`, `/validate`).
-- Adopt consistent, machine-readable error shapes (RFC 9457 Problem Details).
-- Improve discoverability, client generation, and contract testing.
+- Replace the Directory API layer with **FastAPI**.
+- Define and implement a versioned `/api/v1` contract with OpenAPI 3.x.
+- Use typed request/response models and validation.
+- Standardize pagination, filtering, sorting, and RFC 9457 Problem Details errors.
+- Preserve the logical Directory operations required by the Provider even when paths or payloads change.
+- Update the Provider to consume `/api/v1` before legacy endpoints are removed.
 
 ## Non-Goals
 
-- GraphQL or gRPC in this iteration.
-- Breaking changes for the OIDC provider’s internal remote-directory client without a compatibility layer.
-- Full HATEOAS / hypermedia controls (optional later).
+- GraphQL or gRPC.
+- Making the Directory an OIDC/token issuer.
+- Maintaining a long-term legacy compatibility window.
+- Breaking the Provider's required Directory semantics without an explicit migration decision.
 
 ## Current State
 
-- Flask blueprints under `/api/*` (domains, users, roles, groups, property_keys, audit).
-- Legacy compatibility routes: `/count`, `/find/<id>`, `/validate`, `/healthz`.
-- Ad-hoc query parameters, no formal pagination contract.
-- Errors are simple `{"error": "message"}` JSON.
-- No OpenAPI document; documentation is Markdown only.
-- Bearer-token auth only (see Plan 04 for JWT).
+The Directory API is Flask-based and exposes resource routes plus legacy endpoints such as `/count`, `/find/<id>`, and `/validate`. The Provider consumes Directory operations and remains the token-issuing authority.
 
-## Target API Surface (v1)
+## Target API Surface
 
-### Versioning Strategy
-
-- URL path prefix: `/api/v1/`.
-- Accept header fallback: `Accept: application/vnd.plainscope.directory.v1+json` (optional).
-- Breaking changes → new major version (`/api/v2/`).
-- Deprecation headers: `Deprecation: true`, `Sunset: <date>` on old routes.
-
-### Resource Endpoints (illustrative)
+Use a URL prefix of `/api/v1/`. Illustrative resources:
 
 ```
 GET    /api/v1/domains
@@ -54,145 +43,98 @@ GET    /api/v1/users/{id}
 PATCH  /api/v1/users/{id}
 DELETE /api/v1/users/{id}
 
-# nested / related
 GET    /api/v1/users/{id}/emails
-POST   /api/v1/users/{id}/emails
 GET    /api/v1/users/{id}/roles
-PUT    /api/v1/users/{id}/roles          # replace set
+PUT    /api/v1/users/{id}/roles
 GET    /api/v1/users/{id}/groups
-...
 
 GET    /api/v1/roles
-...
 GET    /api/v1/groups
-...
 GET    /api/v1/audit-logs
 GET    /api/v1/health
 ```
 
-Legacy endpoints will be moved under `/api/v1/legacy/...` for one major version, then removed.
+The final contract must enumerate every operation required by the Provider and admin UI.
 
 ### Pagination, Filtering, Sorting
 
-Adopt a consistent query-parameter convention (inspired by JSON:API / GitHub / Stripe):
+Use a consistent `page`, `per_page`, `sort`, `filter[field]`, `q`, and `fields` convention. Responses use `data`, `meta`, and navigation links where applicable.
 
-| Parameter       | Type     | Description |
-|-----------------|----------|-------------|
-| `page`          | integer  | 1-based page number (default 1) |
-| `per_page`      | integer  | 1–100 (default 20) |
-| `sort`          | string   | Comma-separated fields, prefix `-` for desc (`-created_at,name`) |
-| `filter[field]` | string   | Exact or operator-based (`filter[email]=alice@...`, `filter[is_active]=true`) |
-| `q`             | string   | Free-text search across name/email/username |
-| `fields`        | string   | Sparse fieldsets (`fields=id,username,email`) |
+### Errors
 
-Response envelope:
+Return RFC 9457 Problem Details for API errors, with documented field-level validation details where applicable.
 
-```json
-{
-  "data": [ ... ],
-  "meta": {
-    "page": 1,
-    "per_page": 20,
-    "total": 142,
-    "total_pages": 8
-  },
-  "links": {
-    "self": "/api/v1/users?page=1&per_page=20",
-    "next": "/api/v1/users?page=2&per_page=20",
-    "prev": null,
-    "first": "/api/v1/users?page=1&per_page=20",
-    "last": "/api/v1/users?page=8&per_page=20"
-  }
-}
-```
+### OpenAPI
 
-### Error Shape (RFC 9457 Problem Details)
-
-```json
-{
-  "type": "https://plainscope.dev/errors/validation-error",
-  "title": "Validation Error",
-  "status": 422,
-  "detail": "One or more fields failed validation.",
-  "instance": "/api/v1/users",
-  "errors": [
-    { "field": "email", "code": "invalid_format", "message": "Must be a valid email" }
-  ]
-}
-```
-
-Common problem types will be documented and versioned.
-
-### OpenAPI-first Workflow
-
-1. Author OpenAPI 3.1 YAML in `src/directory/openapi/v1.yaml` (or split by resource).
-2. Generate Flask route stubs / Pydantic (or marshmallow) models from the spec using `openapi-generator` or `datamodel-code-generator`.
-3. Validate requests/responses against the schema at runtime (optional middleware).
-4. Serve the live spec at `/api/v1/openapi.json` and Swagger UI / ReDoc at `/api/v1/docs`.
-5. Contract tests: Schemathesis or Dredd against the live server.
+FastAPI is the source of the generated OpenAPI contract. Publish the contract at `/api/v1/openapi.json` and interactive documentation at the FastAPI documentation endpoint. Do not maintain a separate hand-authored implementation contract that can drift from the application.
 
 ## Implementation Steps
 
-### Phase 1 – Spec & Tooling (1–1.5 days)
+### Phase 1 – FastAPI application and contract
 
-1. Write complete OpenAPI 3.1 document covering all current resources + new pagination/error models.
-2. Add `openapi-python-client` / `fastapi` style generators or keep Flask and use `flask-smorest` / `apispec`.
-   - Recommendation: migrate the API layer to **Flask-Smorest** (or switch the whole service to FastAPI). Flask-Smorest keeps Flask while giving OpenAPI-first ergonomics.
-3. CI step that fails if the implementation drifts from the committed OpenAPI file.
+1. Introduce the FastAPI application and router structure.
+2. Define Pydantic request/response models.
+3. Mount all new resources below `/api/v1`.
+4. Add authentication dependencies appropriate to Provider-to-Directory and admin callers.
+5. Generate and validate OpenAPI documentation.
 
-### Phase 2 – Versioned Routes & Envelope (1.5 days)
+### Phase 2 – Resource behavior
 
-1. Create `/api/v1` blueprint tree.
-2. Implement pagination helper (`paginate(query, page, per_page)`).
-3. Implement filtering/sorting parser (whitelist fields per resource).
-4. Standard response serializers that produce the `data`/`meta`/`links` envelope.
-5. Move existing handlers under the new structure; keep old paths temporarily with deprecation headers.
+1. Port existing Directory operations to FastAPI while preserving required logical semantics.
+2. Implement pagination/filtering/sorting consistently.
+3. Implement RFC 9457 error handling.
+4. Add contract tests for all Provider-facing operations.
 
-### Phase 3 – Error Handling (0.5 day)
+### Phase 3 – Provider migration
 
-1. Global error handler that converts exceptions → Problem Details.
-2. Validation errors (from Marshmallow/Pydantic) mapped to 422 with field-level details.
-3. Consistent status codes (401, 403, 404, 409, 422, 429, 500).
+1. Update the Provider's remote-directory client to call `/api/v1`.
+2. Preserve the Provider's expected Directory semantics across changed paths, payloads, and error formats.
+3. Run integration tests against the new Directory implementation.
+4. Verify the Provider no longer depends on legacy endpoints.
 
-### Phase 4 – Legacy Endpoint Strategy (0.5 day)
+### Phase 4 – Legacy removal
 
-1. Re-implement `/count`, `/find/:id`, `/validate` under `/api/v1/legacy/...` (or keep original paths with `Deprecation` + `Sunset` headers for 6–12 months).
-2. Update the OIDC provider’s remote-directory client to use the new endpoints (coordinate with provider team).
-3. Document migration guide for external consumers.
+1. Keep legacy endpoints only as long as the Provider still requires them during migration.
+2. Once the Provider has been updated and verified, remove the legacy endpoints; no fixed 6–12 month compatibility period is required.
+3. Document deployment and rollback sequencing for the coupled Directory/Provider migration.
 
-### Phase 5 – Documentation & Client Generation (1 day)
+## Backward Compatibility
 
-1. Auto-generate Markdown or HTML docs from OpenAPI.
-2. Publish example TypeScript / Python clients.
-3. Update `docs/api/` and README.
+Compatibility is defined by the Provider's required Directory operations, not by retaining legacy URL paths indefinitely.
 
-## Backward Compatibility Plan
+The migration gate is:
 
-- Keep original `/api/*` routes for one minor release with deprecation warnings in logs and headers.
-- Provide a compatibility shim that maps old responses to new shapes if needed by the OIDC provider.
-- Announce sunset date in release notes and OpenAPI `deprecated: true`.
+1. `/api/v1` contract implemented.
+2. Provider updated to use it.
+3. Provider integration/contract tests pass.
+4. Required Directory operations have equivalent documented `/api/v1` behavior.
+5. Deployment/rollback procedure is documented.
+6. Only then may `/count`, `/find/<id>`, `/validate`, and other legacy endpoints be removed.
+
+The Provider continues to issue OIDC tokens; the Directory does not introduce a competing token lifecycle.
 
 ## Risks & Mitigations
 
 | Risk | Mitigation |
 |------|------------|
-| OIDC provider breaks | Ship compatibility layer; update provider in the same PR series |
-| Over-engineering pagination | Start with page/per_page only; add cursor later if needed |
-| Spec drift | CI contract tests + generated code |
-| Performance of complex filters | Index the filtered columns; limit allowed operators |
+| Provider breaks during migration | Provider integration tests are a release gate before legacy removal |
+| FastAPI migration changes semantics | Preserve logical Provider-facing operations and test them explicitly |
+| Spec drift | Use FastAPI-generated OpenAPI plus contract tests |
+| API query complexity | Whitelist sortable/filterable fields and enforce bounded pagination |
 
 ## Success Criteria
 
-- [ ] Complete OpenAPI 3.1 document committed and served at `/api/v1/openapi.json`.
-- [ ] All list endpoints support the standard pagination/filter/sort contract.
-- [ ] All error responses conform to RFC 9457.
-- [ ] Legacy endpoints either removed or clearly deprecated with a sunset date.
-- [ ] Generated client can perform full CRUD against a running instance.
-- [ ] CI fails on OpenAPI ↔ implementation drift.
+- [ ] Directory API is implemented with FastAPI.
+- [ ] Complete `/api/v1` OpenAPI contract is generated and validated.
+- [ ] Provider consumes `/api/v1` successfully.
+- [ ] Provider integration/contract tests pass.
+- [ ] Required resource operations have documented v1 equivalents.
+- [ ] Legacy endpoints are removed only after the Provider migration gate passes.
 
-## Open Questions for Review
+## Decisions Already Settled
 
-1. Stay on Flask + Flask-Smorest, or migrate the directory service to FastAPI?
-2. Prefer offset pagination or cursor-based for large result sets?
-3. How long should the legacy endpoints remain (6 months / 1 major version)?
-4. Should we expose a `/api/v1/me` endpoint for the authenticated admin user?
+- FastAPI: **ADR-001**.
+- Provider is the token issuer: **ADR-004**.
+- Legacy endpoints may be removed immediately after verified Provider migration: **ADR-005**.
+
+These are not open questions for this plan.
