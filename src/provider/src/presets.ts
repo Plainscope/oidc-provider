@@ -82,17 +82,15 @@ export const PRESETS = {
     },
     scopes: ['openid', 'profile', 'email', 'offline_access'],
     features: {
-      devInteractions: { enabled: true }, // Enable for easier debugging
+      devInteractions: { enabled: true },
       revocation: { enabled: true },
       introspection: { enabled: true },
-      deviceFlow: { enabled: false },
-      clientCredentials: { enabled: true },
     },
     ttl: {
-      AccessToken: 60 * 60, // 1 hour
-      AuthorizationCode: 10 * 60, // 10 minutes
-      IdToken: 60 * 60, // 1 hour
-      RefreshToken: 14 * 24 * 60 * 60, // 14 days
+      AccessToken: 60 * 60,
+      AuthorizationCode: 10 * 60,
+      IdToken: 60 * 60,
+      RefreshToken: 14 * 24 * 60 * 60,
     },
   }),
 
@@ -102,44 +100,57 @@ export const PRESETS = {
    * - Longer token lifetimes for stable environments
    * - Multiple OAuth flows enabled
    */
-  selfHosted: (): Partial<Configuration> => ({
-    clients: [
-      {
-        client_name: 'Self-Hosted Application',
-        client_id: process.env.CLIENT_ID || generateSecureRandom(16),
-        client_secret: process.env.CLIENT_SECRET || generateSecureRandom(32),
-        redirect_uris: process.env.REDIRECT_URIS?.split(',') || [],
-        post_logout_redirect_uris: process.env.POST_LOGOUT_REDIRECT_URIS?.split(',') || [],
-        response_types: ['code'],
-        grant_types: ['authorization_code', 'refresh_token', 'client_credentials'],
-        token_endpoint_auth_method: 'client_secret_basic',
-        introspection_endpoint_auth_method: 'client_secret_basic',
-        application_type: 'web',
-      } as ClientMetadata,
-    ],
-    cookies: {
-      keys: process.env.COOKIES_KEYS ? JSON.parse(process.env.COOKIES_KEYS) : [generateSecureRandom(32)],
-    } as any,
-    claims: {
-      openid: ['sub', 'sid'],
-      email: ['email', 'email_verified'],
-      profile: ['name', 'nickname', 'given_name', 'family_name', 'groups', 'picture'],
-    },
-    scopes: ['openid', 'profile', 'email', 'offline_access'],
-    features: {
-      devInteractions: { enabled: false },
-      revocation: { enabled: true },
-      introspection: { enabled: true },
-      deviceFlow: { enabled: false },
-      clientCredentials: { enabled: true },
-    },
-    ttl: {
-      AccessToken: 60 * 60, // 1 hour
-      AuthorizationCode: 10 * 60, // 10 minutes
-      IdToken: 60 * 60, // 1 hour
-      RefreshToken: 30 * 24 * 60 * 60, // 30 days
-    },
-  }),
+  selfHosted: (): Partial<Configuration> => {
+    // Production must supply credentials explicitly. Never synthesize secrets there.
+    const isProduction = process.env.NODE_ENV === 'production';
+    const clientId = process.env.CLIENT_ID || (!isProduction ? generateSecureRandom(16) : undefined);
+    const clientSecret = process.env.CLIENT_SECRET || (!isProduction ? generateSecureRandom(32) : undefined);
+    let cookieKeys: string[] | undefined;
+    if (process.env.COOKIES_KEYS) {
+      cookieKeys = JSON.parse(process.env.COOKIES_KEYS);
+    } else if (!isProduction) {
+      cookieKeys = [generateSecureRandom(32)];
+    }
+
+    const client: Partial<ClientMetadata> = {
+      client_name: 'Self-Hosted Application',
+      redirect_uris: process.env.REDIRECT_URIS?.split(',') || [],
+      post_logout_redirect_uris: process.env.POST_LOGOUT_REDIRECT_URIS?.split(',') || [],
+      response_types: ['code'],
+      grant_types: ['authorization_code', 'refresh_token', 'client_credentials'],
+      token_endpoint_auth_method: 'client_secret_basic',
+      introspection_endpoint_auth_method: 'client_secret_basic',
+      application_type: 'web',
+    };
+    if (clientId) client.client_id = clientId;
+    if (clientSecret) client.client_secret = clientSecret;
+
+    return {
+      clients: [
+        client as ClientMetadata,
+      ],
+      ...(cookieKeys ? { cookies: { keys: cookieKeys } as any } : {}),
+      claims: {
+        openid: ['sub', 'sid'],
+        email: ['email', 'email_verified'],
+        profile: ['name', 'nickname', 'given_name', 'family_name', 'groups', 'picture'],
+      },
+      scopes: ['openid', 'profile', 'email', 'offline_access'],
+      features: {
+        devInteractions: { enabled: false },
+        revocation: { enabled: true },
+        introspection: { enabled: true },
+        deviceFlow: { enabled: false },
+        clientCredentials: { enabled: true },
+      },
+      ttl: {
+        AccessToken: 60 * 60, // 1 hour
+        AuthorizationCode: 10 * 60, // 10 minutes
+        IdToken: 60 * 60, // 1 hour
+        RefreshToken: 30 * 24 * 60 * 60, // 30 days
+      },
+    };
+  },
 
   /**
    * Testing/CI Preset
