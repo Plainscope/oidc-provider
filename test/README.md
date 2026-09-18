@@ -157,7 +157,7 @@ npm run test:coverage
 The following test credentials are pre-configured:
 
 - **Email**: `admin@localhost`
-- **Password**: `Rays-93-Accident`
+- **Password**: `test-password`
 
 These credentials are defined in `docker/provider/users.json`.
 
@@ -166,7 +166,7 @@ These credentials are defined in `docker/provider/users.json`.
 The test suite uses the following OIDC configuration:
 
 - **Client ID**: `85125d57-a403-4fe2-84d8-62c6db9b6d73`
-- **Client Secret**: `+XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq`
+- **Client Secret**: `local-dev-client-secret`
 - **Redirect URI**: `http://localhost:8080/signin-oidc`
 - **Post-Logout Redirect URI**: `http://localhost:8080/signout-callback-oidc`
 - **Scopes**: `openid profile email`
@@ -234,7 +234,7 @@ Verify test credentials in `docker/provider/users.json`:
 ```json
 {
   "admin@localhost": {
-    "password": "Rays-93-Accident"
+    "password": "test-password"
   }
 }
 ```
