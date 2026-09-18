@@ -41,7 +41,7 @@ Complete reference for all environment variables supported by the OIDC provider.
 - **Type**: String
 - **Default**: `325c2ce7-7390-411b-af3a-2bdf5a260f9d`
 - **Description**: OAuth 2.0 client identifier. Should be a UUID in production.
-- **Example**: `CLIENT_ID=85125d57-a403-4fe2-84d8-62c6db9b6d73`
+- **Example**: `CLIENT_ID=test-client-id`
 - **Security**: Generate using `openssl rand -hex 16`
 
 ### CLIENT_SECRET
