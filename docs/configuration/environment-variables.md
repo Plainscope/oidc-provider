@@ -39,7 +39,7 @@ Complete reference for all environment variables supported by the OIDC provider.
 ### CLIENT_ID
 
 - **Type**: String
-- **Default**: `325c2ce7-7390-411b-af3a-2bdf5a260f9d`
+- **Default**: `325c2ce7-7390-411b-af3a-2bdf5a260f9d` (development only)
 - **Description**: OAuth 2.0 client identifier. Should be a UUID in production.
 - **Example**: `CLIENT_ID=test-client-id`
 - **Security**: Generate using `openssl rand -hex 16`
@@ -47,8 +47,8 @@ Complete reference for all environment variables supported by the OIDC provider.
 ### CLIENT_SECRET
 
 - **Type**: String
-- **Default**: `local-dev-secret`
-- **Description**: OAuth 2.0 client secret for authentication. Keep secure!
+- **Default**: Generated at runtime for non-production when unset; Compose examples use `local-dev-client-secret`
+- **Description**: OAuth 2.0 client secret for authentication. Keep secure! Do not rely on any committed default in production.
 - **Example**: `CLIENT_SECRET=local-dev-client-secret`
 - **Security**: Generate using `openssl rand -hex 32`
 
@@ -182,10 +182,10 @@ CLAIMS='{
 ### COOKIES_KEYS
 
 - **Type**: JSON Array of strings
-- **Default**: `["local-dev-cookie-key"]`
+- **Default**: None committed. When unset in non-production, a cryptographically random 32-byte key is generated at runtime (see `generateDevelopmentSecret` / presets). Never rely on a fixed committed value.
 - **Description**: Array of cryptographic keys for signing cookies. Supports key rotation.
 - **Example**: `COOKIES_KEYS='["new-key","old-key"]'`
-- **Security**: Generate using `openssl rand -hex 32`
+- **Security**: Generate using `openssl rand -hex 32`. In production this must be set explicitly and each key must be sufficiently long.
 - **Important**: First key is used for signing; others for verification (rotation)
 
 ### COOKIES
@@ -232,7 +232,7 @@ CONFIG='{
 
 The configuration is loaded and merged in the following order (later sources override earlier ones):
 
-1. **Default values** - Built-in defaults in the code
+1. **Default values** - Built-in defaults in the code (development secrets are generated at runtime, not committed)
 2. **Config file** - JSON file at `CONFIG_FILE` path (default: `./config.json`)
 3. **CONFIG environment variable** - Full JSON configuration
 4. **Explicit environment variables** - Individual variables like `CLIENTS`, `SCOPES`, `COOKIES_KEYS`, etc.
@@ -470,8 +470,8 @@ See [User Management Documentation](user-management.md) for detailed configurati
 |----------|------|---------|----------|---------|
 | PORT | Number | 8080 | No | 8080 |
 | ISSUER | URL | <http://localhost:8080> | Yes (prod) | <https://oidc.example.com> |
-| CLIENT_ID | String | 325c2ce7... | Yes | my-client-id |
-| CLIENT_SECRET | String | a74566f... | Yes | my-client-secret |
+| CLIENT_ID | String | (dev default) | Yes | my-client-id |
+| CLIENT_SECRET | String | runtime-generated (dev) | Yes (prod) | local-dev-client-secret |
 | REDIRECT_URIS | Comma-CSV | - | Yes | <http://localhost:3000/callback> |
 | PROXY | Boolean | false | No | true |
 | NODE_ENV | String | production | No | production |
@@ -519,5 +519,5 @@ export ISSUER=http://localhost:8080
 - ISSUER must be a valid HTTPS URL in production (http allowed only for development)
 - REDIRECT_URIS must exactly match the redirect_uri in authorization requests
 - CLIENT_SECRET should be at least 32 characters in production
-- COOKIES_KEYS should contain strong random keys
+- COOKIES_KEYS should contain strong random keys and must be set explicitly in production
 - JSON values must be valid JSON (use proper escaping)
