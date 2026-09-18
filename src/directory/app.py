@@ -32,11 +32,13 @@ from routes import (
 
 app = Flask(__name__, template_folder='views')
 
-# Secret key: fail fast in production if not explicitly configured
-_secret_key = os.environ.get('SECRET_KEY')
-if not _secret_key or _secret_key == 'change-me':
-    if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('ENV') == 'production':
-        raise RuntimeError('SECRET_KEY must be set to a strong random value in production')
+# Secret key via centralized loader (env or SECRET_KEY_FILE)
+from secrets_loader import get_secret, is_production, KNOWN_DEVELOPMENT_SECRETS
+
+_secret_key = get_secret('SECRET_KEY')
+if not _secret_key:
+    if is_production():
+        raise RuntimeError('SECRET_KEY must be set to a strong random value in production (or SECRET_KEY_FILE)')
     _secret_key = secrets.token_hex(32)
     logger.warning('[INIT] SECRET_KEY not configured; generated ephemeral key for development only')
 app.config['SECRET_KEY'] = _secret_key
@@ -83,11 +85,15 @@ def init_app():
     logger.info('[INIT] Application initialized successfully')
 
 
-# Optional bearer token for API security
-BEARER_TOKEN = os.environ.get('BEARER_TOKEN')
+# Provider-to-Directory service credential (static Bearer during migration).
+# Loaded via secrets_loader so production can use BEARER_TOKEN_FILE mounts.
+# This is a Directory resource credential — Directory does NOT issue OIDC tokens (ADR-004).
+BEARER_TOKEN = get_secret('BEARER_TOKEN')
 app.config['BEARER_TOKEN'] = BEARER_TOKEN
 if BEARER_TOKEN:
-    logger.info('[INIT] Bearer token authentication enabled')
+    logger.info('[INIT] Provider-to-Directory Bearer authentication enabled')
+elif is_production():
+    logger.warning('[INIT] BEARER_TOKEN unset in production; API endpoints will reject unauthenticated callers only if a token is later required')
 
 # CSRF protection
 try:
@@ -108,8 +114,9 @@ except Exception as e:
 
 
 def check_bearer_token():
-    """Verify bearer token in Authorization header (constant-time compare)."""
+    """Verify Provider-to-Directory Bearer credential (constant-time compare)."""
     if not BEARER_TOKEN:
+        # No service credential configured: allow (dev) but mark as anonymous service.
         return True
 
     auth_header = request.headers.get('Authorization', '')
@@ -126,12 +133,34 @@ def check_bearer_token():
 
 
 @app.before_request
+def assign_request_id():
+    """Attach a correlation / request ID for structured logs and audit."""
+    from flask import g
+    incoming = request.headers.get('X-Request-ID') or request.headers.get('X-Correlation-ID')
+    g.request_id = incoming if incoming else secrets.token_hex(8)
+
+
+@app.before_request
 def verify_auth():
-    """Verify authorization for all requests."""
+    """Verify authorization and record caller role on flask.g.
+
+    Boundaries (ADR-004 / Plan 04):
+      - Provider-to-Directory: static Bearer (service principal) on /api/* and legacy API paths.
+      - Admin-to-Directory: browser session on UI routes (not an OIDC token issuer).
+    Directory never issues Provider/OIDC tokens.
+    """
+    from flask import g
+
+    g.auth_context = {
+        'role': 'anonymous',
+        'actor': None,
+        'request_id': getattr(g, 'request_id', None),
+    }
+
     # Allow unauthenticated health checks, logout, and static assets
     if request.path in ['/', '/login', '/logout', '/healthz', '/favicon.ico']:
         return
-    
+
     if any(request.path.startswith(p) for p in ['/static/', '/favicon']):
         return
 
@@ -140,13 +169,22 @@ def verify_auth():
     if request.path.startswith('/api/') or request.path in ['/count', '/validate'] or request.path.startswith('/find/'):
         if not check_bearer_token():
             abort(401)
+        g.auth_context = {
+            'role': 'service',
+            'actor': 'provider-service',
+            'request_id': getattr(g, 'request_id', None),
+        }
         return
-    
-    # UI routes require valid session
-    # UI routes are those that serve HTML pages (not /api/)
+
+    # UI routes require valid session (admin authentication surface)
     if not session.get('authenticated'):
-        # Redirect to login with return URL
         return redirect(url_for('ui.ui_login') + '?redirectTo=' + quote(request.full_path))
+
+    g.auth_context = {
+        'role': 'admin',
+        'actor': session.get('username') or session.get('user') or 'admin',
+        'request_id': getattr(g, 'request_id', None),
+    }
 
 
 
@@ -166,11 +204,21 @@ def teardown_db(exception):
 
 @app.after_request
 def set_security_headers(response):
-    """Add baseline security headers to all responses."""
+    """Add baseline security headers and correlation ID to all responses."""
+    from flask import g
+    request_id = getattr(g, 'request_id', None)
+    if request_id:
+        response.headers['X-Request-ID'] = request_id
+
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=(), payment=()'
+    # HSTS only when the deployment is production and cookies are marked secure
+    # (implies TLS termination). Trusted proxies must set X-Forwarded-Proto.
+    if is_production() and app.config.get('SESSION_COOKIE_SECURE'):
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+
     # CSP mirrors the provider service, plus the two CDN hosts the UI
     # requires: Tailwind (styling) and Alpine.js (all page interactivity
     # and API calls). Server-rendered templates rely on inline scripts,
