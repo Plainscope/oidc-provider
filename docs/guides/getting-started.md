@@ -26,7 +26,7 @@ The `users.json` file defines user accounts for the OIDC Provider. This schema i
     // Required Fields
     "id": "8276bb5b-d0b7-41e9-a805-77b62a2865f4",
     "email": "user@example.com",
-    "password": "Rays-93-Accident",
+    "password": "test-password",
     
     // Basic Profile (OpenID Connect Standard Claims)
     "name": "John Doe",
@@ -74,7 +74,7 @@ The `users.json` file defines user accounts for the OIDC Provider. This schema i
 |-------|------|-------------|---------|
 | `id` | String | Unique identifier (UUID recommended) | `"8276bb5b-d0b7-41e9-a805-77b62a2865f4"` |
 | `email` | String | User's primary email address | `"user@example.com"` |
-| `password` | String | User's password (plain text or bcrypt hash) | `"Rays-93-Accident"` or `"$2a$10$..."` |
+| `password` | String | User's password (plain text or bcrypt hash) | `"test-password"` or `"$2a$10$..."` |
 
 > **Security Note**: 
 > - For **local JSON directory**: Passwords can be plain text (for development only) or bcrypt hashed
