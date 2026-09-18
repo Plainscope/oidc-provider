@@ -1,5 +1,4 @@
 import { ClientMetadata, Configuration } from 'oidc-provider';
-import crypto from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs';
 import { applyPreset, detectEnvironmentPreset } from './presets';
