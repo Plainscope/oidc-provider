@@ -1,4 +1,5 @@
-# Minor-float tag: always latest 3.12.x patch
+# Production image: Python 3.12 (see README.md for full supported matrix 3.11–3.13).
+# CI validates requirements.txt against 3.11, 3.12, and 3.13 via directory-python-matrix.
 FROM python:3.12-alpine
 
 WORKDIR /app
