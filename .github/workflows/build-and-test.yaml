@@ -149,6 +149,10 @@ jobs:
         working-directory: ./test
         env:
           CI: true
+          # Keep in sync with Compose so fixtures use the same credentials.
+          DIRECTORY_BEARER_TOKEN: ${{ secrets.DIRECTORY_BEARER_TOKEN }}
+          PROVIDER_CLIENT_ID: ${{ secrets.PROVIDER_CLIENT_ID }}
+          PROVIDER_CLIENT_SECRET: ${{ secrets.PROVIDER_CLIENT_SECRET }}
 
       - name: Publish Playwright JUnit summary
         if: always()
