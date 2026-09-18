@@ -1,1 +1,30 @@
-placeholder
+name: "Build And Test"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - src/**/*
+      - test/**/*
+      - docker-compose.yml
+      - .github/workflows/*
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    branches:
+      - main
+    paths:
+      - src/**/*
+      - test/**/*
+      - docker-compose.yml
+      - .github/workflows/*
+
+permissions:
+  checks: write
+  pull-requests: write
+  contents: read
