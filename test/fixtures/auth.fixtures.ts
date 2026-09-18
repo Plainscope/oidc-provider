@@ -6,7 +6,7 @@ import { DEMO_BASE_URL } from '../utils/urls';
  */
 export const TEST_USER = {
   email: 'admin@localhost',
-  password: 'Rays-93-Accident',
+  password: 'test-password',
 };
 
 /**
@@ -14,7 +14,7 @@ export const TEST_USER = {
  */
 export const OIDC_CONFIG = {
   clientId: process.env.PROVIDER_CLIENT_ID || '85125d57-a403-4fe2-84d8-62c6db9b6d73',
-  clientSecret: process.env.PROVIDER_CLIENT_SECRET || '+XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq',
+  clientSecret: process.env.PROVIDER_CLIENT_SECRET || 'local-dev-client-secret',
   redirectUri: `${DEMO_BASE_URL}/signin-oidc`,
   postLogoutRedirectUri: `${DEMO_BASE_URL}/signout-callback-oidc`,
   scope: 'openid profile email',
