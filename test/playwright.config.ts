@@ -9,6 +9,24 @@ dotenv.config();
 
 /**
  * See https://playwright.dev/docs/test-configuration.
+ *
+ * Workers on CI
+ * -------------
+ * CI intentionally uses a single worker. Several E2E suites (SQLite directory
+ * CRUD, persistence, shared auth sessions) mutate the same Compose-backed
+ * SQLite databases and demo session state. Parallel workers would race on
+ * that shared mutable state and produce flaky failures.
+ *
+ * Do not raise `workers` above 1 in CI until test data is isolated per worker
+ * (e.g. unique database files / namespaces per worker index). Locally, the
+ * default (undefined) allows Playwright to parallelize safely when the
+ * developer is not hitting a shared long-lived Compose stack.
+ *
+ * Browser matrix
+ * --------------
+ * PR CI runs Chromium only (see .github/workflows/build-and-test.yaml).
+ * Full matrix (chromium, firefox, webkit, Mobile Chrome) runs on main and
+ * workflow_dispatch to keep PR feedback fast (~4× fewer browser installs).
  */
 export default defineConfig({
   testDir: './e2e',
@@ -16,9 +34,9 @@ export default defineConfig({
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
+  /* Retry on CI only — keep low so connection-refused cascades do not multiply runtime */
+  retries: process.env.CI ? 1 : 0,
+  /* Opt out of parallel tests on CI (shared SQLite / session state — see comment above). */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
