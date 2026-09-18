@@ -56,7 +56,7 @@ services:
     environment:
       PORT: 8080
       DATABASE_FILE: /data/users.db
-      BEARER_TOKEN: sk-your-secret-token-here
+      BEARER_TOKEN: local-dev-bearer-token
       SESSION_COOKIE_SECURE: false
     volumes:
       - shared-data:/data
@@ -110,7 +110,7 @@ volumes:
 #     environment:
 #       PORT: 8080
 #       DATABASE_FILE: /data/users.db
-#       BEARER_TOKEN: sk-your-secret-token-here
+#       BEARER_TOKEN: local-dev-bearer-token
 #     volumes:
 #       - directory-data:/data
 #     networks:
@@ -129,7 +129,7 @@ volumes:
 #       # Remote Directory Configuration
 #       DIRECTORY_TYPE: remote
 #       DIRECTORY_BASE_URL: http://directory:8080
-#       DIRECTORY_HEADERS: '{"Authorization":"Bearer sk-your-secret-token-here"}'
+#       DIRECTORY_HEADERS: '{"Authorization":"Bearer local-dev-bearer-token"}'
 #     networks:
 #       - oidc-net
 #     depends_on:
