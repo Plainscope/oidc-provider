@@ -39,18 +39,18 @@ Complete reference for all environment variables supported by the OIDC provider.
 ### CLIENT_ID
 
 - **Type**: String
-- **Default**: `325c2ce7-7390-411b-af3a-2bdf5a260f9d`
-- **Description**: OAuth 2.0 client identifier. Should be a UUID in production.
+- **Default**: Generated for non-production local development only (never a fixed committed value)
+- **Description**: OAuth 2.0 client identifier. Should be a UUID or high-entropy value in production.
 - **Example**: `CLIENT_ID=85125d57-a403-4fe2-84d8-62c6db9b6d73`
-- **Security**: Generate using `openssl rand -hex 16`
+- **Security**: Generate using `openssl rand -hex 16`. Production must supply an explicit value.
 
 ### CLIENT_SECRET
 
 - **Type**: String
-- **Default**: `a74566f905056b6806d69afc09f2803d1aa477e1d708540683994d6e4745334a`
+- **Default**: None in production. Non-production development may generate a cryptographically random secret at process start.
 - **Description**: OAuth 2.0 client secret for authentication. Keep secure!
 - **Example**: `CLIENT_SECRET=+XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq`
-- **Security**: Generate using `openssl rand -hex 32`
+- **Security**: Generate using `openssl rand -hex 32`. Production requires an explicit secret of at least 32 characters; presets never synthesize one.
 
 ### CLIENT_NAME
 
@@ -182,10 +182,10 @@ CLAIMS='{
 ### COOKIES_KEYS
 
 - **Type**: JSON Array of strings
-- **Default**: `["40763539018b2f012d30aa7eba0123db3dc847b0eca146e5d7160838f8b2d092"]`
+- **Default**: None in production. Non-production development generates a cryptographically random key at process start when none is supplied.
 - **Description**: Array of cryptographic keys for signing cookies. Supports key rotation.
 - **Example**: `COOKIES_KEYS='["new-key","old-key"]'`
-- **Security**: Generate using `openssl rand -hex 32`
+- **Security**: Generate using `openssl rand -hex 32` (or longer). Production requires explicit keys of at least 64 characters; the process will refuse to start with missing, empty, or short keys. No predictable or committed default is used at runtime.
 - **Important**: First key is used for signing; others for verification (rotation)
 
 ### COOKIES
@@ -232,7 +232,7 @@ CONFIG='{
 
 The configuration is loaded and merged in the following order (later sources override earlier ones):
 
-1. **Default values** - Built-in defaults in the code
+1. **Default values** - Built-in defaults in the code (non-secret material only)
 2. **Config file** - JSON file at `CONFIG_FILE` path (default: `./config.json`)
 3. **CONFIG environment variable** - Full JSON configuration
 4. **Explicit environment variables** - Individual variables like `CLIENTS`, `SCOPES`, `COOKIES_KEYS`, etc.
@@ -243,6 +243,7 @@ The configuration is loaded and merged in the following order (later sources ove
 - Arrays (clients, scopes, cookies.keys) are replaced entirely (not concatenated)
 - Use explicit environment variables for secrets (CLIENT_SECRET, COOKIES_KEYS)
 - The config.json file should contain production-safe defaults without sensitive secrets
+- In production, missing or weak CLIENT_SECRET / COOKIES_KEYS cause a hard startup failure
 
 ## Feature Flags
 
@@ -470,12 +471,13 @@ See [User Management Documentation](user-management.md) for detailed configurati
 |----------|------|---------|----------|---------|
 | PORT | Number | 8080 | No | 8080 |
 | ISSUER | URL | <http://localhost:8080> | Yes (prod) | <https://oidc.example.com> |
-| CLIENT_ID | String | 325c2ce7... | Yes | my-client-id |
-| CLIENT_SECRET | String | a74566f... | Yes | my-client-secret |
+| CLIENT_ID | String | (generated non-prod) | Yes (prod) | my-client-id |
+| CLIENT_SECRET | String | (generated non-prod) | Yes (prod) | my-client-secret |
 | REDIRECT_URIS | Comma-CSV | - | Yes | <http://localhost:3000/callback> |
 | PROXY | Boolean | false | No | true |
 | NODE_ENV | String | production | No | production |
 | SCOPES | Comma-CSV | openid,profile,email | No | openid,profile,email,phone |
+| COOKIES_KEYS | JSON array | (generated non-prod) | Yes (prod) | `["hex..."]` |
 | DATABASE_FILE | Path | ../../data/oidc.db | No | /data/oidc.db |
 | DIRECTORY_TYPE | String | local | No | sqlite |
 | DIRECTORY_DATABASE_FILE | Path | /app/data/users.db | No | /data/users.db |
@@ -518,6 +520,7 @@ export ISSUER=http://localhost:8080
 
 - ISSUER must be a valid HTTPS URL in production (http allowed only for development)
 - REDIRECT_URIS must exactly match the redirect_uri in authorization requests
-- CLIENT_SECRET should be at least 32 characters in production
-- COOKIES_KEYS should contain strong random keys
+- CLIENT_SECRET must be at least 32 characters in production
+- COOKIES_KEYS must be an explicit non-empty array of strong random keys (≥64 characters each) in production
 - JSON values must be valid JSON (use proper escaping)
+- No predictable cookie-signing or client-secret values are committed as runtime defaults
