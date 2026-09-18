@@ -2,7 +2,7 @@
   {
     "id": "8276bb5b-d0b7-41e9-a805-77b62a2865f4",
     "email": "admin@localhost",
-    "password": "Rays-93-Accident",
+    "password": "test-password",
     "address": {
       "country": "Germany",
       "formatted": "123 Main Street, 10115 Berlin, Germany",
@@ -32,7 +32,7 @@
   {
     "id": "c1a5f5e3-5c3e-4f8b-8e1e-5f7c3e8e1d2b",
     "email": "user@localhost",
-    "password": "Signal-27-Bridge",
+    "password": "test-password-2",
     "address": {
       "country": "Canada",
       "formatted": "456 Elm Street, Toronto, ON, M5A 1A1, Canada",
