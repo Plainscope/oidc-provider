@@ -120,7 +120,7 @@ describe('SqliteDirectory', () => {
     const groupId = '00000000-0000-0000-0000-000000000004';
 
     // Hash the test password
-    const hashedPassword = bcrypt.hashSync('Rays-93-Accident', 10);
+    const hashedPassword = bcrypt.hashSync('test-password', 10);
 
     db.prepare('INSERT INTO domains (id, name, description, is_default) VALUES (?, ?, ?, ?)').run(
       domainId, 'localhost', 'Default domain', 1
@@ -168,7 +168,7 @@ describe('SqliteDirectory', () => {
     assert.ok(userByEmail, 'Should find user by email');
 
     // Test validate with correct password
-    const validUser = await directory.validate('admin@localhost', 'Rays-93-Accident');
+    const validUser = await directory.validate('admin@localhost', 'test-password');
     assert.ok(validUser, 'Should validate correct credentials');
 
     // Test validate with incorrect password
