@@ -1,37 +1,77 @@
 /**
- * Quick-start helper utilities for generating sample configuration and validating production settings.
+ * Quick Start Helper
+ * Provides helpful guidance for first-time users and local development scenarios
  */
 
 import crypto from 'node:crypto';
 
+/**
+ * Generate a secure random string of specified length
+ */
 const generateSecureRandom = (bytes: number = 32): string => {
   return crypto.randomBytes(bytes).toString('hex');
 };
 
-export const generateQuickStartConfig = () => {
-  const clientId = process.env.CLIENT_ID || 'local-dev';
-  const clientSecret = process.env.CLIENT_SECRET || 'local-dev-secret';
+/**
+ * Display helpful quick-start information for first-time users
+ */
+export const displayQuickStartInfo = () => {
+  console.log('\n' + '='.repeat(60));
+  console.log('🚀 OIDC Provider Quick Start');
+  console.log('='.repeat(60));
+  console.log('\nTo get started, configure these environment variables:');
+  console.log('   • CLIENT_ID - OAuth client identifier');
+  console.log('   • CLIENT_SECRET - OAuth client secret');
+  console.log('   • REDIRECT_URIS - Comma-separated redirect URIs');
+  console.log('   • ISSUER - The issuer URL (defaults to http://localhost:PORT)');
+  console.log('\nFor local development, you can use the local preset:');
+  console.log('   OIDC_PRESET=local');
+  console.log('\nGenerate secrets with: openssl rand -hex 32');
+  console.log('='.repeat(60) + '\n');
+};
 
-  return {
-    envExample: `# Quick-start local development values (NOT for production)
-CLIENT_ID=${clientId}
-CLIENT_SECRET=${clientSecret}
-REDIRECT_URIS=http://localhost:3000/callback
+/**
+ * Generate a sample .env file content for quick start
+ */
+export const generateSampleEnv = (clientId?: string, clientSecret?: string) => {
+  const id = clientId || 'local-dev';
+  const secret = clientSecret || 'local-dev-secret';
+  return `# OIDC Provider Configuration
+# Generated for local development - DO NOT use these values in production
+
+PORT=8080
 ISSUER=http://localhost:8080
+NODE_ENV=development
+
+CLIENT_ID=${id}
+CLIENT_SECRET=${secret}
+REDIRECT_URIS=http://localhost:3000/callback
+
+# Optional: use the local preset for sensible development defaults
 OIDC_PRESET=local
-`,
-    dockerComposeSnippet: `services:
+`;
+};
+
+/**
+ * Generate a docker-compose snippet for quick start
+ */
+export const generateDockerComposeSnippet = (clientId?: string, clientSecret?: string) => {
+  const id = clientId || 'local-dev';
+  const secret = clientSecret || 'local-dev-secret';
+  return `services:
   provider:
+    image: plainscope/simple-oidc-provider
+    ports:
+      - "8080:8080"
     environment:
       - ISSUER=http://localhost:8080
-      - CLIENT_ID=${clientId}
-      - CLIENT_SECRET=${clientSecret}
+      - CLIENT_ID=${id}
+      - CLIENT_SECRET=${secret}
       - REDIRECT_URIS=http://localhost:3000/callback
       - OIDC_PRESET=local
     volumes:
       - ./data:/app/data
-`,
-  };
+`;
 };
 
 export const validateProductionConfig = () => {
