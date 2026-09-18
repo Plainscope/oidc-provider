@@ -1,157 +1,146 @@
-# Plan 03: Replace Alpine.js + Tailwind CDN Dashboard with Modern SPA
+# Plan 03: React + TypeScript Embedded Admin SPA
 
-**Status**: Draft for review  
-**Target component**: `src/directory` (views + new frontend)  
+**Status**: Draft for implementation  
+**Target component**: `src/directory` (API integration, frontend, static assets)  
 **Priority**: Medium-High  
 **Estimated effort**: 6–10 days  
-**Dependencies**: Benefits from API Plan 02 (stable contracts, OpenAPI client generation)
+**Dependencies**: React/TypeScript and embedded deployment are settled by ADR-002/ADR-003; final API integration follows Plan 02.
 
 ## Goals
 
-- Replace the current server-rendered Jinja + Alpine.js + Tailwind CDN UI with a modern single-page application.
-- Improve UX: faster interactions, better forms, real-time feedback, accessibility, responsive design, dark mode.
-- Keep the UI optional (API-only deployments remain first-class).
-- Ship a polished, maintainable admin experience that feels contemporary.
+- Replace the server-rendered Jinja + Alpine.js admin UI with a **React + TypeScript** SPA.
+- Build the SPA with Vite and package its static assets with the Directory service.
+- Serve the SPA alongside the Directory API from the same deployable service.
+- Provide accessible, responsive administration workflows for Directory data and audit views.
+- Keep API-only operation possible; the SPA is an admin surface, not a token issuer.
 
 ## Non-Goals
 
-- Building a full identity-management product UI (focus stays on directory CRUD + audit).
-- Supporting multiple simultaneous admin users with real-time collaboration (nice-to-have later).
-- Native mobile apps.
+- A separate frontend hosting tier in the initial deployment.
+- A full identity-management product.
+- Native mobile applications.
+- Introducing an independent authentication/token authority.
 
-## Current State
+## Technology
 
-- Server-side Jinja2 templates under `src/directory/views/`.
-- Alpine.js for interactivity, Tailwind via CDN.
-- Session-based authentication for the UI (cookie).
-- CSRF protection via Flask-WTF.
-- Tabs for Users / Roles / Groups / Domains / Audit.
-- Basic forms, confirmation dialogs, no advanced table features (sorting, bulk actions, column chooser).
+| Layer | Choice |
+|---|---|
+| Framework | React + TypeScript |
+| Build | Vite |
+| Routing | React Router |
+| Data fetching | TanStack Query |
+| UI | shadcn/ui + Tailwind CSS |
+| Forms/validation | React Hook Form + Zod |
+| Tables | TanStack Table |
 
-## Technology Choice
-
-**Recommended stack** (subject to review):
-
-| Layer            | Choice                     | Rationale |
-|------------------|----------------------------|---------|
-| Framework        | **React 19 + TypeScript**  | Largest ecosystem, excellent tooling, easy to hire for |
-| Build            | Vite                       | Fast, modern defaults |
-| Routing          | React Router 7             | Standard |
-| Data fetching    | TanStack Query (React Query) | Caching, mutations, optimistic updates |
-| UI components    | shadcn/ui + Tailwind CSS   | Beautiful, accessible, copy-paste, fully controllable |
-| Forms            | React Hook Form + Zod      | Type-safe validation matching OpenAPI schemas |
-| Tables           | TanStack Table             | Powerful headless tables |
-| Auth             | JWT (from Plan 04) stored in memory + httpOnly refresh cookie | Secure SPA pattern |
-| Icons            | Lucide                     | Consistent with shadcn |
-
-Alternatives considered:
-- Vue 3 + Nuxt – lighter, still excellent; choose if team prefers Vue.
-- SvelteKit – smallest bundle, great DX; smaller ecosystem.
-- Keep Alpine but vendor it and improve templates – lower effort, lower ceiling.
-
-**Decision needed**: Confirm React vs Vue vs Svelte before implementation starts.
+These choices implement the accepted architecture decision; React/Vue/Svelte and embedded/separate hosting are no longer open questions.
 
 ## Architecture
 
 ```
 src/directory/
-├── api/                  # existing Flask backend (serves /api/v1)
-├── frontend/             # new SPA
+├── frontend/                 # React + TypeScript source
 │   ├── package.json
 │   ├── vite.config.ts
-│   ├── src/
-│   │   ├── main.tsx
-│   │   ├── App.tsx
-│   │   ├── api/          # generated OpenAPI client + React Query hooks
-│   │   ├── components/   # shadcn + domain components
-│   │   ├── pages/        # Users, Roles, Groups, Domains, Audit, Login
-│   │   ├── hooks/
-│   │   ├── lib/
-│   │   └── types/
-│   └── index.html
-└── ...
+│   └── src/
+│       ├── main.tsx
+│       ├── App.tsx
+│       ├── api/              # generated/typesafe v1 client
+│       ├── components/
+│       ├── pages/
+│       ├── hooks/
+│       └── lib/
+├── static/                   # Vite production output
+└── ...                       # FastAPI application and persistence
 ```
 
-Deployment options:
-1. **Embedded**: Vite builds to `src/directory/static/`, Flask serves the SPA + API (simplest).
-2. **Separate**: Frontend on CDN / static host, API on its own origin (CORS + proper auth).
+The Directory build produces the frontend assets and packages them into the Directory deployable artifact. The Directory service serves the SPA and `/api/v1` from the same deployment.
 
-Recommend starting with embedded for the Docker image, with a clear path to split later.
+Keep static hosting concerns isolated so the assets can move to a dedicated host later without changing the API contract.
 
-## UX Improvements
+## Authentication Boundary
 
-- **Users page**: searchable, filterable, sortable data table; bulk activate/deactivate; quick-edit drawer; multi-email management; role/group assignment with multi-select.
-- **Create/Edit forms**: progressive disclosure, live validation, password strength meter, “copy invite link” (future).
-- **Audit log**: advanced filters (entity, action, date range, actor), expandable change diffs, export CSV.
-- **Dashboard home**: high-level stats (user count, recent activity, health).
-- **Global**: command palette (⌘K), dark/light theme, keyboard shortcuts, toast notifications, loading skeletons, empty states, error boundaries.
-- **Accessibility**: WCAG 2.2 AA target, focus management, screen-reader labels, reduced-motion support.
-- **Responsive**: full mobile layout for admin on the go.
+The SPA authenticates to the Directory administration surface using the Directory's admin authentication mechanism. It must not treat the Directory as an OIDC/token issuer for end users.
+
+Provider token issuance remains entirely owned by the Provider. The SPA may obtain an authenticated Directory session/access credential as required for administration, but that credential is not a Provider OIDC token.
+
+Coordinate the exact admin authentication flow with Plan 04 and use the `/api/v1` contract from Plan 02.
+
+## UX Scope
+
+- Users, Roles, Groups, Domains and Audit workflows.
+- Search, filtering, sorting, server-side pagination and safe mutation confirmation.
+- Accessible forms and dialogs targeting WCAG 2.2 AA.
+- Responsive layout, loading/empty/error states, keyboard navigation and reduced-motion support.
+- No secret-bearing values in rendered UI, browser storage, or client-side logs.
 
 ## Implementation Steps
 
-### Phase 1 – Scaffold & Design System (1.5–2 days)
+### Phase 1 – Scaffold
 
-1. Create `frontend/` with Vite + React + TS + Tailwind + shadcn/ui.
-2. Set up path aliases, ESLint, Prettier, Vitest.
-3. Implement layout shell (sidebar, top bar, theme toggle).
-4. Generate TypeScript client from OpenAPI (Plan 02) and wire React Query.
+1. Create the Vite React/TypeScript application.
+2. Configure linting, formatting, tests and path aliases.
+3. Implement the shared layout and design primitives.
+4. Generate/typesafe the client for the FastAPI `/api/v1` contract.
 
-### Phase 2 – Auth & Routing (1 day)
+### Phase 2 – Authentication and routing
 
-1. Login page using the new JWT / session endpoint (Plan 04).
-2. Protected routes + auth context / interceptor that attaches Bearer token.
-3. Logout, token refresh, redirect-to-login on 401.
+1. Implement the Directory admin login/session flow defined by Plan 04.
+2. Protect admin routes.
+3. Centralize authentication failure handling and logout.
+4. Ensure no Provider/OIDC token lifecycle is implemented in the Directory UI.
 
-### Phase 3 – Core CRUD Pages (3–4 days)
+### Phase 3 – Core administration
 
-1. Users list + detail/edit drawer (highest priority).
-2. Roles, Groups, Domains pages.
-3. Audit log with filters.
-4. Shared components: ConfirmDialog, DataTable, FormField, StatusBadge, etc.
+1. Implement Users first.
+2. Add Roles, Groups and Domains.
+3. Add Audit views.
+4. Implement server-side table operations against `/api/v1`.
 
-### Phase 4 – Polish & Accessibility (1–1.5 days)
+### Phase 4 – Accessibility and resilience
 
-1. Loading / empty / error states everywhere.
-2. Keyboard navigation and ARIA audit.
-3. Dark mode persistence.
-4. Performance: code-splitting, image optimisation (if any).
+1. Add keyboard/focus management and screen-reader announcements.
+2. Add error boundaries, retry states and request cancellation.
+3. Add route-level code splitting and sensible caching.
+4. Add unit/component and accessibility tests.
 
-### Phase 5 – Integration & Packaging (1 day)
+### Phase 5 – Embedded packaging
 
-1. Vite production build → Flask static folder (or separate container).
-2. Update Dockerfile (multi-stage: Node build + Python runtime).
-3. Update Compose and docs.
-4. Remove old Jinja views and Alpine/Tailwind CDN references.
-5. Feature flag or env `UI_ENABLED=true/false` so pure-API deploys stay lean.
+1. Build with Vite as part of the Directory build.
+2. Copy/package output into the Directory static asset location.
+3. Configure FastAPI to serve the SPA and static assets alongside the API.
+4. Remove CDN runtime dependencies.
+5. Update Docker/Compose and deployment documentation.
+6. Remove the old Jinja/Alpine UI only after SPA parity for required workflows is verified.
 
-## Migration / Compatibility
+## Compatibility and Rollout
 
-- Old UI routes can redirect to the SPA for one release.
-- Session-based auth can coexist briefly with JWT while the SPA is rolled out.
-- No impact on the OIDC provider’s machine-to-machine calls.
+- The Provider's machine-to-machine integration is independent of the admin UI.
+- The SPA consumes the same versioned API contract used for supported Directory clients.
+- During rollout, the old UI may remain available only as an implementation transition; it is not a long-term architectural dependency.
+- Embedded deployment is the initial and supported deployment model.
+- Keep a documented rollback path for the combined Directory release.
 
-## Risks & Mitigations
+## Security
 
-| Risk | Mitigation |
-|------|------------|
-| Scope creep on UI features | Strict MVP list; ship Users first |
-| Bundle size | Tree-shaking, code-splitting, analyse with `rollup-plugin-visualizer` |
-| Auth complexity for SPA | Follow Plan 04; use httpOnly refresh tokens |
-| Team unfamiliar with React | Document decisions; or choose Vue/Svelte if preferred |
+- No secrets in the frontend bundle.
+- No refresh credentials in localStorage.
+- CSP/HSTS/Permissions-Policy must match the embedded asset model.
+- Static assets are bundled rather than loaded from runtime CDNs.
+- Do not expose Provider signing keys or Provider-issued tokens through the admin UI.
 
 ## Success Criteria
 
-- [ ] SPA loads in < 2 s on a typical connection and feels responsive.
-- [ ] All current CRUD + audit functionality is available and improved.
-- [ ] Lighthouse accessibility score ≥ 90.
-- [ ] Works without the old Jinja templates.
-- [ ] Docker image still single-container (or clearly documented multi-container).
-- [ ] Dark mode and mobile layout ship in the first release.
+- [ ] React + TypeScript SPA replaces the required Jinja/Alpine workflows.
+- [ ] Vite production assets are embedded in the Directory deployable artifact.
+- [ ] FastAPI serves the SPA and `/api/v1` from the Directory service.
+- [ ] SPA uses the final v1 contract.
+- [ ] No CDN runtime dependencies remain.
+- [ ] Accessibility and core E2E coverage pass.
+- [ ] Provider token issuance remains outside Directory.
 
-## Open Questions for Review
+## Settled Decisions
 
-1. React, Vue, or Svelte?
-2. Embedded in the Python container or separate static site?
-3. Any branding / design system constraints from Plainscope?
-4. Should the UI support multi-tenancy / domain switching in the first version?
+- React + TypeScript: **ADR-002**.
+- Embedded SPA deployment: **ADR-003**.
+- Directory is a backing store, not a token issuer: **ADR-004**.
