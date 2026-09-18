@@ -247,9 +247,9 @@ Automatically configured in test fixtures:
 
 ```
 Email:           admin@localhost
-Password:        Rays-93-Accident
+Password:        test-password
 Client ID:       85125d57-a403-4fe2-84d8-62c6db9b6d73
-Client Secret:   +XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq
+Client Secret:   local-dev-client-secret
 Redirect URI:    http://localhost:8080/signin-oidc
 Post-Logout URI: http://localhost:8080/signout-callback-oidc
 ```
