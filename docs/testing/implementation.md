@@ -19,7 +19,7 @@ Comprehensive Playwright end-to-end test suite for validating the complete OpenI
 ### 2. Test Fixtures & Helpers
 
 - **File**: `test/fixtures/auth.fixtures.ts` (71 lines)
-  - Test user credentials (admin@localhost / Rays-93-Accident)
+  - Test user credentials (admin@localhost / test-password)
   - OIDC configuration constants
   - Authenticated page fixture for easy test setup
   - Re-usable test user creation function
@@ -229,9 +229,9 @@ npx playwright show-report
 ## Test Credentials
 
 - **Email**: `admin@localhost`
-- **Password**: `Rays-93-Accident`
+- **Password**: `test-password`
 - **Client ID**: `85125d57-a403-4fe2-84d8-62c6db9b6d73`
-- **Client Secret**: `+XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq`
+- **Client Secret**: `local-dev-client-secret`
 
 ## Service Configuration
 
