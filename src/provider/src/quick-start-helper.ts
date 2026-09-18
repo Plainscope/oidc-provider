@@ -127,7 +127,14 @@ export const validateProductionConfig = () => {
     }
   }
 
-  if (process.env.CLIENT_SECRET === 'local-dev-secret' || process.env.CLIENT_SECRET === 'test-secret') {
+  const knownDevClientSecrets = [
+    'local-dev-secret',
+    'local-dev-client-secret',
+    'test-secret',
+    'test-client-secret',
+    'dev-secret',
+  ];
+  if (process.env.CLIENT_SECRET && knownDevClientSecrets.includes(process.env.CLIENT_SECRET)) {
     errors.push('Default development client secret detected in production');
   }
 
