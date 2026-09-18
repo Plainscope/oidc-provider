@@ -309,7 +309,7 @@ Complete documentation is available in the [`docs/`](./docs) directory:
 │  │  • /.well-known/openid-configuration               │  │
 │  │  • /.well-known/jwks                               │  │
 │  │  • /me (Userinfo)                                  │  │
-│  │  • /logout (Logout)                                │  │
+│  │  • /session/end (Logout)                                │  │
 │  │                                                      │  │
 │  │  UI Pages:                                          │  │
 │  │  • /interaction/* (Login/Consent)                  │  │
@@ -552,66 +552,3 @@ This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE
 - 📚 [Documentation](./docs)
 - 🧪 [Testing Guide](./docs/testing/index.md)
 - 🐛 [Issue Tracker](https://github.com/Plainscope/oidc-provider/issues)
-- 💬 [Discussions](https://github.com/Plainscope/oidc-provider/discussions)
-- 🔗 [OAuth 2.0 Spec](https://tools.ietf.org/html/rfc6749)
-- 🔗 [OpenID Connect Spec](https://openid.net/specs/openid-connect-core-1_0.html)
-
-### Getting Help
-
-1. Check the [Troubleshooting Guide](./docs/guides/troubleshooting.md)
-2. Review [Common Issues](./docs/guides/troubleshooting.md#common-issues)
-3. Search [existing issues](https://github.com/Plainscope/oidc-provider/issues)
-4. [Open a new issue](https://github.com/Plainscope/oidc-provider/issues/new)
-
-## Testing
-
-This project includes a comprehensive end-to-end test suite using Playwright.
-
-### Quick Start
-
-```bash
-cd test
-npm install
-npm run playwright:install
-docker-compose up -d
-npm run test:e2e
-```
-
-### Test Coverage
-
-- ✅ 30+ test cases across 6 test suites
-- ✅ Complete OIDC/OAuth 2.0 flow validation
-- ✅ Security and compliance testing
-- ✅ Cross-browser support (Chrome, Firefox, WebKit, Mobile)
-
-### Documentation
-
-- 🚀 [Quick Start Guide](./docs/testing/quick-start.md) - Get running in 4 commands
-- 📖 [Complete Guide](./docs/testing/complete-guide.md) - Full overview and features
-- 🔧 [Implementation Details](./docs/testing/implementation.md) - Technical deep dive
-- 📚 [Reference](./docs/testing/reference.md) - Comprehensive reference
-- 📋 [Testing Index](./docs/testing/index.md) - Navigation hub
-
-## Support
-
-Future enhancements:
-
-- [ ] Token endpoint analytics and metrics
-- [ ] Advanced MFA support (TOTP, WebAuthn)
-- [ ] Social login integrations (Google, GitHub, Microsoft)
-- [ ] Database backend support (PostgreSQL, MongoDB)
-- [ ] LDAP/Active Directory integration
-- [ ] Internationalization (i18n)
-- [ ] Admin dashboard
-- [ ] API key management
-
-## Related Projects
-
-- [node-oidc-provider](https://github.com/panva/node-oidc-provider) - OIDC Provider library
-- [node-oauth2-server](https://github.com/oauthjs/node-oauth2-server) - OAuth 2.0 Server
-- [Auth0](https://auth0.com) - Commercial OIDC provider
-- [Keycloak](https://www.keycloak.org) - Open-source IAM
-
----
-
-**Made with ❤️ by Plainscope**
