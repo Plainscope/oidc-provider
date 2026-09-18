@@ -19,7 +19,7 @@
 #       - "8080:8080"
 #     environment:
 #       ISSUER: http://localhost:8080
-#       CLIENT_ID: 85125d57-a403-4fe2-84d8-62c6db9b6d73
+#       CLIENT_ID: test-client-id
 #       CLIENT_SECRET: local-dev-client-secret
 #       REDIRECT_URIS: http://localhost:8080/callback
 #       DIRECTORY_TYPE: local
@@ -76,7 +76,7 @@ services:
       - "8080:8080"
     environment:
       ISSUER: http://localhost:8080
-      CLIENT_ID: 85125d57-a403-4fe2-84d8-62c6db9b6d73
+      CLIENT_ID: test-client-id
       CLIENT_SECRET: local-dev-client-secret
       REDIRECT_URIS: http://localhost:8080/callback
       # SQLite Directory Configuration
@@ -123,7 +123,7 @@ volumes:
 #       - "8080:8080"
 #     environment:
 #       ISSUER: http://localhost:8080
-#       CLIENT_ID: 85125d57-a403-4fe2-84d8-62c6db9b6d73
+#       CLIENT_ID: test-client-id
 #       CLIENT_SECRET: local-dev-client-secret
 #       REDIRECT_URIS: http://localhost:8080/callback
 #       # Remote Directory Configuration
