@@ -13,7 +13,7 @@ export const TEST_USER = {
  * OAuth 2.0 / OIDC Configuration
  */
 export const OIDC_CONFIG = {
-  clientId: process.env.PROVIDER_CLIENT_ID || '85125d57-a403-4fe2-84d8-62c6db9b6d73',
+  clientId: process.env.PROVIDER_CLIENT_ID || 'test-client-id',
   clientSecret: process.env.PROVIDER_CLIENT_SECRET || 'local-dev-client-secret',
   redirectUri: `${DEMO_BASE_URL}/signin-oidc`,
   postLogoutRedirectUri: `${DEMO_BASE_URL}/signout-callback-oidc`,
