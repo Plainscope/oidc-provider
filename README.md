@@ -36,7 +36,7 @@ That's it! Visit `http://localhost:8080` and you have a working OIDC provider.
 
 **Default credentials:**
 - Email: `admin@localhost`
-- Password: `Rays-93-Accident`
+- Password: `test-password`
 
 **Discovery endpoint:** `http://localhost:8080/.well-known/openid-configuration`
 
@@ -229,7 +229,7 @@ Access the demo app at `http://localhost:8080` and OIDC provider at `http://loca
 Test credentials:
 
 - **Email**: `admin@localhost`
-- **Password**: `Rays-93-Accident`
+- **Password**: `test-password`
 
 ### Docker Run
 
