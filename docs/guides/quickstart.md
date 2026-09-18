@@ -32,7 +32,7 @@ docker run -p 8080:8080 plainscope/simple-oidc-provider
 
 2. Default test credentials:
    - **Email**: `admin@localhost`
-   - **Password**: `Rays-93-Accident`
+   - **Password**: `test-password`
 
 3. Try the authorization flow:
    ```
@@ -66,7 +66,7 @@ docker-compose up
 
 Use the default credentials:
 - Email: `admin@localhost`
-- Password: `Rays-93-Accident`
+- Password: `test-password`
 
 ## 🎨 Configuration Presets
 
