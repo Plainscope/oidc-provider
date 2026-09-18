@@ -103,7 +103,7 @@ docker run -d \
   -p 8080:8080 \
   -e DIRECTORY_TYPE=sqlite \
   -e DIRECTORY_DATABASE_FILE=/data/users.db \
-  -e CLIENT_ID=85125d57-a403-4fe2-84d8-62c6db9b6d73 \
+  -e CLIENT_ID=test-client-id \
   -e CLIENT_SECRET=$CLIENT_SECRET \
   -e REDIRECT_URIS=http://localhost:8080/callback \
   -v $(pwd)/data:/data \
