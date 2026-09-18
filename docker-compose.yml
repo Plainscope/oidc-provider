@@ -40,7 +40,7 @@ services:
       NODE_ENV: development
       PORT: 8080
       ISSUER: http://provider:8080
-      CLIENT_ID: ${PROVIDER_CLIENT_ID:-85125d57-a403-4fe2-84d8-62c6db9b6d73}
+      CLIENT_ID: ${PROVIDER_CLIENT_ID:-test-client-id}
       CLIENT_SECRET: ${PROVIDER_CLIENT_SECRET:-local-dev-client-secret}
       REDIRECT_URIS: http://localhost:${DEMO_PORT:-8080}/signin-oidc
       POST_LOGOUT_REDIRECT_URIS: http://localhost:${DEMO_PORT:-8080}/signout-callback-oidc
@@ -81,7 +81,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       OPENID__AUTHORITY: http://provider:8080
       OPENID__PUBLICORIGIN: http://localhost:${PROVIDER_PORT:-9080}
-      OPENID__CLIENTID: ${PROVIDER_CLIENT_ID:-85125d57-a403-4fe2-84d8-62c6db9b6d73}
+      OPENID__CLIENTID: ${PROVIDER_CLIENT_ID:-test-client-id}
       OPENID__CLIENTSECRET: ${PROVIDER_CLIENT_SECRET:-local-dev-client-secret}
       OPENID__REQUIREHTTPSMETADATA: false
       OPENID__SCOPES__0: openid
