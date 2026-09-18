@@ -165,7 +165,7 @@ These credentials are defined in `docker/provider/users.json`.
 
 The test suite uses the following OIDC configuration:
 
-- **Client ID**: `85125d57-a403-4fe2-84d8-62c6db9b6d73`
+- **Client ID**: `test-client-id`
 - **Client Secret**: `local-dev-client-secret`
 - **Redirect URI**: `http://localhost:8080/signin-oidc`
 - **Post-Logout Redirect URI**: `http://localhost:8080/signout-callback-oidc`
