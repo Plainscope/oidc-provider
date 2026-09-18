@@ -60,7 +60,7 @@ npx playwright test -g "should redirect to authorization endpoint"
 
 ```
 Email:    admin@localhost
-Password: Rays-93-Accident
+Password: test-password
 ```
 
 ## Service URLs
