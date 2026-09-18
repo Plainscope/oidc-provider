@@ -70,7 +70,7 @@ const defaultConfig: Partial<Configuration> = {
     {
       client_name: 'Demo',
       client_id: '325c2ce7-7390-411b-af3a-2bdf5a260f9d',
-      client_secret: 'a74566f905056b6806d69afc09f2803d1aa477e1d708540683994d6e4745334a', // replace in production
+      client_secret: 'test-client-secret', // replace in production
       redirect_uris: [],
       post_logout_redirect_uris: [],
       response_types: ['code'],
@@ -82,7 +82,7 @@ const defaultConfig: Partial<Configuration> = {
   ],
   cookies: {
     keys: [
-      '40763539018b2f012d30aa7eba0123db3dc847b0eca146e5d7160838f8b2d092',
+      'test-cookie-key',
     ],
   },
   claims: {
@@ -321,8 +321,8 @@ try {
 // Fail fast in production if known default/dev secrets are still configured
 if (process.env.NODE_ENV === 'production') {
   const KNOWN_DEFAULT_SECRETS = [
-    'a74566f905056b6806d69afc09f2803d1aa477e1d708540683994d6e4745334a',
-    '40763539018b2f012d30aa7eba0123db3dc847b0eca146e5d7160838f8b2d092',
+    'test-client-secret',
+    'test-cookie-key',
     'local-dev-secret',
     'test-secret',
   ];
