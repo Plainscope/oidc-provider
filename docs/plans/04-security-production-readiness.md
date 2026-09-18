@@ -1,168 +1,137 @@
-# Plan 04: Security & Production Readiness
+# Plan 04: Directory Security & Production Readiness
 
-**Status**: Draft for review  
-**Target component**: `src/directory` + Docker / Compose / secrets  
+**Status**: Draft for implementation  
+**Target component**: Directory API, admin UI, Docker/Compose and secrets  
 **Priority**: Critical  
 **Estimated effort**: 4–7 days  
-**Dependencies**: Works well with API versioning (Plan 02) and SPA (Plan 03)
+**Dependencies**: FastAPI API (Plan 02), embedded React SPA (Plan 03)
 
 ## Goals
 
-- Strengthen authentication: support **JWT** (in addition to the existing Bearer token) for both API clients and the SPA.
-- Enable **mTLS** (mutual TLS) as an optional high-security mode for service-to-service calls.
-- Introduce proper **secret management** (no secrets in env files or images).
-- Harden the service for production: security headers, rate limiting, audit, observability hooks, least-privilege containers.
+- Secure Provider-to-Directory service authentication and admin authentication.
+- Support JWT validation and mTLS where appropriate without making Directory a token issuer.
+- Centralize secret loading and rotation.
+- Harden the FastAPI service and embedded SPA for production.
+- Keep the Provider as the sole authority for issuing OIDC tokens.
 
 ## Non-Goals
 
-- Full OAuth2 Authorization Server inside the directory (it remains a resource server / user store).
-- Hardware security modules or external KMS in the first iteration (design for them).
-- Zero-trust network mesh (Istio etc.) – document how to plug in later.
+- Implementing an OAuth2/OIDC authorization server in Directory.
+- Issuing Provider-facing OIDC access/ID tokens from Directory.
+- Introducing a second token lifecycle merely for the admin UI.
+- Requiring mTLS for every deployment.
 
-## Current State
+## Security Boundary
 
-- Single static `BEARER_TOKEN` for all API calls (shared secret).
-- Session cookie + CSRF for the UI.
-- Basic security headers and Flask-Limiter.
-- Secrets typically passed via environment variables or Compose files.
-- No mTLS, no JWT, no rotating credentials, limited observability.
+The Directory is a backing store/resource service. It provides authenticated and authorized access to directory data.
+
+The **Provider service remains the token-issuing authority**. Directory authentication credentials are only for access to Directory resources or its administration surface; they must not be represented as Provider-issued OIDC tokens.
+
+Design caller authentication around actual roles:
+
+1. **Provider-to-Directory** service authentication.
+2. **Admin-to-Directory** authentication for the embedded web UI.
+
+JWT validation may be used for callers where appropriate. mTLS is an optional additional service-to-service control.
 
 ## Target Authentication Model
 
-### 1. API Authentication (resource server)
+### Provider-to-Directory
 
-Support three mechanisms (any one sufficient):
+- Authenticate the Provider as a service principal using a supported service credential.
+- Validate JWTs from a configured issuer/JWKS where JWT-based service authentication is selected.
+- Optionally require mTLS at the TLS terminator for high-assurance deployments.
+- Authorize only Directory operations needed by the Provider.
+- Record service identity in audit events.
 
-| Mechanism              | Use case                              | Priority |
-|------------------------|---------------------------------------|----------|
-| Static Bearer token    | Simple scripts, backward compat       | Keep (deprecate later) |
-| JWT (Bearer)           | SPA, modern clients, short-lived      | New primary |
-| mTLS client certificate| High-security service-to-service      | Optional |
+### Admin UI
 
-JWT validation:
-- Accept RS256 / ES256 tokens.
-- Configurable issuer, audience, JWKS URL (or static public key).
-- Claims mapping: `sub` → admin identity for audit logs.
-- Optional local signing key for “directory-issued” tokens (login endpoint).
+- Provide an authenticated Directory administration session/credential for the embedded SPA.
+- Keep browser credentials scoped to Directory administration.
+- Do not add a Directory login endpoint whose purpose is to issue OIDC tokens for end users.
+- Coordinate the exact login/session contract with the FastAPI `/api/v1` API and SPA plans.
 
-### 2. SPA / UI Authentication
+### mTLS
 
-Recommended modern pattern:
-
-1. `POST /api/v1/auth/login` (username + password) → short-lived access token (JWT) + httpOnly refresh token cookie.
-2. Access token kept in memory (or sessionStorage with care); sent as `Authorization: Bearer <jwt>`.
-3. Silent refresh via the refresh cookie.
-4. Logout clears cookie and blacklists refresh token (if using a store).
-
-Alternative for simpler deployments: continue session cookies, but prefer JWT for the SPA so the same auth works for pure API clients.
-
-### 3. mTLS
-
-- Optional mode enabled by `MTLS_ENABLED=true`.
-- Require client certificate on the TLS listener (or behind a terminating proxy that forwards the cert).
-- Map certificate CN / SAN to a service identity for audit.
-- Document Nginx / Traefik / Caddy configuration examples.
+- Optional and explicitly configured.
+- Support reverse-proxy termination and document certificate verification and identity mapping.
+- Do not make mTLS a prerequisite for local/reference deployments.
 
 ## Secret Management
 
-### Principles
+Principles:
 
-- Never bake secrets into images or commit them.
-- Prefer external secret stores; fall back to env only for local dev.
-- Support rotation without downtime.
+- Never commit or bake secrets into images.
+- Prefer runtime secret injection and file-based/container secret mechanisms.
+- Centralize secret lookup through a small abstraction.
+- Fail fast when required production secrets are missing.
+- Support credential/key rotation without requiring source changes.
 
-### Implementation Options (choose one or layered)
-
-1. **Environment + Docker secrets** (minimum)
-   - `BEARER_TOKEN`, `JWT_PRIVATE_KEY`, `DATABASE_URL` etc. injected at runtime.
-   - Compose `secrets:` and Kubernetes Secrets.
-
-2. **File-based secrets** (common in containers)
-   - `*_FILE` env vars that point to mounted secret files (e.g. `/run/secrets/jwt_key`).
-
-3. **External providers** (production)
-   - HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager, Azure Key Vault.
-   - Abstract behind a small `SecretProvider` interface so the app stays portable.
-
-### Required Secrets Inventory
-
-| Secret                    | Purpose                          | Rotation |
-|---------------------------|----------------------------------|----------|
-| `BEARER_TOKEN`            | Legacy API auth                  | Manual  |
-| `JWT_SIGNING_KEY` / pair  | Issue & verify directory JWTs    | Key rotation |
-| `DATABASE_URL` / password | DB connection                    | Credential rotation |
-| `SECRET_KEY`              | Flask sessions / CSRF            | Restart |
-| mTLS CA + client certs    | Mutual TLS                       | Cert lifecycle |
+Possible production backends include Docker/Kubernetes secrets or an external secret manager. The implementation should keep the application independent of a single vendor.
 
 ## Implementation Steps
 
-### Phase 1 – JWT Support (1.5–2 days)
+### Phase 1 – Authentication
 
-1. Add `PyJWT` + `cryptography` (or `authlib`).
-2. Config: `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_JWKS_URL` or `JWT_PUBLIC_KEY`, `JWT_PRIVATE_KEY` (for issuing).
-3. Middleware / decorator that accepts either static Bearer **or** valid JWT.
-4. `POST /api/v1/auth/login` and `POST /api/v1/auth/refresh` endpoints.
-5. Audit log records the JWT `sub` (or static token identity).
-6. Update OpenAPI (Plan 02) with security schemes.
+1. Add FastAPI authentication dependencies for service and admin callers.
+2. Add JWT validation using configured issuer/audience/JWKS or public keys where selected.
+3. Add optional mTLS deployment configuration.
+4. Define authorization scopes/roles for Provider and admin operations.
+5. Add authentication/authorization tests.
 
-### Phase 2 – Secret Loading Abstraction (1 day)
+### Phase 2 – Secret loading
 
-1. `secrets.py` module:
-   - `get_secret(name)` checks env, then `name_FILE`, then optional Vault/etc.
-2. Replace all direct `os.environ["BEARER_TOKEN"]` lookups.
-3. Document the loading order and provide examples for Docker / K8s / Vault.
-4. Fail fast at startup if required secrets are missing in production mode.
+1. Implement `get_secret(name)` with environment/file-backed loading.
+2. Replace direct secret lookups.
+3. Document required runtime secrets and rotation.
+4. Ensure frontend builds contain no secrets.
 
-### Phase 3 – mTLS (1–1.5 days)
+### Phase 3 – FastAPI hardening
 
-1. Document reverse-proxy configuration (Nginx example with `ssl_verify_client on`).
-2. Optional in-process TLS with client cert verification (Gunicorn + custom SSL context) for simple deployments.
-3. Extract client identity from the certificate and attach to the request context for audit.
-4. Health check and readiness that work behind mTLS.
+1. Configure security headers appropriate to the embedded SPA.
+2. Rate-limit sensitive administrative/authentication operations.
+3. Add structured logs, request IDs and service/admin identity context.
+4. Add health/readiness and metrics endpoints without leaking sensitive data.
+5. Run the service as non-root with least privilege and a constrained filesystem where practical.
 
-### Phase 4 – Hardening & Observability (1–1.5 days)
+### Phase 4 – Operational security
 
-1. Review and tighten Content-Security-Policy, HSTS, Permissions-Policy (especially once SPA is vendored).
-2. Rate limiting: stricter limits on `/auth/login` and `/validate`; IP + identity aware.
-3. Structured logging (JSON) with request ID, user/service identity, correlation.
-4. Prometheus metrics endpoint (`/metrics`) – request counts, latencies, auth failures.
-5. OpenTelemetry traces (optional, behind a flag).
-6. Container: non-root (already present), read-only root filesystem where possible, drop capabilities.
-7. Network policies / Compose network isolation examples.
+1. Document trusted-proxy configuration.
+2. Document mTLS deployment examples.
+3. Add security regression tests for secret leakage and authentication failures.
+4. Review Docker/Compose examples for safe defaults.
 
-### Phase 5 – Documentation & Examples (0.5–1 day)
+## Legacy API Interaction
 
-1. Security guide: threat model, recommended production config, rotation procedures.
-2. Compose / Helm examples with secrets and mTLS.
-3. Migration notes for existing Bearer-token users.
+Legacy endpoints are not preserved indefinitely as a security compatibility mechanism.
 
-## Backward Compatibility
+The Directory may retain legacy authentication/endpoint behavior only while the Provider migration is in progress. Once the Provider is updated and verified against `/api/v1`, legacy endpoints may be removed according to ADR-005.
 
-- Static Bearer token continues to work indefinitely (or until a future major version).
-- Existing session-based UI auth can remain until the SPA fully migrates to JWT.
-- No forced mTLS; it is opt-in.
+The Provider migration must be tested before removal; the Directory must not compensate by introducing a separate token issuer.
 
 ## Risks & Mitigations
 
 | Risk | Mitigation |
 |------|------------|
-| JWT key compromise | Short-lived access tokens + refresh token rotation + key rotation procedure |
-| Secret sprawl | Single `get_secret` abstraction + inventory |
-| mTLS complexity for users | Keep it optional and well-documented |
-| Performance of JWT validation | Cache JWKS, use efficient libraries |
-| Breaking existing clients | Dual auth support + clear deprecation timeline |
+| Token authority becomes ambiguous | Provider remains the only OIDC token issuer; Directory validates/authorizes access |
+| Credential leakage | Centralized secret loading plus CI/regression scanning |
+| mTLS deployment complexity | Keep optional and document proxy-based deployment |
+| Auth migration breaks Provider | Provider integration tests are a release gate |
 
 ## Success Criteria
 
-- [ ] API accepts both static Bearer and JWT; SPA can log in and call APIs with JWT.
-- [ ] All secrets loaded through the abstraction; no secrets in the image or git.
-- [ ] mTLS mode can be enabled and is documented with a working proxy example.
-- [ ] Production checklist (headers, rate limits, non-root, structured logs, metrics) is satisfied.
-- [ ] Security documentation is complete and reviewed.
+- [ ] Provider and admin callers have explicit authentication/authorization paths.
+- [ ] Directory does not issue Provider/OIDC tokens.
+- [ ] JWT validation and optional mTLS are covered by tests/documentation where enabled.
+- [ ] Production secrets are runtime-provided and absent from source/images/frontend assets.
+- [ ] FastAPI security headers, rate limits, logging and readiness controls are implemented.
+- [ ] Legacy endpoint removal is gated on verified Provider migration.
 
-## Open Questions for Review
+## Settled Decisions
 
-1. Should the directory itself issue JWTs, or only validate tokens from an external IdP?
-2. Preferred secret backend for the reference deployment (Docker secrets, Vault, cloud provider)?
-3. Is mTLS required for the first production release or can it follow later?
-4. Any existing corporate IdP / JWKS that the directory should trust out of the box?
+- FastAPI: **ADR-001**.
+- Embedded React/TypeScript admin UI: **ADR-002/ADR-003**.
+- Directory is a backing store; Provider issues tokens: **ADR-004**.
+- Legacy API removal follows verified Provider migration: **ADR-005**.
+
+No open question in this plan may reopen those decisions.
