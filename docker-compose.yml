@@ -12,7 +12,7 @@ services:
       PORT: 8080
       USERS_FILE: /app/config/users.json
       DATABASE_FILE: /data/directory.db
-      BEARER_TOKEN: ${DIRECTORY_BEARER_TOKEN:-sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth}
+      BEARER_TOKEN: ${DIRECTORY_BEARER_TOKEN:-local-dev-bearer-token}
       SESSION_COOKIE_SECURE: false
     volumes:
       - ${DIRECTORY_USERS_FILE:-./docker/provider/users.json}:/app/config/users.json:ro
@@ -41,14 +41,14 @@ services:
       PORT: 8080
       ISSUER: http://provider:8080
       CLIENT_ID: ${PROVIDER_CLIENT_ID:-85125d57-a403-4fe2-84d8-62c6db9b6d73}
-      CLIENT_SECRET: ${PROVIDER_CLIENT_SECRET:-+XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq}
+      CLIENT_SECRET: ${PROVIDER_CLIENT_SECRET:-local-dev-client-secret}
       REDIRECT_URIS: http://localhost:${DEMO_PORT:-8080}/signin-oidc
       POST_LOGOUT_REDIRECT_URIS: http://localhost:${DEMO_PORT:-8080}/signout-callback-oidc
       DIRECTORY_TYPE: ${DIRECTORY_TYPE:-sqlite}
       DIRECTORY_DATABASE_FILE: /data/directory.db
       DIRECTORY_USERS_FILE: /app/config/users.json
       DIRECTORY_BASE_URL: ${DIRECTORY_BASE_URL:-http://directory:8080}
-      DIRECTORY_HEADERS: ${DIRECTORY_HEADERS:-{"Authorization":"Bearer sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth"}}
+      DIRECTORY_HEADERS: ${DIRECTORY_HEADERS:-{"Authorization":"Bearer local-dev-bearer-token"}}
       FEATURES_DEV_INTERACTIONS: false
       DATABASE_FILE: /data/oidc.db
     ports:
@@ -82,7 +82,7 @@ services:
       OPENID__AUTHORITY: http://provider:8080
       OPENID__PUBLICORIGIN: http://localhost:${PROVIDER_PORT:-9080}
       OPENID__CLIENTID: ${PROVIDER_CLIENT_ID:-85125d57-a403-4fe2-84d8-62c6db9b6d73}
-      OPENID__CLIENTSECRET: ${PROVIDER_CLIENT_SECRET:-+XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq}
+      OPENID__CLIENTSECRET: ${PROVIDER_CLIENT_SECRET:-local-dev-client-secret}
       OPENID__REQUIREHTTPSMETADATA: false
       OPENID__SCOPES__0: openid
       OPENID__SCOPES__1: profile
