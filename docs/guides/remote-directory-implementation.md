@@ -380,8 +380,8 @@ python app.py
 
 1. Open browser to `http://localhost:8080/ui`
 2. Default users from `users.json` are available:
-   - admin@localhost / Rays-93-Accident
-   - user@localhost / Signal-27-Bridge
+   - admin@localhost / test-password
+   - user@localhost / test-password-2
 
 ### Using the API
 
