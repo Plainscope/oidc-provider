@@ -61,66 +61,75 @@ const defaultConfig: Partial<Configuration> = {
     profile: ['name', 'nickname', 'given_name', 'family_name', 'groups', 'picture'],
   },
   scopes: ['openid', 'profile', 'email', 'offline_access'],
-  features: { devInteractions: { enabled: false } },
+  features: {
+    devInteractions: { enabled: process.env.FEATURES_DEV_INTERACTIONS === 'true' },
+    revocation: { enabled: true },
+    introspection: { enabled: true },
+  } as any,
 };
-
-function validateConfig(config: any): void {
-  if (!config || typeof config !== 'object') { console.warn('[CONFIG] Invalid configuration: not an object'); return; }
-  if (config.clients !== undefined) {
-    if (!Array.isArray(config.clients)) console.warn('[CONFIG] Invalid configuration: clients must be an array');
-    else config.clients.forEach((client: any, index: number) => { if (!client.client_id) console.warn(`[CONFIG] Invalid client at index ${index}: missing client_id`); });
-  }
-  if (config.scopes !== undefined && !Array.isArray(config.scopes)) console.warn('[CONFIG] Invalid configuration: scopes must be an array');
-  if (config.cookies !== undefined) {
-    if (typeof config.cookies !== 'object') console.warn('[CONFIG] Invalid configuration: cookies must be an object');
-    else if (config.cookies.keys !== undefined && !Array.isArray(config.cookies.keys)) console.warn('[CONFIG] Invalid configuration: cookies.keys must be an array');
-  }
-  if (config.claims !== undefined && typeof config.claims !== 'object') console.warn('[CONFIG] Invalid configuration: claims must be an object');
-  if (config.features !== undefined && typeof config.features !== 'object') console.warn('[CONFIG] Invalid configuration: features must be an object');
-}
 
 let fileConfig: Partial<Configuration> = {};
 if (fs.existsSync(configFilePath)) {
-  try { fileConfig = JSON.parse(fs.readFileSync(configFilePath, 'utf-8')); validateConfig(fileConfig); console.log('[CONFIG] Loaded configuration file:', configFilePath); }
-  catch (err) { console.warn('[CONFIG] Failed to read/parse config file, ignoring fileConfig:', err); }
-} else console.log('[CONFIG] No configuration file found at path:', configFilePath);
+  try {
+    const raw = fs.readFileSync(configFilePath, 'utf8');
+    fileConfig = JSON.parse(raw);
+    console.log('[CONFIG] Loaded configuration from file');
+  } catch (err) {
+    console.warn('[CONFIG] Failed to read/parse config file:', err);
+  }
+}
 
-const envConfigFull = safeJSONParse<Partial<Configuration>>(process.env.CONFIG);
-if (envConfigFull) validateConfig(envConfigFull);
+let configuration: Configuration = mergeDeep({}, defaultConfig, fileConfig) as Configuration;
 
-let configuration: Configuration = JSON.parse(JSON.stringify(defaultConfig)) as Configuration;
-if (Object.keys(fileConfig).length > 0) configuration = mergeDeep(configuration, fileConfig);
-if (envConfigFull) configuration = mergeDeep(configuration, envConfigFull);
-
-const envOverrides: Partial<Configuration> = {};
 const clientsEnv = safeJSONParse<ClientMetadata[]>(process.env.CLIENTS);
-if (clientsEnv) envOverrides.clients = clientsEnv;
-else if (process.env.CLIENT_ID) {
-  envOverrides.clients = [{
-    client_id: process.env.CLIENT_ID,
-    client_secret: process.env.CLIENT_SECRET,
-    client_name: process.env.CLIENT_NAME,
-    redirect_uris: process.env.REDIRECT_URIS ? process.env.REDIRECT_URIS.split(',').map(u => u.trim()) : undefined,
-    post_logout_redirect_uris: process.env.POST_LOGOUT_REDIRECT_URIS ? process.env.POST_LOGOUT_REDIRECT_URIS.split(',').map(u => u.trim()) : undefined,
-    grant_types: (process.env.GRANT_TYPES ? process.env.GRANT_TYPES.split(',').map(g => g.trim()) : ['authorization_code', 'refresh_token']) as any,
-    response_types: (process.env.RESPONSE_TYPES ? process.env.RESPONSE_TYPES.split(',').map(r => r.trim()) : ['code']) as any,
-    token_endpoint_auth_method: (process.env.TOKEN_ENDPOINT_AUTH_METHOD || 'client_secret_basic') as any,
-  }];
+if (clientsEnv) configuration = mergeDeep(configuration, { clients: clientsEnv }) as Configuration;
+
+const singleClient: Partial<ClientMetadata> = {};
+if (process.env.CLIENT_ID) singleClient.client_id = process.env.CLIENT_ID;
+if (process.env.CLIENT_SECRET) singleClient.client_secret = process.env.CLIENT_SECRET;
+if (process.env.CLIENT_NAME) singleClient.client_name = process.env.CLIENT_NAME;
+if (process.env.REDIRECT_URIS) singleClient.redirect_uris = process.env.REDIRECT_URIS.split(',');
+if (process.env.POST_LOGOUT_REDIRECT_URIS) singleClient.post_logout_redirect_uris = process.env.POST_LOGOUT_REDIRECT_URIS.split(',');
+if (process.env.GRANT_TYPES) singleClient.grant_types = process.env.GRANT_TYPES.split(',') as any;
+if (process.env.RESPONSE_TYPES) singleClient.response_types = process.env.RESPONSE_TYPES.split(',') as any;
+if (process.env.TOKEN_ENDPOINT_AUTH_METHOD) singleClient.token_endpoint_auth_method = process.env.TOKEN_ENDPOINT_AUTH_METHOD as any;
+if (process.env.INTROSPECTION_ENDPOINT_AUTH_METHOD) singleClient.introspection_endpoint_auth_method = process.env.INTROSPECTION_ENDPOINT_AUTH_METHOD as any;
+if (process.env.APPLICATION_TYPE) singleClient.application_type = process.env.APPLICATION_TYPE as any;
+
+if (Object.keys(singleClient).length > 0) {
+  const existing = (configuration.clients as ClientMetadata[]) || [];
+  if (existing.length > 0) {
+    configuration.clients = [mergeDeep(existing[0], singleClient), ...existing.slice(1)] as any;
+  } else {
+    configuration.clients = [singleClient as ClientMetadata];
+  }
 }
 
 const cookiesEnv = safeJSONParse<any>(process.env.COOKIES);
-if (cookiesEnv) envOverrides.cookies = cookiesEnv;
-else {
-  const cookiesKeysEnv = safeJSONParse<string[]>(process.env.COOKIES_KEYS);
-  if (cookiesKeysEnv) envOverrides.cookies = { keys: cookiesKeysEnv } as any;
+if (cookiesEnv) configuration = mergeDeep(configuration, { cookies: cookiesEnv }) as Configuration;
+if (process.env.COOKIES_KEYS) {
+  try {
+    const keys = JSON.parse(process.env.COOKIES_KEYS);
+    configuration.cookies = { ...(configuration.cookies || {}), keys } as any;
+  } catch {
+    configuration.cookies = { ...(configuration.cookies || {}), keys: process.env.COOKIES_KEYS.split(',') } as any;
+  }
 }
+
 const claimsEnv = safeJSONParse<any>(process.env.CLAIMS);
-if (claimsEnv) envOverrides.claims = claimsEnv;
+if (claimsEnv) configuration = mergeDeep(configuration, { claims: claimsEnv }) as Configuration;
 if (process.env.SCOPES) {
-  const scopesArray = process.env.SCOPES.split(',').map(s => s.trim()).filter(Boolean);
-  if (scopesArray.length > 0) envOverrides.scopes = scopesArray;
+  const scopes = process.env.SCOPES.split(',').map(s => s.trim()).filter(Boolean);
+  if (scopes.length) (configuration as any).scopes = scopes;
 }
-if (process.env.FEATURES_DEV_INTERACTIONS !== undefined) envOverrides.features = { devInteractions: { enabled: process.env.FEATURES_DEV_INTERACTIONS === 'true' } } as any;
+
+const configEnv = safeJSONParse<Partial<Configuration>>(process.env.CONFIG);
+if (configEnv) configuration = mergeDeep(configuration, configEnv) as Configuration;
+
+const envOverrides: any = {};
+if (process.env.FEATURES_DEV_INTERACTIONS !== undefined) {
+  envOverrides.features = { ...(configuration as any).features, devInteractions: { enabled: process.env.FEATURES_DEV_INTERACTIONS === 'true' } };
+}
 const jwksEnv = safeJSONParse<any>(process.env.JWKS);
 if (jwksEnv) envOverrides.jwks = jwksEnv;
 if (Object.keys(envOverrides).length > 0) configuration = mergeDeep(configuration, envOverrides);
@@ -144,14 +153,18 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 if (process.env.NODE_ENV === 'production') {
+  // Presets must never synthesize credential material in production; credentials
+  // must come from explicit env/config (CLIENT_SECRET, COOKIES_KEYS, CLIENTS, etc.).
   const clients = (configuration.clients as any[]) || [];
-  if (clients.length === 0) throw new Error('At least one OAuth client must be explicitly configured in production.');
+  if (clients.length === 0) {
+    throw new Error('At least one OAuth client must be explicitly configured in production (e.g. CLIENTS or CLIENT_ID/CLIENT_SECRET).');
+  }
   if (clients.some(client => typeof client?.client_secret !== 'string' || client.client_secret.length < 32)) {
-    throw new Error('Every production OAuth client must have an explicit client_secret of at least 32 characters.');
+    throw new Error('Every production OAuth client must have an explicit client_secret of at least 32 characters (set CLIENT_SECRET or CLIENTS; presets will not generate one).');
   }
   const keys = (configuration.cookies as any)?.keys;
   if (!Array.isArray(keys) || keys.length === 0 || keys.some((key: any) => typeof key !== 'string' || key.length < 64)) {
-    throw new Error('Production cookie signing keys must be explicitly configured and at least 64 characters long.');
+    throw new Error('Production cookie signing keys must be explicitly configured and at least 64 characters long (set COOKIES_KEYS; presets will not generate them).');
   }
 }
 
