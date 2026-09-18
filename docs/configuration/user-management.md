@@ -572,7 +572,7 @@ curl -X GET "http://localhost:8080/auth?client_id=test-client&response_type=code
 
 # Manually enter credentials on login page
 # Email: admin@localhost
-# Password: Rays-93-Accident
+# Password: test-password
 
 # Exchange code for token
 curl -X POST http://localhost:8080/token \
