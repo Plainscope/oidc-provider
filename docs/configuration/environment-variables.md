@@ -47,9 +47,9 @@ Complete reference for all environment variables supported by the OIDC provider.
 ### CLIENT_SECRET
 
 - **Type**: String
-- **Default**: `a74566f905056b6806d69afc09f2803d1aa477e1d708540683994d6e4745334a`
+- **Default**: `local-dev-secret`
 - **Description**: OAuth 2.0 client secret for authentication. Keep secure!
-- **Example**: `CLIENT_SECRET=+XiBpec4OAIeFBSbRdGaAGLNz6ZFfAbq`
+- **Example**: `CLIENT_SECRET=local-dev-client-secret`
 - **Security**: Generate using `openssl rand -hex 32`
 
 ### CLIENT_NAME
@@ -182,7 +182,7 @@ CLAIMS='{
 ### COOKIES_KEYS
 
 - **Type**: JSON Array of strings
-- **Default**: `["40763539018b2f012d30aa7eba0123db3dc847b0eca146e5d7160838f8b2d092"]`
+- **Default**: `["local-dev-cookie-key"]`
 - **Description**: Array of cryptographic keys for signing cookies. Supports key rotation.
 - **Example**: `COOKIES_KEYS='["new-key","old-key"]'`
 - **Security**: Generate using `openssl rand -hex 32`
