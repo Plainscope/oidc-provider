@@ -113,23 +113,53 @@ except Exception as e:
     logger.warning(f'[INIT] CSRFProtect not configured: {e}')
 
 
-def check_bearer_token():
-    """Verify Provider-to-Directory Bearer credential (constant-time compare)."""
-    if not BEARER_TOKEN:
-        # No service credential configured: allow (dev) but mark as anonymous service.
-        return True
+def authenticate_api_caller():
+    """Authenticate Provider-to-Directory API caller (Bearer and/or JWT).
+
+    Returns ServiceIdentity on success, None on failure.
+    When neither static Bearer nor JWT is configured, allow in non-production
+    only (dev convenience). Production requires at least one mechanism.
+    """
+    from service_auth import authenticate_service_token, jwt_auth_configured, ServiceIdentity
+    from mtls_auth import enforce_mtls, mtls_required
+
+    # Optional mTLS gate (additional control; does not replace Bearer/JWT)
+    mtls_identity = enforce_mtls(request.headers)
+    if mtls_required() and mtls_identity is None:
+        return None
 
     auth_header = request.headers.get('Authorization', '')
     if not auth_header.startswith('Bearer '):
-        logger.warning('[AUTH] Missing or invalid Bearer token')
-        return False
+        if not BEARER_TOKEN and not jwt_auth_configured():
+            if is_production():
+                logger.warning('[AUTH] No service credentials configured in production')
+                return None
+            # Dev: unauthenticated service access
+            identity = ServiceIdentity(actor='anonymous-service', method='none')
+        else:
+            logger.warning('[AUTH] Missing or invalid Authorization Bearer header')
+            return None
+    else:
+        token = auth_header[7:]
+        identity = authenticate_service_token(token, BEARER_TOKEN)
+        if identity is None:
+            logger.warning('[AUTH] Service token rejected')
+            return None
 
-    token = auth_header[7:]  # Remove 'Bearer ' prefix
-    if not hmac.compare_digest(token, BEARER_TOKEN):
-        logger.warning('[AUTH] Invalid Bearer token provided')
-        return False
+    if mtls_identity and mtls_identity.verified and mtls_identity.subject:
+        # Enrich actor with certificate subject without replacing JWT/Bearer role
+        identity = ServiceIdentity(
+            actor=identity.actor,
+            role=identity.role,
+            method=identity.method + '+mtls',
+            claims={**(identity.claims or {}), 'mtls_subject': mtls_identity.subject},
+        )
+    return identity
 
-    return True
+
+def check_bearer_token():
+    """Backward-compatible boolean check used by older call sites."""
+    return authenticate_api_caller() is not None
 
 
 @app.before_request
@@ -145,7 +175,7 @@ def verify_auth():
     """Verify authorization and record caller role on flask.g.
 
     Boundaries (ADR-004 / Plan 04):
-      - Provider-to-Directory: static Bearer (service principal) on /api/* and legacy API paths.
+      - Provider-to-Directory: static Bearer or JWT on /api/* and legacy API paths.
       - Admin-to-Directory: browser session on UI routes (not an OIDC token issuer).
     Directory never issues Provider/OIDC tokens.
     """
@@ -164,17 +194,27 @@ def verify_auth():
     if any(request.path.startswith(p) for p in ['/static/', '/favicon']):
         return
 
-    # API requests require bearer token (includes /api/* and legacy
-    # /count, /validate, /find/* which expose user data and auth oracles)
+    # API requests require service auth or admin session
     if request.path.startswith('/api/') or request.path in ['/count', '/validate'] or request.path.startswith('/find/'):
-        if not check_bearer_token():
-            abort(401)
-        g.auth_context = {
-            'role': 'service',
-            'actor': 'provider-service',
-            'request_id': getattr(g, 'request_id', None),
-        }
-        return
+        identity = authenticate_api_caller()
+        if identity is not None:
+            g.auth_context = {
+                'role': identity.role,
+                'actor': identity.actor,
+                'method': identity.method,
+                'request_id': getattr(g, 'request_id', None),
+            }
+            return
+        # Admin browser session may call /api/* same-origin without re-sending the credential
+        if session.get('authenticated') and session.get('role') == 'admin':
+            g.auth_context = {
+                'role': 'admin',
+                'actor': session.get('username') or session.get('actor') or 'admin',
+                'method': 'session',
+                'request_id': getattr(g, 'request_id', None),
+            }
+            return
+        abort(401)
 
     # UI routes require valid session (admin authentication surface)
     if not session.get('authenticated'):
@@ -214,20 +254,9 @@ def set_security_headers(response):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=(), payment=()'
-    # HSTS only when the deployment is production and cookies are marked secure
-    # (implies TLS termination). Trusted proxies must set X-Forwarded-Proto.
     if is_production() and app.config.get('SESSION_COOKIE_SECURE'):
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
 
-    # CSP mirrors the provider service, plus the two CDN hosts the UI
-    # requires: Tailwind (styling) and Alpine.js (all page interactivity
-    # and API calls). Server-rendered templates rely on inline scripts,
-    # and Alpine.js compiles x-data/x-show expressions via new Function(),
-    # so 'unsafe-inline' AND 'unsafe-eval' are both required for the UI to
-    # function. object-src/base-uri stay locked down; sensitive actions
-    # additionally require bearer auth and CSRF tokens.
-    # TODO: vendor Alpine.js/Tailwind locally to drop the CDN allowlist
-    # (Alpine's CSP build could then drop 'unsafe-eval' too).
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' "
         "https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "
@@ -241,35 +270,27 @@ def set_security_headers(response):
 # Register Blueprints with Routes
 # ============================================================================
 
-# Register domain routes
 register_domain_routes(domains_bp)
 app.register_blueprint(domains_bp)
 
-# Register user routes
 register_user_routes(users_bp)
 app.register_blueprint(users_bp)
 
-# Register role routes
 register_role_routes(roles_bp)
 app.register_blueprint(roles_bp)
 
-# Register group routes
 register_group_routes(groups_bp)
 app.register_blueprint(groups_bp)
 
-# Register property key routes
 register_property_key_routes(property_keys_bp)
 app.register_blueprint(property_keys_bp)
 
-# Register audit routes
 register_audit_routes(audit_bp)
 app.register_blueprint(audit_bp)
 
-# Register legacy routes for backward compatibility
 register_legacy_routes(legacy_bp)
 app.register_blueprint(legacy_bp)
 
-# Register UI routes
 register_ui_routes(ui_bp)
 app.register_blueprint(ui_bp)
 
@@ -353,5 +374,4 @@ if __name__ == '__main__':
     if debug_enabled and (os.environ.get('FLASK_ENV') == 'production' or os.environ.get('ENV') == 'production'):
         raise RuntimeError('DEBUG must never be enabled in production')
     logger.info(f'[SERVER] Starting Simple Directory on port {port}')
-    # NOTE: Flask dev server is for local development only; production uses gunicorn (see Dockerfile CMD)
     app.run(host='0.0.0.0', port=port, debug=debug_enabled)
