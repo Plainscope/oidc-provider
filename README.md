@@ -6,7 +6,7 @@
 
 > **The modern replacement for `qlik/simple-oidc-provider`** - A production-ready OAuth 2.0 Authorization Server with complete OpenID Connect support, specifically designed for **local development** and **self-hosted scenarios**.
 
-## 🎯 Problem Statement
+## Problem Statement
 
 Many developers need a simple, reliable OIDC provider for:
 - **Local Development**: Testing OAuth flows without external dependencies
@@ -14,33 +14,21 @@ Many developers need a simple, reliable OIDC provider for:
 - **CI/CD Pipelines**: Automated testing of authentication flows
 - **Prototyping**: Rapid application development with real authentication
 
-The popular `qlik/simple-oidc-provider` is **no longer maintained**, leaving developers without a modern, actively-supported solution.
+The popular `qlik/simple-oidc-provider` is **no longer maintained**. Simple OIDC Provider provides an actively maintained, Docker-first alternative.
 
-**Simple OIDC Provider solves this problem** with:
-- ✅ Active maintenance and security updates
-- ✅ Production-ready with zero configuration
-- ✅ Docker-first design for easy deployment
-- ✅ Modern TypeScript implementation
-- ✅ Comprehensive documentation
-- ✅ Built-in user management UI
-
-## ⚡ Quick Start (60 Seconds)
-
-### One-Command Start
+## Quick Start (60 Seconds)
 
 ```bash
 docker run -p 8080:8080 plainscope/simple-oidc-provider
 ```
 
-That's it! Visit `http://localhost:8080` and you have a working OIDC provider.
+Visit `http://localhost:8080`. Discovery: `http://localhost:8080/.well-known/openid-configuration`
 
 **Default credentials:**
 - Email: `admin@localhost`
 - Password: `test-password`
 
-**Discovery endpoint:** `http://localhost:8080/.well-known/openid-configuration`
-
-### Docker Compose (Recommended)
+### Docker Compose
 
 ```bash
 git clone https://github.com/Plainscope/oidc-provider.git
@@ -48,111 +36,61 @@ cd oidc-provider
 docker-compose up
 ```
 
-Access the provider at `http://localhost:8080`
+Demo: `http://localhost:8080` · Provider: `http://localhost:9080`
+
+Test credentials: `admin@localhost` / `test-password`
 
 ## Features
 
-✅ **OAuth 2.0 & OpenID Connect Compliance**
+- OAuth 2.0 & OpenID Connect (Authorization Code, PKCE, Refresh, Client Credentials, Device, Hybrid)
+- Docker-ready multi-stage image (~180MB)
+- Environment and JSON configuration
+- Built-in login/consent UI
+- Secure defaults (HTTPS, cookies, CSRF)
+- TypeScript implementation with auto-configuration presets
 
-- Full RFC 6749 Authorization Server implementation
-- Complete OpenID Connect 1.0 specification support
-- Multiple authentication flows (Authorization Code, Implicit, Hybrid, Device, Client Credentials)
-
-✅ **Docker-Ready**
-
-- Production-ready Docker image
-- Multi-stage build with minimal footprint (~180MB)
-- Docker Compose included for quick testing
-- Optimized for Kubernetes and containerized environments
-
-✅ **Highly Configurable**
-
-- Environment variable configuration
-- JSON configuration file support
-- Extensive customization options
-- Support for multiple clients
-
-✅ **User-Friendly**
-
-- Built-in login and consent UI with Pug templates
-- Customizable styling and branding
-- Professional error handling
-- Responsive design
-
-✅ **Secure by Default**
-
-- HTTPS enforced in production
-- Secure cookie configuration
-- Token signing and validation
-- Rate limiting ready
-- CSRF/XSRF protection
-
-✅ **Developer Friendly**
-
-- TypeScript implementation
-- Comprehensive error logging
-- RESTful API design
-- Well-documented endpoints
-- **Auto-configuration presets** for local/self-hosted/testing
-- **Quick start wizard** for first-time setup
-
-## Quick Start
-
-### Docker Compose (Recommended)
+## Configuration presets
 
 ```bash
-git clone https://github.com/Plainscope/oidc-provider.git
-cd oidc-provider
-docker-compose up
-```
+# Local
+docker run -p 8080:8080 -e OIDC_PRESET=local plainscope/simple-oidc-provider
 
-Access the demo app at `http://localhost:8080` and OIDC provider at `http://localhost:9080`
-
-Test credentials:
-
-- **Email**: `admin@localhost`
-- **Password**: `test-password`
-
-### Docker Run
-
-```bash
-docker run -d \
-  --name oidc-provider \
-  -p 8080:8080 \
-  -e ISSUER=http://localhost:8080 \
-  -e CLIENT_ID=my-client \
+# Self-hosted
+docker run -p 8080:8080 \
+  -e OIDC_PRESET=selfHosted \
+  -e ISSUER=https://auth.yourcompany.com \
+  -e CLIENT_ID=your-app \
   -e CLIENT_SECRET=$(openssl rand -hex 32) \
-  -e REDIRECT_URIS=http://localhost:3000/callback \
-  docker.io/plainscope/simple-oidc-provider
+  -e REDIRECT_URIS=https://app.yourcompany.com/callback \
+  plainscope/simple-oidc-provider
+
+# Testing/CI
+docker run -p 8080:8080 -e OIDC_PRESET=testing plainscope/simple-oidc-provider
 ```
+
+Local examples may use `test-client-id` / `local-dev-secret`. Production must supply strong unique secrets.
 
 ## Documentation
 
-Complete documentation is available in the [`docs/`](./docs) directory:
-
-### 🚀 Getting Started
-- **[Getting Started Guide](./docs/guides/getting-started.md)** - Complete guide with users.json schema and API contract
-- **[Quick Start](./docs/guides/quickstart.md)** - 60-second setup guide
-- **[Docker Deployment](./docs/guides/docker-deployment.md)** - Docker and Docker Compose
-
-### ⚙️ Configuration
-- **[Environment Variables](./docs/configuration/environment-variables.md)** - All configuration options
-- **[User Management](./docs/configuration/user-management.md)** - Manage users and authentication
-
-### 🧪 Testing
-- **[Testing Quick Start](./docs/testing/quick-start.md)** - Get running in 4 commands
-- **[Complete Testing Guide](./docs/testing/complete-guide.md)** - Full overview and features
+- [Getting Started](./docs/guides/getting-started.md)
+- [Quick Start](./docs/guides/quickstart.md)
+- [Docker Deployment](./docs/guides/docker-deployment.md)
+- [Environment Variables](./docs/configuration/environment-variables.md)
+- [User Management](./docs/configuration/user-management.md)
+- [SQLite Directory](./docs/guides/sqlite-directory.md)
+- [Testing](./docs/testing/index.md)
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines, including the **Test credentials** policy (use `test-password`, `local-dev-secret`, `test-client-id`, `local-dev-bearer-token` — never realistic or high-entropy secrets).
+See [CONTRIBUTING.md](./CONTRIBUTING.md), including the **Test credentials** policy:
+`test-password`, `local-dev-secret`, `test-client-id`, `local-dev-bearer-token` — never realistic or high-entropy secrets in the tree.
 
 ## License
 
-This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE) file for details.
+MIT — see [LICENSE](./LICENSE).
 
 ## Acknowledgments
 
-- Based on [node-oidc-provider](https://github.com/panva/node-oidc-provider) by Panva and contributors
-- OAuth 2.0 Authorization Framework [RFC 6749](https://tools.ietf.org/html/rfc6749)
-- OpenID Connect Core [1.0 Specification](https://openid.net/specs/openid-connect-core-1_0.html)
+- [node-oidc-provider](https://github.com/panva/node-oidc-provider)
+- OAuth 2.0 [RFC 6749](https://tools.ietf.org/html/rfc6749)
+- [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)
