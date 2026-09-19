@@ -1,1 +1,30 @@
-<!DOCTYPE html><html><body><pre># Test with: admin@localhost / test-password</pre></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simple OIDC Provider</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 48rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    code, pre { background: #f4f4f5; padding: 0.15rem 0.35rem; border-radius: 4px; }
+    pre { padding: 1rem; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Simple OIDC Provider</h1>
+  <p>Production-ready OAuth 2.0 / OpenID Connect for local development and self-hosted scenarios.</p>
+  <h2>Quick start</h2>
+  <pre>docker run -p 8080:8080 plainscope/simple-oidc-provider
+
+# Provider ready at http://localhost:8080
+# Test with: admin@localhost / test-password</pre>
+  <p>Canonical test placeholders only — see the repository <code>CONTRIBUTING.md</code> (Test credentials).</p>
+  <h2>Documentation</h2>
+  <ul>
+    <li><a href="guides/quickstart.md">Quick start</a></li>
+    <li><a href="guides/getting-started.md">Getting started</a></li>
+    <li><a href="configuration/environment-variables.md">Environment variables</a></li>
+    <li><a href="testing/index.md">Testing</a></li>
+  </ul>
+</body>
+</html>
