@@ -1,0 +1,15 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Explicitly safe, repository-owned development placeholders."
+regexTarget = "match"
+regexes = [
+  '''^test-password$''',
+  '''^test-password-2$''',
+  '''^test-client-id$''',
+  '''^test-secret$''',
+  '''^local-dev$''',
+  '''^local-dev-secret$''',
+  '''^local-dev-bearer-token$''',
+]
