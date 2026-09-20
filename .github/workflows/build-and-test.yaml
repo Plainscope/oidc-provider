@@ -246,7 +246,7 @@ jobs:
         continue-on-error: true
         run: |
           docker run --rm -v "${PWD}:/repo" ghcr.io/gitleaks/gitleaks:latest detect \
-            --source /repo --redact --verbose \
+            --source /repo --config /repo/.gitleaks.toml --redact --verbose \
             --report-format sarif --report-path /repo/gitleaks.sarif \
             --exit-code 1
 
