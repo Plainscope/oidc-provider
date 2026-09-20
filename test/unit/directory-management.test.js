@@ -21,8 +21,8 @@ const { SqliteDirectory } = require(path.join(providerDist, 'directories/sqlite-
 const DB_PATH = path.join(os.tmpdir(), 'sqlite-mgmt-routes.db');
 const ADMIN_EMAIL = 'admin@localhost';
 const ADMIN_PASSWORD = 'test-password';
-// Synthetic test UUID (not a real secret) — avoids gitleaks generic-api-key false positives
-const ADMIN_ID = '11111111-1111-4111-8111-111111111111';
+// RFC 4122 example UUID; intentionally non-secret and stable for test fixtures.
+const ADMIN_ID = '123e4567-e89b-42d3-a456-426614174000';
 const DOMAIN_ID = '00000000-0000-0000-0000-000000000001';
 
 function resetDbFile() {
