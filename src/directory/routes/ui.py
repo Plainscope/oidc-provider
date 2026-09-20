@@ -1,7 +1,6 @@
 """UI routes for the web dashboard using Jinja templates."""
-import hmac
 import logging
-from flask import render_template, request, session, redirect, url_for, jsonify, abort, current_app
+from flask import render_template, request, session, redirect, url_for, jsonify, current_app
 
 logger = logging.getLogger('remote-directory')
 
@@ -15,33 +14,31 @@ def register_ui_routes(bp):
         if request.method == 'GET':
             logger.info('[AUTH] GET /login')
             return render_template('login.html', title='Login - Simple Directory')
-        
-        # POST request to validate token and create session
+
         if request.method == 'POST':
-            logger.info('[AUTH] POST /login - Validating bearer token')
+            logger.info('[AUTH] POST /login - Validating admin token')
             data = request.get_json()
-            
+
             if not data or 'token' not in data:
                 return jsonify({'error': 'Missing token'}), 400
-            
+
             token = data['token'].strip()
             if not token:
                 return jsonify({'error': 'Token cannot be empty'}), 400
-            
-            # Validate token using constant-time comparison to prevent timing attacks
-            bearer_token = current_app.config.get('BEARER_TOKEN')
 
-            if bearer_token and not hmac.compare_digest(token, bearer_token):
-                logger.warning('[AUTH] POST /login - Invalid token provided')
+            # Admin credential (DIRECTORY_ADMIN_TOKEN preferred; BEARER_TOKEN fallback).
+            # Directory admin sessions are not OIDC tokens (ADR-004 / issue #53).
+            from admin_auth import validate_admin_token, admin_session_payload
+
+            if not validate_admin_token(token):
+                logger.warning('[AUTH] POST /login - Invalid admin token provided')
                 return jsonify({'error': 'Invalid token'}), 401
-            
-            # Token is valid, create session
-            session['authenticated'] = True
-            session['token'] = token
-            logger.info('[AUTH] POST /login - Session created successfully')
-            
-            # Return success - token is now in server session
-            return jsonify({'success': True}), 200
+
+            # Session stores actor/role only — never the raw credential
+            session.clear()
+            session.update(admin_session_payload(actor='admin'))
+            logger.info('[AUTH] POST /login - Admin session created successfully')
+            return jsonify({'success': True, 'role': 'admin'}), 200
 
     @bp.route('/logout', methods=['POST', 'GET'])
     def ui_logout():
@@ -54,30 +51,25 @@ def register_ui_routes(bp):
     def ui_home():
         """GET / - Render the user management dashboard with stats."""
         logger.info('[API] GET /')
-        token = session.get('token')
-        
-        # Get statistics for dashboard
+        # auth_token no longer embedded; session cookie authorizes API (issue #53)
+        token = None
+
         from database import get_db
         db = get_db()
-        
+
         try:
-            # Count users
             cursor = db.execute('SELECT COUNT(*) as count FROM users')
             total_users = cursor.fetchone()['count']
-            
-            # Count domains
+
             cursor = db.execute('SELECT COUNT(*) as count FROM domains')
             total_domains = cursor.fetchone()['count']
-            
-            # Count groups
+
             cursor = db.execute('SELECT COUNT(*) as count FROM groups')
             total_groups = cursor.fetchone()['count']
-            
-            # Count roles
+
             cursor = db.execute('SELECT COUNT(*) as count FROM roles')
             total_roles = cursor.fetchone()['count']
-            
-            # Get recent activity
+
             cursor = db.execute('''
                 SELECT entity_type, entity_id, action, created_at
                 FROM audit_logs
@@ -85,14 +77,14 @@ def register_ui_routes(bp):
                 LIMIT 5
             ''')
             recent_activity = [dict(row) for row in cursor.fetchall()]
-            
+
             stats = {
                 'total_users': total_users,
                 'total_domains': total_domains,
                 'total_groups': total_groups,
                 'total_roles': total_roles
             }
-            
+
             return render_template(
                 'dashboard.html',
                 title='Dashboard - Simple Directory',
@@ -104,7 +96,6 @@ def register_ui_routes(bp):
             )
         except Exception as e:
             logger.error(f'Error getting dashboard stats: {e}')
-            # Render dashboard with error message if stats fail
             return render_template(
                 'dashboard.html',
                 title='Dashboard - Simple Directory',
@@ -125,35 +116,29 @@ def register_ui_routes(bp):
     def users():
         """GET /users - Render the users page."""
         logger.info('[API] GET /users')
-        token = session.get('token')
-        return render_template('index.html', title='Users', current_tab='users', auth_token=token)
+        return render_template('index.html', title='Users', current_tab='users', auth_token=None)
 
     @bp.route('/roles', methods=['GET'])
     def ui_roles():
         logger.info('[API] GET /roles')
-        token = session.get('token')
-        return render_template('roles.html', title='Roles', current_tab='roles', auth_token=token)
+        return render_template('roles.html', title='Roles', current_tab='roles', auth_token=None)
 
     @bp.route('/groups', methods=['GET'])
     def ui_groups():
         logger.info('[API] GET /groups')
-        token = session.get('token')
-        return render_template('groups.html', title='Groups', current_tab='groups', auth_token=token)
+        return render_template('groups.html', title='Groups', current_tab='groups', auth_token=None)
 
     @bp.route('/domains', methods=['GET'])
     def ui_domains():
         logger.info('[API] GET /domains')
-        token = session.get('token')
-        return render_template('domains.html', title='Domains', current_tab='domains', auth_token=token)
+        return render_template('domains.html', title='Domains', current_tab='domains', auth_token=None)
 
     @bp.route('/audit', methods=['GET'])
     def ui_audit():
         logger.info('[API] GET /audit')
-        token = session.get('token')
-        return render_template('audit.html', title='Audit', current_tab='audit', auth_token=token)
+        return render_template('audit.html', title='Audit', current_tab='audit', auth_token=None)
 
     @bp.route('/users/edit', methods=['GET'])
     def ui_user_edit():
         logger.info('[API] GET /users/edit')
-        token = session.get('token')
-        return render_template('user_edit.html', title='Edit User', current_tab='users', auth_token=token)
+        return render_template('user_edit.html', title='Edit User', current_tab='users', auth_token=None)

@@ -31,8 +31,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Supported runtimes for src/directory (see src/directory/README.md).
-        # 3.11 = minimum; 3.12 = production Docker image; 3.13 = forward compatibility.
         python-version: ["3.11", "3.12", "3.13"]
     defaults:
       run:
@@ -52,7 +50,6 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          # Strict install: any resolution failure (e.g. dropped Python support) fails the job.
           pip install --no-cache-dir -r requirements.txt
 
       - name: Smoke import and version report
@@ -78,18 +75,12 @@ jobs:
           import sqlalchemy
           import psycopg
           import alembic
+          import jwt
 
           print(f"Python: {sys.version}")
           print(f"Flask: {pkg_version('Flask')}")
-          print(f"python-dotenv: {pkg_version('python-dotenv')}")
-          print(f"bcrypt: {pkg_version('bcrypt')}")
-          print(f"Flask-WTF: {pkg_version('Flask-WTF')}")
-          print(f"Flask-Session: {pkg_version('Flask-Session')}")
-          print(f"Flask-Limiter: {pkg_version('Flask-Limiter')}")
-          print(f"gunicorn: {pkg_version('gunicorn')}")
           print(f"SQLAlchemy: {pkg_version('SQLAlchemy')}")
-          print(f"psycopg: {pkg_version('psycopg')}")
-          print(f"alembic: {pkg_version('alembic')}")
+          print(f"PyJWT: {pkg_version('PyJWT')}")
           print("All required packages import successfully.")
           EOF
 
@@ -108,6 +99,16 @@ jobs:
           set -euo pipefail
           python test_secrets_loader.py
 
+      - name: Run service JWT auth tests
+        run: |
+          set -euo pipefail
+          python test_service_auth.py
+
+      - name: Run admin and mTLS auth tests
+        run: |
+          set -euo pipefail
+          python test_admin_mtls_auth.py
+
       - name: Application factory smoke test
         run: |
           set -euo pipefail
@@ -117,7 +118,6 @@ jobs:
           mkdir -p "$(dirname "$DATABASE_FILE")"
           python - <<'EOF'
           import os
-          # Env must be set before importing app (init runs at import time).
           assert os.environ.get("SECRET_KEY"), "SECRET_KEY required"
           assert os.environ.get("DATABASE_FILE"), "DATABASE_FILE required"
           from app import app
