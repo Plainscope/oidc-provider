@@ -2,18 +2,18 @@
 
 Get Simple OIDC Provider running in under 60 seconds.
 
-## 🎯 What is This?
+## What is This?
 
 Simple OIDC Provider is a **production-ready OAuth 2.0 Authorization Server** designed specifically for:
 
 - **Local Development**: Test OAuth flows without external dependencies
-- **Self-Hosted Deployments**: Small teams needing authentication without SaaS costs  
+- **Self-Hosted Deployments**: Small teams needing authentication without SaaS costs
 - **CI/CD Pipelines**: Automated testing of authentication flows
 - **Prototyping**: Rapid application development with real authentication
 
 This is the **modern replacement** for the unmaintained `qlik/simple-oidc-provider`.
 
-## ⚡ Fastest Start (30 Seconds)
+## Fastest Start (30 Seconds)
 
 ### One Command
 
@@ -32,14 +32,14 @@ docker run -p 8080:8080 plainscope/simple-oidc-provider
 
 2. Default test credentials:
    - **Email**: `admin@localhost`
-   - **Password**: `Rays-93-Accident`
+   - **Password**: `test-password`
 
 3. Try the authorization flow:
    ```
    http://localhost:8080/auth?client_id=local-dev&redirect_uri=http://localhost:3000/callback&response_type=code&scope=openid%20profile%20email
    ```
 
-## 🚀 Recommended Setup (Docker Compose)
+## Recommended Setup (Docker Compose)
 
 For a full development environment with user management UI:
 
@@ -66,9 +66,9 @@ docker-compose up
 
 Use the default credentials:
 - Email: `admin@localhost`
-- Password: `Rays-93-Accident`
+- Password: `test-password`
 
-## 🎨 Configuration Presets
+## Configuration Presets
 
 Simple OIDC Provider auto-configures based on your needs:
 
@@ -83,10 +83,10 @@ docker run -p 8080:8080 \
 ```
 
 **Features:**
-- ✅ Pre-configured localhost redirects
-- ✅ Relaxed security for convenience
-- ✅ Debug logging enabled
-- ✅ Test credentials included
+- Pre-configured localhost redirects
+- Relaxed security for convenience
+- Debug logging enabled
+- Test credentials included
 
 ### Self-Hosted Production
 
@@ -104,10 +104,10 @@ docker run -p 8080:8080 \
 ```
 
 **Features:**
-- ✅ Production-ready security
-- ✅ Persistent storage
-- ✅ Longer token lifetimes
-- ✅ Audit logging
+- Production-ready security
+- Persistent storage
+- Longer token lifetimes
+- Audit logging
 
 ### Testing/CI
 
@@ -120,16 +120,14 @@ docker run -p 8080:8080 \
 ```
 
 **Features:**
-- ✅ Short token lifetimes
-- ✅ Predictable credentials
-- ✅ Fast startup
-- ✅ Minimal logging
+- Short token lifetimes
+- Predictable credentials
+- Fast startup
+- Minimal logging
 
-## 📦 Use Cases
+## Use Cases
 
 ### Use Case 1: Testing Your Application Locally
-
-You're building a web app and need to test OAuth login:
 
 ```bash
 # Start OIDC provider
@@ -145,59 +143,11 @@ export OAUTH_REDIRECT_URI=http://localhost:3000/callback
 npm start
 ```
 
-Your app can now authenticate users!
-
 ### Use Case 2: Self-Hosting for a Small Team
 
-You have a small team and want authentication without paying for Auth0:
-
-```bash
-# Create docker-compose.yml
-cat > docker-compose.yml <<EOF
-version: '3.8'
-services:
-  auth:
-    image: plainscope/simple-oidc-provider:latest
-    ports:
-      - "8080:8080"
-    environment:
-      - ISSUER=https://auth.yourcompany.com
-      - OIDC_PRESET=selfHosted
-      - CLIENT_ID=\${CLIENT_ID}
-      - CLIENT_SECRET=\${CLIENT_SECRET}
-      - REDIRECT_URIS=https://app.yourcompany.com/callback
-    volumes:
-      - auth-data:/app/data
-    restart: unless-stopped
-
-  directory:
-    image: plainscope/simple-oidc-provider:latest
-    command: python /app/src/directory/app.py
-    ports:
-      - "5000:5000"
-    environment:
-      - DATABASE_FILE=/app/data/users.db
-      - BEARER_TOKEN=\${ADMIN_TOKEN}
-    volumes:
-      - auth-data:/app/data
-    restart: unless-stopped
-
-volumes:
-  auth-data:
-EOF
-
-# Start services
-docker-compose up -d
-```
-
-Now you have:
-- OAuth provider at `https://auth.yourcompany.com`
-- User management UI at port 5000
-- Persistent user storage
+See [Docker Deployment](./docker-deployment.md) and [Production Deployment](./production-deployment.md).
 
 ### Use Case 3: CI/CD Testing
-
-Your CI pipeline needs to test authentication flows:
 
 ```yaml
 # .github/workflows/test.yml
@@ -214,11 +164,10 @@ jobs:
     steps:
       - name: Test OAuth Flow
         run: |
-          # Provider is available at http://localhost:8080
           npm run test:oauth
 ```
 
-## 🔧 Custom Configuration
+## Custom Configuration
 
 ### Minimal Custom Config
 
@@ -231,60 +180,22 @@ docker run -p 8080:8080 \
   plainscope/simple-oidc-provider
 ```
 
-### Full Custom Config
-
-Create a `config.json`:
-
-```json
-{
-  "clients": [
-    {
-      "client_id": "my-app",
-      "client_secret": "my-secret",
-      "client_name": "My Application",
-      "redirect_uris": [
-        "http://localhost:3000/callback"
-      ],
-      "post_logout_redirect_uris": [
-        "http://localhost:3000"
-      ],
-      "response_types": ["code"],
-      "grant_types": ["authorization_code", "refresh_token"]
-    }
-  ],
-  "scopes": ["openid", "profile", "email", "offline_access"],
-  "claims": {
-    "openid": ["sub"],
-    "email": ["email", "email_verified"],
-    "profile": ["name", "given_name", "family_name"]
-  }
-}
-```
-
-Mount it:
-
-```bash
-docker run -p 8080:8080 \
-  -v $(pwd)/config.json:/app/dist/config.json:ro \
-  plainscope/simple-oidc-provider
-```
-
-## 🔐 Security Notes
+## Security Notes
 
 ### Development vs Production
 
 **Development (local preset):**
-- ✅ Easy to use
-- ⚠️ Relaxed security
-- ✅ Pre-configured credentials
-- ❌ Not for production
+- Easy to use
+- Relaxed security
+- Pre-configured credentials
+- Not for production
 
 **Production (selfHosted preset):**
-- ✅ Secure by default
-- ✅ HTTPS enforced
-- ✅ Strong secrets required
-- ✅ Audit logging
-- ✅ Production-ready
+- Secure by default
+- HTTPS enforced
+- Strong secrets required
+- Audit logging
+- Production-ready
 
 ### Production Checklist
 
@@ -298,70 +209,40 @@ Before deploying to production:
 - [ ] Set up backup procedures
 - [ ] Review [Security Guide](./security.md)
 
-## 📖 Next Steps
+## Next Steps
 
-Now that you have it running:
+1. **Integrate with your app** — [OAuth Flow Examples](../api/oauth-flows.md)
+2. **Customize configuration** — [Environment Variables](../configuration/environment-variables.md)
+3. **Deploy to production** — [Production Deployment Guide](./production-deployment.md)
+4. **Manage users** — [User Management](../configuration/user-management.md)
+5. **Get help** — [Troubleshooting](./troubleshooting.md)
 
-1. **Integrate with your app**
-   - [OAuth Flow Examples](../api/oauth-flows.md)
-   - [Token Endpoints](../api/token-endpoints.md)
-
-2. **Customize configuration**
-   - [Environment Variables](../configuration/environment-variables.md)
-   - [Client Configuration](../configuration/client-configuration.md)
-
-3. **Deploy to production**
-   - [Production Deployment Guide](./production-deployment.md)
-   - [Security Best Practices](./security.md)
-
-4. **Manage users**
-   - [User Management](../configuration/user-management.md)
-   - [Remote Directory](../configuration/remote-directory.md)
-
-5. **Get help**
-   - [Troubleshooting](./troubleshooting.md)
-   - [GitHub Discussions](https://github.com/Plainscope/oidc-provider/discussions)
-
-## 🆘 Common Issues
+## Common Issues
 
 ### Port already in use
 
 ```bash
-# Change the port
 docker run -p 9080:8080 -e PORT=8080 -e ISSUER=http://localhost:9080 plainscope/simple-oidc-provider
 ```
 
 ### Can't connect from another container
 
 ```bash
-# Use host.docker.internal on Mac/Windows
 export ISSUER=http://host.docker.internal:8080
-
-# Or use a Docker network
-docker network create auth-network
-docker run --network auth-network --name oidc plainscope/simple-oidc-provider
 ```
 
 ### Tokens expire too quickly
 
 ```bash
-# Use self-hosted preset for longer tokens
 docker run -p 8080:8080 -e OIDC_PRESET=selfHosted plainscope/simple-oidc-provider
 ```
 
 ### Need to persist data between restarts
 
 ```bash
-# Add a volume
 docker run -p 8080:8080 -v ./data:/app/data plainscope/simple-oidc-provider
 ```
 
-## 🎉 Success!
+## Success!
 
-You now have a working OIDC provider! Try these next:
-
-- ⭐ Star the [GitHub repository](https://github.com/Plainscope/oidc-provider)
-- 📖 Read the [complete documentation](../README.md)
-- 💬 Join [discussions](https://github.com/Plainscope/oidc-provider/discussions)
-- 🐛 Report [issues](https://github.com/Plainscope/oidc-provider/issues)
-
+You now have a working OIDC provider. See [CONTRIBUTING.md](../../CONTRIBUTING.md) for the test-credential policy (`test-password`, `local-dev-secret`, etc.).

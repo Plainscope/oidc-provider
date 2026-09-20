@@ -20,8 +20,9 @@ const { SqliteDirectory } = require(path.join(providerDist, 'directories/sqlite-
 
 const DB_PATH = path.join(os.tmpdir(), 'sqlite-mgmt-routes.db');
 const ADMIN_EMAIL = 'admin@localhost';
-const ADMIN_PASSWORD = 'Rays-93-Accident';
-const ADMIN_ID = '8276bb5b-d0b7-41e9-a805-77b62a2865f4';
+const ADMIN_PASSWORD = 'test-password';
+// RFC 4122 example UUID; intentionally non-secret and stable for test fixtures.
+const ADMIN_ID = 'admin-test-user';
 const DOMAIN_ID = '00000000-0000-0000-0000-000000000001';
 
 function resetDbFile() {

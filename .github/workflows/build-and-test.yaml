@@ -40,6 +40,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Forbidden credential regression scan
+        # Issue #37: fail fast if retired secret-scanning values reappear.
+        run: node --test test/unit/forbidden-credentials.test.js
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -242,7 +246,7 @@ jobs:
         continue-on-error: true
         run: |
           docker run --rm -v "${PWD}:/repo" ghcr.io/gitleaks/gitleaks:latest detect \
-            --source /repo --redact --verbose \
+            --source /repo --config /repo/.gitleaks.toml --redact --verbose \
             --report-format sarif --report-path /repo/gitleaks.sarif \
             --exit-code 1
 

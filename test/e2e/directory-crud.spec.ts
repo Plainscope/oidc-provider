@@ -57,25 +57,25 @@ test.describe('Directory CRUD Operations with Security', () => {
 
     const testRoleName = `test-role-${Date.now()}`;
 
-    // Create first role
-    await page.click('button:has-text("Add Role")');
-    await page.fill('input[placeholder="Name"]', testRoleName);
-    await page.fill('input[placeholder="Description"]', 'Test role');
-    await page.click('button:has-text("Create")', { force: true });
+    // Create first role through the current Alpine.js modal.
+    await page.getByRole('button', { name: 'Add Role' }).click();
+    await expect(page.getByRole('heading', { name: 'Create Role' })).toBeVisible();
+    await page.locator('input[placeholder="Name"]').fill(testRoleName);
+    await page.locator('input[placeholder="Description"]').fill('Test role');
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
 
-    // Wait for role to appear in list (modal closes automatically)
-    await page.waitForSelector(`text=${testRoleName}`, { state: 'visible' });
+    // The successful API request closes the modal and reloads the roles list.
+    await expect(page.getByRole('heading', { name: 'Create Role' })).toBeHidden();
+    await expect(page.locator('td').filter({ hasText: testRoleName })).toBeVisible();
 
-    // Verify role appears in list
-    await expect(page.locator(`text=${testRoleName}`)).toBeVisible();
+    // Try to create the same role again.
+    await page.getByRole('button', { name: 'Add Role' }).click();
+    await expect(page.getByRole('heading', { name: 'Create Role' })).toBeVisible();
+    await page.locator('input[placeholder="Name"]').fill(testRoleName);
+    await page.locator('input[placeholder="Description"]').fill('Duplicate role');
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
 
-    // Try to create duplicate
-    await page.click('button:has-text("Add Role")');
-    await page.fill('input[placeholder="Name"]', testRoleName);
-    await page.fill('input[placeholder="Description"]', 'Duplicate role');
-    await page.click('button:has-text("Create")', { force: true });
-
-    // Should show error banner instead of closing
+    // Duplicate names are rejected by the API and displayed inline in the modal.
     const roleError = page.locator('div.bg-red-50').first();
     await expect(roleError).toBeVisible();
     await expect(roleError).toContainText(/already exists|duplicate/i);
