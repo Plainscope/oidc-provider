@@ -57,27 +57,26 @@ test.describe('Directory CRUD Operations with Security', () => {
 
     const testRoleName = `test-role-${Date.now()}`;
 
-    // Create first role using the server-rendered role form.
-    await page.getByRole('link', { name: 'Create Role' }).first().click();
+    // Create first role through the current Alpine.js modal.
+    await page.getByRole('button', { name: 'Add Role' }).click();
     await expect(page.getByRole('heading', { name: 'Create Role' })).toBeVisible();
-    await page.locator('input[name="name"]').fill(testRoleName);
-    await page.locator('textarea[name="description"]').fill('Test role');
-    await page.getByRole('button', { name: 'Create Role' }).click();
+    await page.locator('input[placeholder="Name"]').fill(testRoleName);
+    await page.locator('input[placeholder="Description"]').fill('Test role');
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
 
-    // The create endpoint redirects back to the roles list.
-    await expect(page).toHaveURL(new RegExp('/directory/roles$'));
+    // The successful API request closes the modal and reloads the roles list.
+    await expect(page.getByRole('heading', { name: 'Create Role' })).toBeHidden();
     await expect(page.locator('td').filter({ hasText: testRoleName })).toBeVisible();
 
     // Try to create the same role again.
-    await page.getByRole('link', { name: 'Create Role' }).first().click();
+    await page.getByRole('button', { name: 'Add Role' }).click();
     await expect(page.getByRole('heading', { name: 'Create Role' })).toBeVisible();
-    await page.locator('input[name="name"]').fill(testRoleName);
-    await page.locator('textarea[name="description"]').fill('Duplicate role');
-    await page.getByRole('button', { name: 'Create Role' }).click();
+    await page.locator('input[placeholder="Name"]').fill(testRoleName);
+    await page.locator('input[placeholder="Description"]').fill('Duplicate role');
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
 
-    // Duplicate names are rejected by the server and the form is rendered with an error.
-    await expect(page).toHaveURL(new RegExp('/directory/roles/new$'));
-    const roleError = page.locator('.error-message').first();
+    // Duplicate names are rejected by the API and displayed inline in the modal.
+    const roleError = page.locator('div.bg-red-50').first();
     await expect(roleError).toBeVisible();
     await expect(roleError).toContainText(/already exists|duplicate/i);
   });
