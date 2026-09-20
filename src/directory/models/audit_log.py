@@ -20,8 +20,18 @@ class AuditLog:
     @staticmethod
     def log(entity_type: str, entity_id: str, action: str, 
             changes: Dict = None, performed_by: str = None,
-            ip_address: str = None, user_agent: str = None):
-        """Log an audit entry."""
+            ip_address: str = None, user_agent: str = None,
+            actor: str = None, **kwargs):
+        """Log an audit entry.
+        
+        `actor` is accepted as an alias for `performed_by` (see
+        utils.audit.get_audit_metadata, which reports the caller from the
+        request auth context). Any additional keyword arguments (e.g. `role`,
+        `request_id`) are accepted and ignored so audit metadata can evolve
+        without breaking mutation endpoints.
+        """
+        if performed_by is None and actor is not None:
+            performed_by = actor
         db = get_db()
         log_id = generate_id()
         changes_json = json.dumps(changes) if changes else None
