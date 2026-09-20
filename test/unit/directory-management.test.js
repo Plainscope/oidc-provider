@@ -22,7 +22,7 @@ const DB_PATH = path.join(os.tmpdir(), 'sqlite-mgmt-routes.db');
 const ADMIN_EMAIL = 'admin@localhost';
 const ADMIN_PASSWORD = 'test-password';
 // RFC 4122 example UUID; intentionally non-secret and stable for test fixtures.
-const ADMIN_ID = '123e4567-e89b-42d3-a456-426614174000';
+const ADMIN_ID = 'admin-test-user';
 const DOMAIN_ID = '00000000-0000-0000-0000-000000000001';
 
 function resetDbFile() {
