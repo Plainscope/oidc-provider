@@ -286,7 +286,7 @@ curl -X POST http://localhost:8080/token \
   -d "grant_type=authorization_code&code=AUTH_CODE&client_id=CLIENT_ID&client_secret=CLIENT_SECRET&redirect_uri=REDIRECT_URI"
 
 # Userinfo endpoint
-curl -H "Authorization: Bearer ACCESS_TOKEN" \
+curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   http://localhost:8080/me
 ```
 

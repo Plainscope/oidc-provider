@@ -9,7 +9,7 @@ The provider can authenticate users against an external HTTP directory that impl
 ```bash
 DIRECTORY_TYPE=remote
 DIRECTORY_BASE_URL=http://directory:5000
-DIRECTORY_HEADERS='{"Authorization":"Bearer local-dev-bearer-token"}'
+DIRECTORY_HEADERS='{"Authorization":"Bearer ${DIRECTORY_BEARER_TOKEN}"}'
 ```
 
 Replace `local-dev-bearer-token` with a strong secret outside local development.
@@ -18,7 +18,7 @@ Replace `local-dev-bearer-token` with a strong secret outside local development.
 
 ```bash
 curl -X POST http://localhost:7090/validate \
-  -H "Authorization: Bearer local-dev-bearer-token" \
+  -H "Authorization: Bearer ${DIRECTORY_BEARER_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@localhost","password":"test-password"}'
 ```

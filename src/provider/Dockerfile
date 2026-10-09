@@ -19,15 +19,16 @@ COPY public ./public
 # Build TypeScript (prune dev deps afterwards so the runtime stage can reuse
 # node_modules directly without recompiling native modules)
 RUN npm run build \
-    && npm prune --omit=dev \
-    && npm cache clean --force
+    && npm prune --omit=dev
 
 # Runtime stage - LTS major-float tag; no build tools to minimize attack surface
 FROM node:22-alpine AS runtime
 
 # Apply security updates only (curl kept for healthcheck)
 RUN apk add --no-cache curl \
-    && apk upgrade --no-cache
+    && apk upgrade --no-cache \
+    && rm -rf /usr/local/lib/node_modules/npm /opt/yarn* \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn /usr/local/bin/yarnpkg
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs \

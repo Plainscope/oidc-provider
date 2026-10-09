@@ -93,11 +93,11 @@ curl -X POST https://oidc.example.com/token \
 
 ```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiJ9...",
+  "access_token": "example-jwt",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "refresh_token": "abc123def456...",
-  "id_token": "eyJhbGciOiJSUzI1NiJ9..."
+  "refresh_token": "example-refresh-token",
+  "id_token": "example-jwt"
 }
 ```
 
@@ -121,7 +121,7 @@ curl -X POST https://oidc.example.com/token \
 
 ```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiJ9...",
+  "access_token": "example-jwt",
   "token_type": "Bearer",
   "expires_in": 3600,
   "refresh_token": "new-refresh-token..."
@@ -148,7 +148,7 @@ curl -X POST https://oidc.example.com/token \
 
 ```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiJ9...",
+  "access_token": "example-jwt",
   "token_type": "Bearer",
   "expires_in": 3600
 }
@@ -162,7 +162,7 @@ Call protected endpoint with access token:
 
 ```bash
 curl -X GET https://oidc.example.com/me \
-  -H "Authorization: Bearer ACCESS_TOKEN"
+  -H "Authorization: Bearer ${ACCESS_TOKEN}"
 ```
 
 **Response**:

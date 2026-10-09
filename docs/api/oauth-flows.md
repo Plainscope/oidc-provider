@@ -67,11 +67,11 @@ curl -X POST https://oidc.example.com/token \
 
 ```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiJ9...",
+  "access_token": "example-jwt",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "refresh_token": "abc123...",
-  "id_token": "eyJhbGciOiJSUzI1NiJ9..."
+  "refresh_token": "example-refresh-token",
+  "id_token": "example-jwt"
 }
 ```
 
@@ -119,7 +119,7 @@ curl -X POST https://oidc.example.com/token \
 
 ```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiJ9...",
+  "access_token": "example-jwt",
   "token_type": "Bearer",
   "expires_in": 3600
 }
@@ -183,8 +183,8 @@ https://oidc.example.com/auth?
 
 ```
 https://app.example.com/callback#
-  id_token=eyJhbGciOiJSUzI1NiJ9...&
-  access_token=eyJhbGciOiJSUzI1NiJ9...&
+  id_token=example-jwt&
+  access_token=example-jwt&
   token_type=Bearer&
   expires_in=3600&
   state=abc123
@@ -219,7 +219,7 @@ Response includes both:
 ```
 https://app.example.com/callback?
   code=AUTH_CODE&
-  id_token=eyJhbGciOiJSUzI1NiJ9...
+  id_token=example-jwt
 ```
 
 ### Response Type: code token
@@ -323,7 +323,7 @@ curl -X POST https://oidc.example.com/token \
 
 ```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiJ9...",
+  "access_token": "example-jwt",
   "token_type": "Bearer",
   "expires_in": 3600
 }
@@ -414,7 +414,7 @@ Once authorized:
 
 ```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiJ9...",
+  "access_token": "example-jwt",
   "token_type": "Bearer",
   "expires_in": 3600
 }

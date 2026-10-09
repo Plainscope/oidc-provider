@@ -1,13 +1,25 @@
 # Production image: Python 3.12 (see README.md for full supported matrix 3.11–3.13).
 # CI validates requirements.txt against 3.11, 3.12, and 3.13 via directory-python-matrix.
-FROM python:3.12-alpine
+FROM python:3.12-alpine AS build
 
 WORKDIR /app
 
 # Copy requirements and install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt \
+    && /opt/venv/bin/pip uninstall -y pip setuptools
+
+FROM python:3.12-alpine AS runtime
+WORKDIR /app
+COPY --from=build /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+# Package installers are build-only; the service never installs at runtime.
+RUN rm -rf /usr/local/lib/python3.12/site-packages/pip* \
+    /usr/local/lib/python3.12/site-packages/setuptools* \
+    /usr/local/lib/python3.12/site-packages/pkg_resources \
+    /usr/local/lib/python3.12/ensurepip \
+    && rm -f /usr/local/bin/pip*
 
 # Install curl for container health checks
 RUN apk add --no-cache curl \

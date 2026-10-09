@@ -481,7 +481,7 @@ export INTROSPECTION_ENDPOINT_AUTH_METHOD=client_secret_basic
 
 ```bash
 curl -X POST https://oidc.example.com/introspect \
-  -u "client_id:client_secret" \
+  -u "${CLIENT_ID}:${CLIENT_SECRET}" \
   -d "token=ACCESS_TOKEN"
 ```
 
@@ -498,7 +498,7 @@ export REVOCATION_ENDPOINT_AUTH_METHOD=client_secret_basic
 
 ```bash
 curl -X POST https://oidc.example.com/revoke \
-  -u "client_id:client_secret" \
+  -u "${CLIENT_ID}:${CLIENT_SECRET}" \
   -d "token=ACCESS_TOKEN&token_type_hint=access_token"
 ```
 

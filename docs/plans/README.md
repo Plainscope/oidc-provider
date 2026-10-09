@@ -44,3 +44,7 @@ Plan 01 and security scaffolding can proceed before the full API migration, but 
 ## Next Steps
 
 Create/execute implementation issues #41–#45 against these plans. #40 is satisfied by this reconciliation update.
+
+## Pipeline remediation reviews
+
+- [Run 37940776624: prioritized actions and verification](./06-pipeline-run-37940776624.md)

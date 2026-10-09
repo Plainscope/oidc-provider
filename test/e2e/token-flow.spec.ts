@@ -138,7 +138,8 @@ test.describe('OIDC Token Flow', () => {
 
   test('should reject expired tokens at userinfo endpoint', async ({ page }) => {
     // Use an old/expired token format
-    const expiredToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDAwMDAwMDB9.invalid';
+    // Synthetic JWT: exp=1600000000 and literal invalid signature.
+    const expiredToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDAwMDAwMDB9.invalid'; // gitleaks:allow
 
     const response = await page.request.get(`${providerUrl}/me`, {
       headers: {

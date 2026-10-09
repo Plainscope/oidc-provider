@@ -141,7 +141,7 @@ builder.Services.AddAuthentication(options =>
       // Default: let it bubble up (developer exception page will show details)
       return Task.CompletedTask;
     },
-    OnTokenValidated = async context =>
+    OnTokenValidated = context =>
     {
       if (context.Principal?.Identity is ClaimsIdentity identity)
       {
@@ -192,6 +192,7 @@ builder.Services.AddAuthentication(options =>
           identity.AddClaim(new Claim(ClaimTypes.Surname, familyNameClaim.Value));
         }
       }
+      return Task.CompletedTask;
     }
   };
 });

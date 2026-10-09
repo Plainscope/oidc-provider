@@ -216,11 +216,11 @@ client_secret=CLIENT_SECRET
 
 ```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "example-jwt",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "refresh_token": "abc123def456...",
-  "id_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refresh_token": "example-refresh-token",
+  "id_token": "example-jwt"
 }
 ```
 
@@ -241,7 +241,7 @@ Returns authenticated user's profile information.
 
 ```http
 GET /me
-Authorization: Bearer ACCESS_TOKEN
+Authorization: Bearer ${ACCESS_TOKEN}
 ```
 
 ### Response
@@ -272,7 +272,7 @@ Authorization: Bearer ACCESS_TOKEN
 
 ```bash
 curl -X GET https://oidc.example.com/me \
-  -H "Authorization: Bearer ACCESS_TOKEN"
+  -H "Authorization: Bearer ${ACCESS_TOKEN}"
 ```
 
 ## Logout Endpoint
