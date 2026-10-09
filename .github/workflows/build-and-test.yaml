@@ -8,6 +8,7 @@ on:
     paths:
       - src/**/*
       - test/**/*
+      - .gitleaks.toml
       - docker-compose.yml
       - .github/workflows/*
   pull_request:
@@ -21,6 +22,7 @@ on:
     paths:
       - src/**/*
       - test/**/*
+      - .gitleaks.toml
       - docker-compose.yml
       - .github/workflows/*
 

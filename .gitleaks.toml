@@ -2,8 +2,10 @@
 useDefault = true
 
 [allowlist]
-description = "Explicitly safe, repository-owned development placeholders."
-regexTarget = "match"
+description = "Exact repository-owned development and documentation placeholders; never allowlist whole files."
+# Match the extracted secret rather than the full source line, so a placeholder
+# remains allowlisted when it appears in JSON, YAML, shell examples, or tests.
+regexTarget = "secret"
 regexes = [
   '''^test-password$''',
   '''^test-password-2$''',
@@ -12,4 +14,10 @@ regexes = [
   '''^local-dev$''',
   '''^local-dev-secret$''',
   '''^local-dev-bearer-token$''',
+  '''^test-client-secret$''',
+  '''^local-dev-client-secret$''',
+  '''^dev-secret$''',
+  '''^admin-only-token$''',
+  '''^sk-invalid-token-12345$''',
+  '''^test-cookie-key-12345678901234567890123456789012$''',
 ]
