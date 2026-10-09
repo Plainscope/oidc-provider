@@ -3,16 +3,15 @@ from flask import g, request
 
 
 def get_audit_metadata():
-    """Collect audit metadata from the current request and auth context.
+    """Return metadata supported by the current AuditLog model.
 
-    Includes actor/role/request_id when available so audit views can show
-    who performed an action without leaking secret material.
+    The model accepts performed_by, ip_address, and user_agent. Keep this
+    adapter aligned with that contract so an audit write cannot turn an
+    otherwise successful mutation into an HTTP 500.
     """
     auth = getattr(g, "auth_context", None) or {}
     return {
+        "performed_by": auth.get("actor") or auth.get("username"),
         "ip_address": request.remote_addr,
         "user_agent": request.headers.get("User-Agent", ""),
-        "actor": auth.get("actor"),
-        "role": auth.get("role"),
-        "request_id": auth.get("request_id") or getattr(g, "request_id", None),
     }
