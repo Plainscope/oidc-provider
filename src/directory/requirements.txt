@@ -8,3 +8,4 @@ gunicorn==23.0.0
 SQLAlchemy>=2.0.36,<3
 psycopg[binary]>=3.2.3,<4
 alembic>=1.14.0,<2
+PyJWT[crypto]>=2.9.0,<3

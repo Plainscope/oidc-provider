@@ -20,15 +20,15 @@
       if (window.csrfToken) { headers.set('X-CSRFToken', window.csrfToken); }
       headers.set('Content-Type', headers.get('Content-Type') || 'application/json');
 
-      // Get Authorization header from page context or session
+      // Prefer same-origin session cookie for admin API (issue #53).
+      // Optional meta auth-token kept for migration only.
       const authToken = document.querySelector('meta[name="auth-token"]')?.getAttribute('content');
       if (authToken) {
         headers.set('Authorization', `Bearer ${authToken}`);
       }
 
-      const response = await fetch(url, { ...options, headers });
+      const response = await fetch(url, { ...options, headers, credentials: 'same-origin' });
 
-      // If the server signals an expired/invalid session, bounce to login
       if (response.status === 401) {
         const target = '/login?redirectTo=' + encodeURIComponent(window.location.pathname);
         window.location.href = target;
@@ -36,22 +36,7 @@
 
       return response;
     }
-    // Check if user is authenticated - script is at the end of body, so DOM is already loaded
-    const authToken = document.querySelector('meta[name="auth-token"]')?.getAttribute('content');
-    const currentPath = window.location.pathname;
-
-    // Don't check auth on login page or root
-    if (currentPath !== '/login' && !currentPath.startsWith('/error')) {
-      if (!authToken) {
-        window.location.href = '/login?redirectTo=' + encodeURIComponent(currentPath);
-      }
-    }
-    // Handle unauthorized responses
-    window.addEventListener('fetch', (e) => {
-      if (e.response && e.response.status === 401) {
-        window.location.href = '/login?redirectTo=' + encodeURIComponent(window.location.pathname);
-      }
-    });
+    // Server-side session gate handles auth redirects (issue #53).
   </script>
 </head>
 
@@ -90,7 +75,6 @@
     {% block content %}{% endblock %}
   </div>
 
-  <!-- Confirmation Modal -->
   <div id="confirmModal" class="hidden fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-lg shadow-lg max-w-sm w-full">
       <div class="p-6">
@@ -107,7 +91,6 @@
   </div>
 
   <script>
-    // Confirmation Dialog Manager
     window.confirmModal = {
       resolve: null,
       confirm() {
@@ -129,7 +112,6 @@
       }
     };
 
-    // Alpine.js layout data
     function layoutData() {
       return {
         async logout() {
@@ -138,7 +120,6 @@
           } catch (err) {
             console.error('Logout failed', err);
           } finally {
-            // Clear any client-side token caches if present
             sessionStorage.removeItem('directoryAuthToken');
             window.location.href = '/login';
           }

@@ -22,10 +22,10 @@ async function login(page) {
     page.click('button:has-text("Sign In")')
   ]);
 
-  // Wait for meta tag to be present with generous timeout for webkit
-  await page.waitForSelector('meta[name="auth-token"]', { timeout: 15000, state: 'attached' });
-
-  await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN, { timeout: 15000 });
+  // Session-based admin auth (issue #53): no auth-token meta embedded in HTML.
+  // Confirm authenticated UI via nav + CSRF meta instead.
+  await expect(page.locator('nav a:has-text("Users")')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('meta[name="csrf-token"]')).toHaveAttribute('content', /.+/);
 }
 
 test.describe('Directory CRUD Operations with Security', () => {

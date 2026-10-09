@@ -19,9 +19,8 @@ async function login(page, redirectTo: string = '/') {
     page.click('button:has-text("Sign In")')
   ]);
 
-  // Verify the auth token meta is available for subsequent API calls
-  await page.waitForSelector('meta[name="auth-token"]', { timeout: 15000, state: 'attached' });
-  await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN, { timeout: 15000 });
+  // Session-based admin auth (issue #53): credentials are not embedded as auth-token meta.
+  await expect(page.locator('nav a:has-text("Users"), nav a:has-text("Dashboard")').first()).toBeVisible({ timeout: 15000 });
 }
 
 test.describe('Directory Service Authentication', () => {
@@ -58,8 +57,8 @@ test.describe('Directory Service Authentication', () => {
     // Should redirect to home page (users view) after successful login
     await expect(page).toHaveURL(`${BASE_URL}/`);
 
-    // Verify token is exposed for API calls via meta tag
-    await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN);
+    // Session cookie authorizes subsequent same-origin API calls (no embedded token)
+    await expect(page.locator('nav a:has-text("Users")')).toBeVisible();
   });
 
   test('should persist authentication across page navigation', async ({ page }) => {
@@ -84,35 +83,21 @@ test.describe('Directory Service Authentication', () => {
     ]);
     await expect(page.locator('h2').first()).toContainText('Domains');
 
-    // Token should still be available for API calls
-    await expect(page.locator('meta[name="auth-token"]')).toHaveAttribute('content', BEARER_TOKEN);
+    // Session remains valid across navigation
+    await expect(page.locator('nav a:has-text("Users")')).toBeVisible();
   });
 
-  test('should make authenticated API calls with Bearer token', async ({ page }) => {
-    // Setup request interception to verify Bearer token
-    const apiCalls: any[] = [];
-    page.on('request', request => {
-      if (request.url().includes('/api/')) {
-        apiCalls.push({
-          url: request.url(),
-          headers: request.headers()
-        });
-      }
-    });
-
-    // Login
+  test('should make authenticated API calls with admin session', async ({ page }) => {
+    // Login establishes server-side admin session; same-origin fetches use cookies
     await login(page);
 
-    // Navigate to a page that triggers API calls
-    await page.goto(`${BASE_URL}/users`);
+    const response = await page.evaluate(async () => {
+      const res = await window.csrfFetch('/api/users');
+      return { status: res.status, ok: res.ok };
+    });
 
-    // Wait for API call to complete
-    await page.waitForRequest(request => request.url().includes('/api/users'));
-
-    // Verify API calls include Bearer token
-    const usersApiCall = apiCalls.find(call => call.url.includes('/api/users'));
-    expect(usersApiCall).toBeDefined();
-    expect(usersApiCall.headers.authorization).toBe(`Bearer ${BEARER_TOKEN}`);
+    expect(response.status).toBe(200);
+    expect(response.ok).toBe(true);
   });
 
   test('should logout and clear authentication', async ({ page }) => {
@@ -121,9 +106,8 @@ test.describe('Directory Service Authentication', () => {
     // Logout via the header link
     await page.locator('a[title="Sign out"]').click({ force: true });
 
-    // Should redirect to login page and no auth token meta present
+    // Should redirect to login page after session clear
     await expect(page).toHaveURL(`${BASE_URL}/login`);
-    await expect(page.locator('meta[name="auth-token"]')).toHaveCount(0);
 
     // Accessing dashboard again should bounce back to login
     await page.goto(`${BASE_URL}/`);
@@ -159,14 +143,11 @@ test.describe('Directory Service Authentication', () => {
     await expect(page).toHaveURL(/\/domains/);
   });
 
-  test('should handle API 401 responses by redirecting to login', async ({ page }) => {
+  test('should handle API 401 responses by redirecting to login', async ({ page, context }) => {
     await login(page, '/users');
 
-    // Corrupt the in-page auth token so subsequent API calls get a 401
-    await page.evaluate(() => {
-      const meta = document.querySelector('meta[name="auth-token"]');
-      if (meta) meta.setAttribute('content', 'sk-invalid-token');
-    });
+    // Clear server session cookie so subsequent same-origin API calls are unauthorized
+    await context.clearCookies();
 
     // Trigger an API call that will fail and should redirect to login
     await Promise.all([
