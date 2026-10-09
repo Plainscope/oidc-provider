@@ -24,7 +24,7 @@ from urllib.parse import urlparse
 
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Connection, Engine, Result
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool
 
 logger = logging.getLogger("remote-directory")
 
@@ -79,10 +79,16 @@ def create_db_engine(
 
     sqlite_url = f"sqlite:///{db_path}"
     logger.info("[DB] Using SQLite engine at %s", db_path)
+    # NullPool: every engine.connect() opens its own sqlite3 connection.
+    # The previous StaticPool shared a single DBAPI connection across all
+    # gunicorn threads, so concurrent requests interleaved binds/cursors on
+    # one connection (sqlite3.InterfaceError / "tuple index out of range"
+    # under write+read load). File-backed SQLite needs no shared in-memory
+    # state, so per-connection pooling is both safe and cheap.
     engine = create_engine(
         sqlite_url,
         connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
+        poolclass=NullPool,
         future=True,
     )
 
@@ -400,13 +406,20 @@ def get_db() -> Database:
 
 
 def close_db(e=None) -> None:
-    """Close the per-request connection (Flask teardown handler)."""
+    """Close the per-request connection (Flask teardown handler).
+
+    Rolls back the open transaction when the request tore down with an
+    error instead of committing half-applied work.
+    """
     from flask import g
 
     tx = g.pop("db_tx", None)
     if tx is not None:
         try:
-            tx.commit()
+            if e is not None:
+                tx.rollback()
+            else:
+                tx.commit()
         except Exception:
             try:
                 tx.rollback()
