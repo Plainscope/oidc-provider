@@ -10,7 +10,9 @@ WORKDIR /app
 COPY package*.json tsconfig.json ./
 
 # Install dependencies
-RUN npm ci
+# Keep lifecycle output visible in BuildKit logs to identify native-module failures
+# during cross-architecture builds (notably under QEMU).
+RUN npm ci --foreground-scripts --verbose
 
 # Copy source files
 COPY src ./src
