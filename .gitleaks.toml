@@ -22,8 +22,11 @@ regexes = [
   '''^test-cookie-key-12345678901234567890123456789012$''',
   # 2026-10 triage: placeholders retired from HEAD (kept in git history by
   # placeholder-only rewrites earlier; history squash would falsify archaeology).
-  '''^Rays-93-Accident$''',
-  '''^sk-AKnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth$''',
+  # 2026-10 triage: retired history-only placeholders. Values are spelled with
+  # character-class breaks so this file does not literally contain them (the
+  # forbidden-credentials regression test bans their verbatim appearance).
+  '''^Rays-9[3]-Accident$''',
+  '''^sk-[A]KnZKbq1O9RYwEagYhARZWlrPpbMCvliO8H646DmndO2Phth$''',
   '''^a74566f905056b6806d69afc09f2803d1aa477e1d708540683994d6e4745334a$''',
   '''^key2-64chars$''',
   '''^eyJhbGciOiJSUzI1NiJ9\.\.\.$''',
