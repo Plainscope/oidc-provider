@@ -44,23 +44,26 @@
   <nav class="bg-white shadow">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
-        <div class="flex items-center">
-          <h1 class="text-2xl font-bold text-gray-900">Simple Directory</h1>
+        <div class="flex items-center shrink-0">
+          <h1 class="text-2xl font-bold text-gray-900 whitespace-nowrap">Simple Directory</h1>
         </div>
-        <div class="flex items-center gap-4">
+        <!-- min-w-0 + overflow-x-auto keeps the mobile layout viewport at device width;
+             otherwise uncapped nav-link min-content width pushes Chrome to expand the
+             viewport, sending fixed-position modals outside the visible area. -->
+        <div class="flex items-center gap-4 min-w-0 overflow-x-auto">
           <a href="/"
-            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'dashboard' else 'text-gray-600' }}">Dashboard</a>
+            class="px-4 py-2 font-medium whitespace-nowrap {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'dashboard' else 'text-gray-600' }}">Dashboard</a>
           <a href="/users"
-            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'users' else 'text-gray-600' }}">Users</a>
+            class="px-4 py-2 font-medium whitespace-nowrap {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'users' else 'text-gray-600' }}">Users</a>
           <a href="/roles"
-            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'roles' else 'text-gray-600' }}">Roles</a>
+            class="px-4 py-2 font-medium whitespace-nowrap {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'roles' else 'text-gray-600' }}">Roles</a>
           <a href="/groups"
-            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'groups' else 'text-gray-600' }}">Groups</a>
+            class="px-4 py-2 font-medium whitespace-nowrap {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'groups' else 'text-gray-600' }}">Groups</a>
           <a href="/domains"
-            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'domains' else 'text-gray-600' }}">Domains</a>
+            class="px-4 py-2 font-medium whitespace-nowrap {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'domains' else 'text-gray-600' }}">Domains</a>
           <a href="/audit"
-            class="px-4 py-2 font-medium {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'audit' else 'text-gray-600' }}">Audit</a>
-          <a href="/logout" class="text-gray-600 hover:text-gray-900 font-medium" title="Sign out">
+            class="px-4 py-2 font-medium whitespace-nowrap {{ 'border-b-2 border-blue-500 text-blue-600' if current_tab == 'audit' else 'text-gray-600' }}">Audit</a>
+          <a href="/logout" class="text-gray-600 hover:text-gray-900 font-medium whitespace-nowrap" title="Sign out">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
