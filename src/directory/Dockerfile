@@ -4,10 +4,15 @@ FROM python:3.12-alpine
 
 WORKDIR /app
 
-# Copy requirements and install dependencies
+# Copy requirements and install dependencies, then remove pip entirely:
+# the runtime never invokes pip, and its bundled vendored packages (msgpack,
+# urllib3, setuptools) carry HIGH findings that Trivy flags in image scans.
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt \
+    && rm -rf /usr/local/lib/python3.12/site-packages/pip \
+              /usr/local/lib/python3.12/site-packages/pip-*.dist-info \
+              /usr/local/lib/python3.12/site-packages/.wh.pip-*
 
 # Install curl for container health checks
 RUN apk add --no-cache curl \
