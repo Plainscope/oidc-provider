@@ -310,6 +310,9 @@ jobs:
 
   push-docker-images:
     name: "Build and Push Docker Images"
+    # Fail fast if an emulated architecture hangs instead of leaving publishing
+    # jobs running for tens of minutes without progress.
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
@@ -379,6 +382,8 @@ jobs:
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
+        env:
+          BUILDKIT_PROGRESS: plain
         with:
           context: ${{ matrix.image.context }}
           file: ${{ matrix.image.dockerfile }}
